@@ -22,20 +22,16 @@ pub fn init_world(testbed: &mut Testbed) {
     let mut iter = 0;
 
     testbed.add_callback(move |_, physics_state, _, _| {
+        let player_rigid_body = physics_state.bodies.get_mut(player_handle).unwrap();
+
         if now.elapsed().unwrap().as_secs() >= 1 {
             // 1 sec
-            let player_rigid_body = physics_state.bodies.get_mut(player_handle).unwrap();
             match iter{
-                0|1|3|4 => {
-                    let player_rot = player_rigid_body.rotation();
-                    let impulse = player_rot.transform_vector(&Vector3::new(0.0,-10.0,0.0));
-                    player_rigid_body.apply_impulse(impulse, true);
-                }
-                2 => {
+                0 => {
                     let player_rot = player_rigid_body.rotation();
                     player_rigid_body.set_rotation(UnitQuaternion::from_euler_angles(0.0, 0.0, PI) * player_rot, true);
                 }
-                5 => {
+                1 => {
                     let player_rot = player_rigid_body.rotation();
                     player_rigid_body.set_rotation(UnitQuaternion::from_euler_angles(0.0, 0.0, PI / 3.0) * player_rot, true);
                 }
@@ -43,9 +39,13 @@ pub fn init_world(testbed: &mut Testbed) {
 
                 }
             }
-            iter = (iter + 1) % 6;
+            iter = (iter + 1) % 2;
             now = SystemTime::now();
         }
+
+        let player_rot = player_rigid_body.rotation();
+        let impulse = player_rot.transform_vector(&Vector3::new(0.0,-0.5,0.0));
+        player_rigid_body.apply_impulse(impulse, true);
     });
 
     testbed.set_world(bodies, colliders, impulse_joints, multibody_joints);
