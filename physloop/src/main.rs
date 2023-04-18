@@ -5,7 +5,8 @@ struct Player {
     handle: RigidBodyHandle,
     collider_handle: ColliderHandle,
     camera_vec: Vector3<f32>,
-    firing: bool,
+    lmb_pressed: bool,
+    gun_cooldown: i32,
 }
 
 fn new_player(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> Player {
@@ -13,22 +14,25 @@ fn new_player(rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet)
         .translation(vector![0.0, 0.0, 0.0])
         .build();
     let handle = rigid_body_set.insert(rigid_body);
-    let collider = ColliderBuilder::capsule_y(1.0, 1.0).build();
+    let collider = ColliderBuilder::capsule_y(1.0, 0.5).build();
     let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
     let player = Player {
         handle,
         collider_handle,
         camera_vec: vector![0.0, 0.0, -1.0],
-        firing: false,
+        lmb_pressed: false,
+        gun_cooldown: 0,
     };
     player
 }
 
-fn player_fire(player: &Player, rigid_body_set: &mut RigidBodySet) {
-    if player.firing {
+fn player_fire(player: &mut Player, rigid_body_set: &mut RigidBodySet) {
+    if player.lmb_pressed && player.gun_cooldown == 0 {
+        println!("firing");
         let player_rigid_body = rigid_body_set.get_mut(player.handle).unwrap();
         let impulse = -10.0 * player.camera_vec;
         player_rigid_body.apply_impulse(impulse, true);
+        player.gun_cooldown = 30;
     }
 }
 
@@ -58,12 +62,16 @@ fn main() {
     for i in 0..200 {
 
         if i == 10 {
-            player.firing = true;
+            player.lmb_pressed = true;
         } else {
-            player.firing = false;
+            // player.lmb_pressed = false;
         }
         
-        player_fire(&player, &mut rigid_body_set);      
+        player_fire(&mut player, &mut rigid_body_set);    
+
+        if player.gun_cooldown > 0 { 
+            player.gun_cooldown -= 1; 
+        }
 
         physics_pipeline.step(
             &gravity,
