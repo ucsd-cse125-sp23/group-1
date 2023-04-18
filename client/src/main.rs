@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::io;
 use std::io::{Read,Write};
 use std::net::{TcpStream};
+use std::str;
 
 #[derive(Serialize, Deserialize)]
 struct ClientData {
@@ -9,8 +10,12 @@ struct ClientData {
     movement: String,
 }
 
+struct GameState {
+    placeholder: String
+}
+
 fn main() -> std::io::Result<()> {
-    while true {
+    loop {
         let mut stream = TcpStream::connect("localhost:8080")?;
         // if Ok(stream) {
         //     println!("Connected to the server!");
@@ -29,8 +34,11 @@ fn main() -> std::io::Result<()> {
             };
             let j = serde_json::to_string(&client_data)?;
             stream.write(j.as_bytes())?;
-            stream.read(&mut [0; 128])?;
+            let mut buf = [0 as u8; 128];
+            let size = stream.read(&mut buf)?;
+            let message : &str = str::from_utf8(&buf[0..size]).unwrap();
+            println!("{}", message);
         }
     }
-    Ok(())
+    // Ok(())
 }
