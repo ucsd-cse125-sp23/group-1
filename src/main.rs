@@ -1,13 +1,30 @@
 extern crate glfw;
-use self::glfw::{Context, Key, Action};
 
+// graphics
+use self::glfw::{Context, Key, Action};
 use std::sync::mpsc::Receiver;
 
-// settings
+// network
+use std::io::{Read, Write};
+use serde::{Deserialize, Serialize};
+use std::net::{TcpStream};
+use std::str;
+use glfw::ffi::{glfwGetKey, glfwGetTime};
+
+// graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
 
-fn main() {
+// network settings
+const SEND_TIME_INTERVAL: f64 = 0.3;
+
+#[derive(Serialize, Deserialize)]
+struct ClientData {
+    client_id: u8,
+    movement: String,
+}
+
+fn main() -> std::io::Result<()> {
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -29,18 +46,49 @@ fn main() {
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
+    // Create network TcpStream
+    let mut stream = TcpStream::connect("localhost:8080")?;
+    let mut last_send_time: f64 = 0.0;
+
     // render loop
     // -----------
     while !window.should_close() {
+        let mut client_data: ClientData = ClientData {
+            client_id: 1,
+            movement: String::from("no input"),
+        };
+
         // events
         // -----
         process_events(&mut window, &events);
+
+        process_inputs(&mut window, &mut client_data);
+
+        // Send & receive client data
+        if (glfw.get_time() > last_send_time + SEND_TIME_INTERVAL) {
+            last_send_time = glfw.get_time();
+
+            let j = serde_json::to_string(&client_data)?;
+            stream.write(j.as_bytes())?;
+            let mut data = [0 as u8; 50];
+            match stream.read(&mut data) {
+                Ok(size) => {
+                    let message: &str = str::from_utf8(&data[0..size]).unwrap();
+                    if message.len() > 0 {
+                        let value: ClientData = serde_json::from_str(message).unwrap();
+                        println!("received: {}", value.movement);
+                    }
+                }
+                _ => {}
+            }
+        }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         window.swap_buffers();
         glfw.poll_events();
     }
+    Ok(())
 }
 
 // NOTE: not the same version as in common.rs!
@@ -55,5 +103,18 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
             glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
             _ => {}
         }
+    }
+}
+
+// process input and edit client sending packet
+fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData) {
+    if window.get_key(Key::Down) == Action::Press {
+        client_data.movement = String::from("down");
+    } else if window.get_key(Key::Up) == Action::Press {
+        client_data.movement = String::from("up");
+    } else if window.get_key(Key::Left) == Action::Press {
+        client_data.movement = String::from("left");
+    } else if window.get_key(Key::Right) == Action::Press {
+        client_data.movement = String::from("right");
     }
 }
