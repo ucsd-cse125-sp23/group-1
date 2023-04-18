@@ -22,7 +22,9 @@ fn main() -> std::io::Result<()> {
         // } else {
         //     println!("Couldn't connect to server...");
         // }
-
+        
+        // 1. 4 movements
+        // 2. vector rotation (3 params)
         println!("Choose your movement [forward, backward, left, right]: ");
 
         let mut input = String::new();
@@ -34,11 +36,18 @@ fn main() -> std::io::Result<()> {
             };
             let j = serde_json::to_string(&client_data)?;
             stream.write(j.as_bytes())?;
+
             let mut buf = [0 as u8; 128];
             let size = stream.read(&mut buf)?;
             let message : &str = str::from_utf8(&buf[0..size]).unwrap();
             println!("{}", message);
         }
+
+        /*  TODO:
+                1. Check for* updated state
+                2. Update local game state
+                3. Render world
+        */ 
     }
     // Ok(())
 }

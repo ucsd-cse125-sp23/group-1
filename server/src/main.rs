@@ -30,6 +30,9 @@ struct GameState {
     movement: String,
 }
 
+// 1. position: x, y, z of the obj
+// 
+
 fn handle_client(mut stream: TcpStream) {
     let mut client_buf = [0 as u8; 50]; // using 50 byte buf
 
@@ -78,5 +81,12 @@ fn main() -> std::io::Result<()> {
     for stream in listener.incoming() {
         handle_client(stream?);
     }
+
+    /*  TODO:
+            1. Update game state
+            2. Send updated state
+            3. Wait until tick ends
+
+    */
     Ok(())
 }
