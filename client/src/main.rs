@@ -23,6 +23,10 @@ struct ClientData {
     movement: String,
 }
 
+struct GameState {
+    placeholder: String
+}
+
 fn main() -> std::io::Result<()> {
     // glfw: initialize and configure
     // ------------------------------
@@ -69,18 +73,18 @@ fn main() -> std::io::Result<()> {
 
             let j = serde_json::to_string(&client_data)?;
             stream.write(j.as_bytes())?;
-            let mut data = [0 as u8; 50];
-            match stream.read(&mut data) {
-                Ok(size) => {
-                    let message: &str = str::from_utf8(&data[0..size]).unwrap();
-                    if message.len() > 0 {
-                        let value: ClientData = serde_json::from_str(message).unwrap();
-                        println!("received: {}", value.movement);
-                    }
-                }
-                _ => {}
-            }
+
+            let mut buf = [0 as u8; 128];
+            let size = stream.read(&mut buf)?;
+            let message : &str = str::from_utf8(&buf[0..size]).unwrap();
+            println!("{}", message);
         }
+
+        /*  TODO:
+                1. Check for* updated state
+                2. Update local game state
+                3. Render world
+        */
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
