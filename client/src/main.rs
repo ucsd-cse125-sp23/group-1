@@ -10,7 +10,7 @@ struct ClientData {
 }
 
 fn main() -> std::io::Result<()> {
-    while True {
+    while true {
         let mut stream = TcpStream::connect("localhost:8080")?;
         // if Ok(stream) {
         //     println!("Connected to the server!");
