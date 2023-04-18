@@ -9,7 +9,6 @@ use std::io::{Read, Write};
 use serde::{Deserialize, Serialize};
 use std::net::{TcpStream};
 use std::str;
-use glfw::ffi::{glfwGetKey, glfwGetTime};
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
@@ -65,7 +64,7 @@ fn main() -> std::io::Result<()> {
         process_inputs(&mut window, &mut client_data);
 
         // Send & receive client data
-        if (glfw.get_time() > last_send_time + SEND_TIME_INTERVAL) {
+        if glfw.get_time() > last_send_time + SEND_TIME_INTERVAL {
             last_send_time = glfw.get_time();
 
             let j = serde_json::to_string(&client_data)?;
