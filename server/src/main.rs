@@ -3,6 +3,8 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::str;
 
+mod ecs;
+
 #[derive(Serialize, Deserialize)]
 struct ClientData {
     client_id: u8,
