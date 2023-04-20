@@ -34,27 +34,27 @@ struct GameState {
     players: Vec<Entity>,
 }
 
-fn main() {
-    let mut state = GameState{
-        entity_allocator: GenerationalIndexAllocator::new(),
-        physics_components: EntityMap::new(),
-        player_camera_components: EntityMap::new(),
-        player_input_components: EntityMap::new(),
-        player_weapon_components: EntityMap::new(),
-        players: vec![],
-    };
+// fn main() {
+//     let mut state = GameState{
+//         entity_allocator: GenerationalIndexAllocator::new(),
+//         physics_components: EntityMap::new(),
+//         player_camera_components: EntityMap::new(),
+//         player_input_components: EntityMap::new(),
+//         player_weapon_components: EntityMap::new(),
+//         players: vec![],
+//     };
 
-    // dummy player
-    let dummy_player = state.entity_allocator.allocate();
-    state.player_input_components.set(dummy_player, PlayerInputComponent{
-        lmb_pressed: false,
-    });
-    state.player_weapon_components.set(dummy_player, PlayerWeaponComponent{
-        cooldown: 0,
-    });
-    println!("lmb_pressed: {}, cooldown: {}", state.player_input_components.get(dummy_player).unwrap().lmb_pressed, state.player_weapon_components.get(dummy_player).unwrap().cooldown);
+//     // dummy player
+//     let dummy_player = state.entity_allocator.allocate();
+//     state.player_input_components.set(dummy_player, PlayerInputComponent{
+//         lmb_pressed: false,
+//     });
+//     state.player_weapon_components.set(dummy_player, PlayerWeaponComponent{
+//         cooldown: 0,
+//     });
+//     println!("lmb_pressed: {}, cooldown: {}", state.player_input_components.get(dummy_player).unwrap().lmb_pressed, state.player_weapon_components.get(dummy_player).unwrap().cooldown);
 
-    // loop {
-    //     // physics_pipeline.step();
-    // }
-}
+//     // loop {
+//     //     // physics_pipeline.step();
+//     // }
+// }
