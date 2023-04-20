@@ -1,4 +1,5 @@
-// Generational index template from https://kyren.github.io/2018/09/14/rustconf-talk.html
+// Generational index template and function declarations from https://kyren.github.io/2018/09/14/rustconf-talk.html
+
 
 // You can use other types that usize / u64 if these are too large
 #[derive(Eq, PartialEq)]
@@ -75,19 +76,18 @@ impl<T> GenerationalIndexArray<T> {
 
     // Gets the value for some generational index, the generation must match.
     pub fn get(&self, index: GenerationalIndex) -> Option<&T> {
-        // if self.0[index.index].map(|e| e.generation) == Some(index.generation) {
-        //     Some(self.0[index.index].unwrap().value).as_ref()
-        // } else {
-        //     None
-        // }
-        // Some(& self.0[index.index].unwrap().value)
+        if self.0[index.index].as_ref()?.generation == index.generation {
+            self.0[index.index].as_ref().map(|e| &e.value)
+        } else {
+            None
+        }
         
     }
     pub fn get_mut(&mut self, index: GenerationalIndex) -> Option<&mut T> {
-        // if self.0[index.index].unwrap().generation == index.generation {
-        //     Some(&mut self.0[index.index].unwrap().value)
-        // } else {
-        //     None
-        // }
+        if self.0[index.index].as_ref()?.generation == index.generation {
+            self.0[index.index].as_mut().map(|e| &mut e.value)
+        } else {
+            None
+        }
     }
 }
