@@ -2,54 +2,69 @@ use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::str;
+use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 
-mod ecs;
+mod client_components;
+use client_components::*;
+mod server_components;
+use server_components::*;
 
-#[derive(Serialize, Deserialize)]
-struct ClientData {
-    client_id: u8,
-    movement: String,
+type Entity = DefaultKey;
+
+struct ECS {
+    // entity_allocator: GenerationalIndexAllocator,
+    name_component: SlotMap<Entity, String>,
+
+    physics_components: SecondaryMap<Entity, PhysicsComponent>,
+    player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
+    player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
+    player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
+
+    players: Vec<Entity>,
 }
 
-// used for any 3D value (position, velocity, acceleration)
-struct Coords {
-    x: f64,
-    y: f64,
-    z: f64,
-}
+// #[derive(Serialize, Deserialize)]
+// struct ClientData {
+//     client_id: u8,
+//     movement: String,
+// }
 
-// TODO: merge with ClientData
-struct Player {
-    position: Coords,
-    velocity: Coords,
-    hp: u8,
-    name: String,
-}
+// // used for any 3D value (position, velocity, acceleration)
+// struct Coords {
+//     x: f64,
+//     y: f64,
+//     z: f64,
+// }
 
-// Dummy structure that holds movement just for now
-struct GameState {
-    players: Vec<Player>,
-    movement: String,
-}
+// // TODO: merge with ClientData
+// struct Player {
+//     position: Coords,
+//     velocity: Coords,
+//     hp: u8,
+//     name: String,
+// }
 
-// 1. position: x, y, z of the obj
-// 
+// // Dummy structure that holds movement just for now
+// struct GameState {
+//     players: Vec<Player>,
+//     movement: String,
+// }
 
 fn handle_client(mut stream: TcpStream) {
     let mut client_buf = [0 as u8; 50]; // using 50 byte buf
 
     // TODO: move outside of handle client function for multiple clients
-    let mut state = GameState {
-        players: Vec::new(),
-        movement: String::from("none")
-    };
-    let mut dummy_player = Player {
-        position: Coords {x:0.0, y:0.0, z:0.0},
-        velocity: Coords {x:0.0, y:0.0, z:0.0},
-        hp: 100,
-        name: String::from("Dummy McDummyFace"),
-    };
-    state.players.push(dummy_player);
+    // let mut state = GameState {
+    //     players: Vec::new(),
+    //     movement: String::from("none")
+    // };
+    // let mut dummy_player = Player {
+    //     position: Coords {x:0.0, y:0.0, z:0.0},
+    //     velocity: Coords {x:0.0, y:0.0, z:0.0},
+    //     hp: 100,
+    //     name: String::from("Dummy McDummyFace"),
+    // };
+    // state.players.push(dummy_player);
 
     while match stream.read(&mut client_buf) {
         Ok(size) => {
