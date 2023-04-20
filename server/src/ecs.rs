@@ -27,12 +27,12 @@ type Entity = DefaultKey;
 
 struct GameState {
     // entity_allocator: GenerationalIndexAllocator,
-    entity_allocator: SlotMap<DefaultKey, ()>,
+    name_component: SlotMap<Entity, String>,
 
-    physics_components: SecondaryMap<DefaultKey, PhysicsComponent>,
-    player_camera_components: SecondaryMap<DefaultKey, PlayerCameraComponent>,
-    player_input_components: SecondaryMap<DefaultKey, PlayerInputComponent>,
-    player_weapon_components: SecondaryMap<DefaultKey, PlayerWeaponComponent>,
+    physics_components: SecondaryMap<Entity, PhysicsComponent>,
+    player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
+    player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
+    player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
 
     players: Vec<Entity>,
 }
