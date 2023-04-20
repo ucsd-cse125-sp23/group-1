@@ -2,7 +2,7 @@
 
 
 // You can use other types that usize / u64 if these are too large
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Clone, Copy)]
 pub struct GenerationalIndex {
     index: usize,
     generation: u64,
@@ -25,6 +25,13 @@ pub struct GenerationalIndexAllocator {
 }
 
 impl GenerationalIndexAllocator {
+    pub fn new() -> GenerationalIndexAllocator {
+        GenerationalIndexAllocator{
+            entries: vec![],
+            free: vec![],
+        }
+    }
+
     pub fn allocate(&mut self) -> GenerationalIndex {
         if self.free.is_empty() {
             self.entries.push(AllocatorEntry { is_live: true, generation: 0 });
@@ -65,6 +72,10 @@ struct ArrayEntry<T> {
 pub struct GenerationalIndexArray<T>(Vec<Option<ArrayEntry<T>>>);
 
 impl<T> GenerationalIndexArray<T> {
+    pub fn new() -> GenerationalIndexArray<T> {
+        GenerationalIndexArray(vec![])
+    }
+
     // Set the value for some generational index.  May overwrite past generation
     // values.
     pub fn set(&mut self, index: GenerationalIndex, value: T) {
