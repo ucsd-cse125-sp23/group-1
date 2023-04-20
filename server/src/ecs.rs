@@ -1,9 +1,10 @@
 use nalgebra::*;
 use rapier3d::prelude::*;
 
-use self::generational_index::{GenerationalIndex, GenerationalIndexArray, GenerationalIndexAllocator};
+// mod generational_index;
+// use self::generational_index::{GenerationalIndex, GenerationalIndexArray, GenerationalIndexAllocator};
 
-mod generational_index;
+use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 
 struct PhysicsComponent {
     handle: RigidBodyHandle,
@@ -19,17 +20,19 @@ struct PlayerWeaponComponent {
     cooldown: i8,
 }
 
-type Entity = GenerationalIndex;
+// type Entity = GenerationalIndex;
+type Entity = DefaultKey;
 
-type EntityMap<T> = GenerationalIndexArray<T>;
+// type EntityMap<T> = GenerationalIndexArray<T>;
 
 struct GameState {
-    entity_allocator: GenerationalIndexAllocator,
+    // entity_allocator: GenerationalIndexAllocator,
+    entity_allocator: SlotMap<DefaultKey, ()>,
 
-    physics_components: EntityMap<PhysicsComponent>,
-    player_camera_components: EntityMap<PlayerCameraComponent>,
-    player_input_components: EntityMap<PlayerInputComponent>,
-    player_weapon_components: EntityMap<PlayerWeaponComponent>,
+    physics_components: SecondaryMap<DefaultKey, PhysicsComponent>,
+    player_camera_components: SecondaryMap<DefaultKey, PlayerCameraComponent>,
+    player_input_components: SecondaryMap<DefaultKey, PlayerInputComponent>,
+    player_weapon_components: SecondaryMap<DefaultKey, PlayerWeaponComponent>,
 
     players: Vec<Entity>,
 }
