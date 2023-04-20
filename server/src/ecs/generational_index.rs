@@ -67,6 +67,9 @@ impl<T> GenerationalIndexArray<T> {
     // Set the value for some generational index.  May overwrite past generation
     // values.
     pub fn set(&mut self, index: GenerationalIndex, value: T) {
+        if self.0.len() <= index.index {
+            self.0.resize_with(index.index + 1, Default::default)
+        }
         self.0[index.index] = Some(ArrayEntry { value, generation: index.generation });
     }
 
