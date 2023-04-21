@@ -12,15 +12,27 @@ use server_components::*;
 type Entity = DefaultKey;
 
 struct ECS {
-    // entity_allocator: GenerationalIndexAllocator,
-    name_component: SlotMap<Entity, String>,
-
-    physics_components: SecondaryMap<Entity, PhysicsComponent>,
-    player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
+    name_components: SlotMap<Entity, String>,
+    // client components
     player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
     player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
+    physics_components: SecondaryMap<Entity, PhysicsComponent>,
+    player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
     players: Vec<Entity>,
+}
+
+impl ECS {
+    fn new() -> ECS {
+        ECS {
+            name_components: SlotMap::new(),
+            player_input_components: SecondaryMap::new(),
+            player_weapon_components: SecondaryMap::new(),
+            physics_components: SecondaryMap::new(),
+            player_camera_components: SecondaryMap::new(),
+            players: vec![],
+        }
+    }
 }
 
 // #[derive(Serialize, Deserialize)]

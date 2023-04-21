@@ -1,5 +1,3 @@
-use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-
 use nalgebra::*;
 use rapier3d::prelude::*;
 
@@ -9,7 +7,4 @@ pub struct PhysicsComponent {
 }
 pub struct PlayerCameraComponent {
     camera_front: Vector3<f32>,
-}
-pub struct PlayerInputComponent {
-    lmb_pressed: bool,
 }
