@@ -1,22 +1,27 @@
+mod shader;
+mod macros;
+
 // graphics
 extern crate glfw;
-use self::glfw::{Context, Key, Action};
-
 extern crate gl;
+
+use self::glfw::{Context, Key, Action};
 use self::gl::types::*;
 
 use std::sync::mpsc::Receiver;
-use std::ffi::CString;
+use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::ptr;
 use std::mem;
-use std::fs;
+
+use cgmath::{Matrix4, Deg, vec3, perspective};
 
 // network
 use std::io::{Read, Write};
 use serde::{Deserialize, Serialize};
 use std::net::{TcpStream};
 use std::str;
+use crate::shader::Shader;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
@@ -32,7 +37,7 @@ struct ClientData {
 }
 
 struct GameState {
-    placeholder: String
+    placeholder: String,
 }
 
 fn main() -> std::io::Result<()> {
@@ -61,85 +66,41 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("localhost:8080")?;
     let mut last_send_time: f64 = 0.0;
 
-    // Read shader files
-    let vertexShaderSource = fs::read_to_string("shaders/shader.vs")
-        .expect("Should have been able to read the file");
-    let fragmentShaderSource = fs::read_to_string("shaders/shader.fs")
-        .expect("Should have been able to read the file");
-
     // Set up OpenGL shaders
-    let (shaderProgram, VAO) = unsafe {
-        // build and compile our shader program
-        // ------------------------------------
-        // vertex shader
-        let vertexShader = gl::CreateShader(gl::VERTEX_SHADER);
-        let c_str_vert = CString::new(vertexShaderSource.as_bytes()).unwrap();
-        gl::ShaderSource(vertexShader, 1, &c_str_vert.as_ptr(), ptr::null());
-        gl::CompileShader(vertexShader);
-
-        // check for shader compile errors
-        let mut success = gl::FALSE as GLint;
-        let mut infoLog = Vec::with_capacity(512);
-        infoLog.set_len(512 - 1); // subtract 1 to skip the trailing null character
-        gl::GetShaderiv(vertexShader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(vertexShader, 512, ptr::null_mut(), infoLog.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n{}", str::from_utf8(&infoLog).unwrap());
-        }
-
-        // fragment shader
-        let fragmentShader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        let c_str_frag = CString::new(fragmentShaderSource.as_bytes()).unwrap();
-        gl::ShaderSource(fragmentShader, 1, &c_str_frag.as_ptr(), ptr::null());
-        gl::CompileShader(fragmentShader);
-        // check for shader compile errors
-        gl::GetShaderiv(fragmentShader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(fragmentShader, 512, ptr::null_mut(), infoLog.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n{}", str::from_utf8(&infoLog).unwrap());
-        }
-
-        // link shaders
-        let shaderProgram = gl::CreateProgram();
-        gl::AttachShader(shaderProgram, vertexShader);
-        gl::AttachShader(shaderProgram, fragmentShader);
-        gl::LinkProgram(shaderProgram);
-        // check for linking errors
-        gl::GetProgramiv(shaderProgram, gl::LINK_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetProgramInfoLog(shaderProgram, 512, ptr::null_mut(), infoLog.as_mut_ptr() as *mut GLchar);
-            println!("ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n{}", str::from_utf8(&infoLog).unwrap());
-        }
-        gl::DeleteShader(vertexShader);
-        gl::DeleteShader(fragmentShader);
+    let (shader_program, vao) = unsafe {
+        // create shader program using shader.rs
+        let shader_program = Shader::new(
+            "shaders/shader.vs",
+            "shaders/shader.fs",
+        );
 
         // set up vertex data (and buffer(s)) and configure vertex attributes
         // ------------------------------------------------------------------
         // HINT: type annotation is crucial since default for float literals is f64
         let vertices: [f32; 12] = [
-            0.5,  0.5, 0.0,  // top right
+            0.5, 0.5, 0.0,  // top right
             0.5, -0.5, 0.0,  // bottom right
             -0.5, -0.5, 0.0,  // bottom left
-            -0.5,  0.5, 0.0   // top left
+            -0.5, 0.5, 0.0   // top left
         ];
         let indices = [ // note that we start from 0!
             0, 1, 3,  // first Triangle
             1, 2, 3   // second Triangle
         ];
-        let (mut VBO, mut VAO, mut EBO) = (0, 0, 0);
-        gl::GenVertexArrays(1, &mut VAO);
-        gl::GenBuffers(1, &mut VBO);
-        gl::GenBuffers(1, &mut EBO);
+        let (mut vbo, mut vao, mut ebo) = (0, 0, 0);
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut vbo);
+        gl::GenBuffers(1, &mut ebo);
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        gl::BindVertexArray(VAO);
+        gl::BindVertexArray(vao);
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(gl::ARRAY_BUFFER,
                        (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                        &vertices[0] as *const f32 as *const c_void,
                        gl::STATIC_DRAW);
 
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, EBO);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
         gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
                        (indices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                        &indices[0] as *const i32 as *const c_void,
@@ -161,7 +122,7 @@ fn main() -> std::io::Result<()> {
         // uncomment this call to draw in wireframe polygons.
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shaderProgram, VAO)
+        (shader_program, vao)
     };
 
     // render loop
@@ -189,7 +150,7 @@ fn main() -> std::io::Result<()> {
 
             let mut buf = [0 as u8; 128];
             let size = stream.read(&mut buf)?;
-            let message : &str = str::from_utf8(&buf[0..size]).unwrap();
+            let message: &str = str::from_utf8(&buf[0..size]).unwrap();
             println!("{}", message);
         }
 
@@ -199,9 +160,18 @@ fn main() -> std::io::Result<()> {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
-            // draw our first triangle
-            gl::UseProgram(shaderProgram);
-            gl::BindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+            // activate shader
+            shader_program.use_program();
+
+            // create transformations
+            let model = Matrix4::from_angle_x(Deg(-55.));
+            let view = Matrix4::from_translation(vec3(0., 0., -3.));
+            let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
+
+            // retrieve the matrix uniform locations (address of the matrices)
+            let model_loc = gl::GetUniformLocation(shader_program.ID, c_str!("model").as_ptr());
+
+            gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
             // glBindVertexArray(0); // no need to unbind it every time
