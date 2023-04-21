@@ -1,19 +1,20 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::{fs, ptr, str};
 use gl::types::*;
+use cgmath::{Matrix4, Matrix};
 
 pub struct Shader {
-    pub ID: u32,
+    pub id: u32,
 }
 
 impl Shader {
     pub fn new(vertex_path: &str, fragment_path: &str) -> Shader {
-        let mut shader = Shader { ID: 0 };
+        let mut shader = Shader { id: 0 };
 
         // read shader files
-        let v_shader_code = fs::read_to_string("shaders/shader.vs")
+        let v_shader_code = fs::read_to_string(vertex_path)
             .expect("Failed to read vertex shader file");
-        let f_shader_code = fs::read_to_string("shaders/shader.fs")
+        let f_shader_code = fs::read_to_string(fragment_path)
             .expect("Failed to read fragment shader file");
 
         // convert the shader code from String to CString
@@ -35,23 +36,28 @@ impl Shader {
             shader.check_compile_errors(fragment, "FRAGMENT");
 
             // shader program
-            let ID = gl::CreateProgram();
-            gl::AttachShader(ID, vertex);
-            gl::AttachShader(ID, fragment);
-            gl::LinkProgram(ID);
-            shader.check_compile_errors(ID, "PROGRAM");
+            let id = gl::CreateProgram();
+            gl::AttachShader(id, vertex);
+            gl::AttachShader(id, fragment);
+            gl::LinkProgram(id);
+            shader.check_compile_errors(id, "PROGRAM");
 
             // delete the shaders as they're linked into our program now and no longer necessary
             gl::DeleteShader(vertex);
             gl::DeleteShader(fragment);
-            shader.ID = ID;
+            shader.id = id;
         }
         shader
     }
 
     // activate the shader
     pub unsafe fn use_program(&self) {
-        gl::UseProgram(self.ID);
+        gl::UseProgram(self.id);
+    }
+
+    // utility uniform functions
+    pub unsafe fn set_mat4(&self, name: &CStr, mat: &Matrix4<f32>) {
+        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
     }
 
     // utility function for checking shader compilation/linking errors

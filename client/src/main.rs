@@ -14,7 +14,7 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::mem;
 
-use cgmath::{Matrix4, Deg, vec3, perspective};
+use cgmath::{Matrix4, Deg, vec3, perspective, Matrix};
 
 // network
 use std::io::{Read, Write};
@@ -125,6 +125,10 @@ fn main() -> std::io::Result<()> {
         (shader_program, vao)
     };
 
+    // set the projection matrix
+    // let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
+    // unsafe { shader_program.set_mat4(c_str!("projection"), &projection); }
+
     // render loop
     // -----------
     while !window.should_close() {
@@ -169,7 +173,13 @@ fn main() -> std::io::Result<()> {
             let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
 
             // retrieve the matrix uniform locations (address of the matrices)
-            let model_loc = gl::GetUniformLocation(shader_program.ID, c_str!("model").as_ptr());
+            let model_loc = gl::GetUniformLocation(shader_program.id, c_str!("model").as_ptr());
+            let view_loc = gl::GetUniformLocation(shader_program.id, c_str!("view").as_ptr());
+
+            // pass matrices to vertex shader (3 different ways)
+            gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model.as_ptr());
+            gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view.as_ptr());
+            shader_program.set_mat4(c_str!("projection"), &projection);
 
             gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
