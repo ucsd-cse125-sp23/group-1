@@ -10,59 +10,43 @@ struct ClientData {
 }
 
 // used for any 3D value (position, velocity, acceleration)
+#[derive(Serialize, Deserialize)]
 struct Coords {
-    x: f64,
-    y: f64,
-    z: f64,
+    x: f32,         // vec3() is f32, not f64
+    y: f32,
+    z: f32,
 }
-
-// TODO: merge with ClientData
-struct Player {
-    position: Coords,
-    velocity: Coords,
-    hp: u8,
-    name: String,
-}
-
-// Dummy structure that holds movement just for now
-struct GameState {
-    players: Vec<Player>,
-    movement: String,
-}
-
-// 1. position: x, y, z of the obj
-// 
 
 fn handle_client(mut stream: TcpStream) {
-    let mut client_buf = [0 as u8; 50]; // using 50 byte buf
-
-    // TODO: move outside of handle client function for multiple clients
-    let mut state = GameState {
-        players: Vec::new(),
-        movement: String::from("none")
-    };
-    let mut dummy_player = Player {
-        position: Coords {x:0.0, y:0.0, z:0.0},
-        velocity: Coords {x:0.0, y:0.0, z:0.0},
-        hp: 100,
-        name: String::from("Dummy McDummyFace"),
-    };
-    state.players.push(dummy_player);
+    let mut client_buf = [0 as u8; 50];     // using 50 byte buf
+    let mut coords = Coords {x:0.0, y:0.0, z:0.0};
 
     while match stream.read(&mut client_buf) {
         Ok(size) => {
             // process client messages
             let message : &str = str::from_utf8(&client_buf[0..size]).unwrap();
-            let mut movement = "none";
             if message.len() > 0 {
                 let value : ClientData = serde_json::from_str(message).unwrap();
-                println!("received: {}", value.movement);
-                // update game state
-                state.movement = String::from(format!("SERVER: received {}", value.movement));
+
+                // process keyboard input, update the new position of cube
+                if value.movement == "down" {
+                    coords.z += -0.1;
+                } else if value.movement == "up" {
+                    coords.z += 0.1;
+                } else if value.movement == "left" {
+                    coords.x += -0.1;
+                } else if value.movement == "right" {
+                    coords.x += 0.1;
+                }
+
+                // send back serialized coords to the client
+                let coords_str = serde_json::to_string(&coords).unwrap();
+                stream.write(coords_str.as_bytes()).unwrap();
+
+                // debugging
+                println!("received movement: {}", value.movement);
+                println!("sending coords: {}, {}, {}", coords.x, coords.y, coords.z);
             }
-            // write game state back to client
-            // TODO: serialize state
-            let res = stream.write(state.movement.as_bytes());
 
             // status boolean
             size > 0
@@ -82,11 +66,5 @@ fn main() -> std::io::Result<()> {
         handle_client(stream?);
     }
 
-    /*  TODO:
-            1. Update game state
-            2. Send updated state
-            3. Wait until tick ends
-
-    */
     Ok(())
 }
