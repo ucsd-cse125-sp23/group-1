@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::str;
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-use nalgebra::*;
+// use nalgebra::*;
 use rapier3d::prelude::*;
 
 use shared::shared_components::*;
@@ -19,6 +19,7 @@ struct ECS {
     position_components: SecondaryMap<Entity, PositionComponent>,
     player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     physics_components: SecondaryMap<Entity, PhysicsComponent>,
+    network_components: SecondaryMap<Entity, NetworkComponent>,
     player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
     players: Vec<Entity>,
@@ -33,14 +34,18 @@ impl ECS {
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
+            network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
         }
     }
 
-    fn connect_client() {
+    fn connect_client(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
 
+        let name = "dummy".to_string();
+        let player = self.new_player(name,rigid_body_set,collider_set);
+        // self.network_components.insert(player, NetworkComponent { stream: () });
     }
 
     fn new_player(&mut self, name: String, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> Entity {
@@ -58,7 +63,7 @@ impl ECS {
             camera_front_y: 0.0,
             camera_front_z: -1.0,
         });
-        self.position_components.insert(player, PositionComponent{x:0.0, y:0.0, z:0.0, qx:0.0, qy:0.0, qz:-1.0, qw:0.0});
+        self.position_components.insert(player, PositionComponent{x:0.0, y:0.0, z:0.0, qx:0.0, qy:0.0, qz:0.0, qw:1.0});
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
         self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, -1.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 0.0]).build();
@@ -77,6 +82,10 @@ impl ECS {
             position.y = rigid_body.translation().y;
             position.z = rigid_body.translation().z;
             // let rotation = rigid_body.rotation();
+            position.qx = rigid_body.rotation().i;
+            position.qy = rigid_body.rotation().j;
+            position.qz = rigid_body.rotation().k;
+            position.qw = rigid_body.rotation().w;
         }
     }
 
@@ -96,24 +105,12 @@ impl ECS {
             }
         }
     }
-}
 
-#[derive(Serialize, Deserialize)]
-struct ClientECS {
-    name_components: SlotMap<Entity, String>,
-    position_components: SecondaryMap<Entity, PositionComponent>,
-    
-    players: Vec<Entity>,
-    dynamics: Vec<Entity>,
-}
-
-impl ClientECS {
-    fn from_ecs(ecs: ECS) -> ClientECS {
+    fn client_ecs(&self) -> ClientECS {
         ClientECS {
-            name_components: ecs.name_components,
-            position_components: ecs.position_components,
-            players: ecs.players,
-            dynamics: ecs.dynamics,
+            name_components: self.name_components.clone(),
+            position_components: self.position_components.clone(),
+            players: self.players.clone(),
         }
     }
 }

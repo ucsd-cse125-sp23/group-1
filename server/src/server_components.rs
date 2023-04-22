@@ -1,4 +1,4 @@
-use nalgebra::*;
+use nalgebra::{Vector3};
 use rapier3d::prelude::*;
 use std::net::{TcpStream};
 

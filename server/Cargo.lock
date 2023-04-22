@@ -395,6 +395,7 @@ dependencies = [
  "nalgebra",
  "rapier3d",
  "serde",
+ "slotmap",
 ]
 
 [[package]]

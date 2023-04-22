@@ -1,4 +1,7 @@
 use serde::{Deserialize, Serialize};
+use slotmap::{SlotMap, SecondaryMap, DefaultKey};
+
+type Entity = DefaultKey;
 
 // client -> server component
 
@@ -20,6 +23,14 @@ pub struct PlayerInputComponent {
 // server -> client components
 
 #[derive(Serialize, Deserialize)]
+pub struct ClientECS {
+    pub name_components: SlotMap<Entity, String>,
+    pub position_components: SecondaryMap<Entity, PositionComponent>,
+    
+    pub players: Vec<Entity>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PositionComponent {
     pub x: f32,
     pub y: f32,
@@ -32,7 +43,7 @@ pub struct PositionComponent {
     pub qw: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
-    pub cooldown: i8,
+    pub cooldown: i16,
 }
