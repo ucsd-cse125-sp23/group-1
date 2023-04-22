@@ -1,10 +1,16 @@
 use nalgebra::*;
 use rapier3d::prelude::*;
+use std::net::{TcpStream};
 
 pub struct PhysicsComponent {
-    handle: RigidBodyHandle,
-    collider_handle: ColliderHandle,
+    pub handle: RigidBodyHandle,
+    pub collider_handle: ColliderHandle,
 }
 pub struct PlayerCameraComponent {
-    camera_front: Vector3<f32>,
+    pub camera_front: Vector3<f32>,
+}
+
+pub struct NetworkComponent {
+    pub stream: TcpStream,
+    pub client_buf: [u8],
 }
