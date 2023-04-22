@@ -8,13 +8,14 @@ extern crate gl;
 use self::glfw::{Context, Key, Action};
 use self::gl::types::*;
 
+use std::convert::identity;
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::ptr;
 use std::mem;
 
-use cgmath::{Matrix4, Deg, vec3, perspective, Matrix};
+use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix};
 
 // network
 use std::io::{Read, Write};
@@ -125,6 +126,8 @@ fn main() -> std::io::Result<()> {
         (shader_program, vao)
     };
 
+    let mut model_pos = vec3(0., 0., 0.);
+
     // set the projection matrix
     // let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
     // unsafe { shader_program.set_mat4(c_str!("projection"), &projection); }
@@ -143,7 +146,7 @@ fn main() -> std::io::Result<()> {
 
         // process inputs
         // --------------
-        process_inputs(&mut window, &mut client_data);
+        process_inputs(&mut window, &mut client_data, &mut model_pos);
 
         // Send & receive client data
         if glfw.get_time() > last_send_time + SEND_TIME_INTERVAL {
@@ -168,7 +171,8 @@ fn main() -> std::io::Result<()> {
             shader_program.use_program();
 
             // create transformations
-            let model = Matrix4::from_angle_x(Deg(-55.));
+            let mut model = Matrix4::identity();
+            model = model * Matrix4::from_translation(model_pos);
             let view = Matrix4::from_translation(vec3(0., 0., -3.));
             let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
 
@@ -217,14 +221,18 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData) {
+fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData, model_pos: &mut Vector3<f32>) {
     if window.get_key(Key::Down) == Action::Press {
         client_data.movement = String::from("down");
+        *model_pos += vec3(0., 0., 0.1);
     } else if window.get_key(Key::Up) == Action::Press {
         client_data.movement = String::from("up");
+        *model_pos += vec3(0., 0., -0.1);
     } else if window.get_key(Key::Left) == Action::Press {
         client_data.movement = String::from("left");
+        *model_pos += vec3(-0.1, 0., 0.);
     } else if window.get_key(Key::Right) == Action::Press {
         client_data.movement = String::from("right");
+        *model_pos += vec3(0.1, 0., 0.);
     }
 }
