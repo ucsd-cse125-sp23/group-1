@@ -78,15 +78,41 @@ fn main() -> std::io::Result<()> {
         // set up vertex data (and buffer(s)) and configure vertex attributes
         // ------------------------------------------------------------------
         // HINT: type annotation is crucial since default for float literals is f64
-        let vertices: [f32; 12] = [
+        let vertices: [f32; 24] = [
             0.5, 0.5, 0.0,  // top right
             0.5, -0.5, 0.0,  // bottom right
             -0.5, -0.5, 0.0,  // bottom left
-            -0.5, 0.5, 0.0   // top left
+            -0.5, 0.5, 0.0,   // top left
+
+            0.5, 0.5, 1.0,  // top right
+            0.5, -0.5, 1.0,  // bottom right
+            -0.5, -0.5, 1.0,  // bottom left
+            -0.5, 0.5, 1.0   // top left
         ];
-        let indices = [ // note that we start from 0!
-            0, 1, 3,  // first Triangle
-            1, 2, 3   // second Triangle
+        let indices = [ 
+            // bottom
+            0, 1, 3,  
+            1, 2, 3,   
+
+            // top
+            5, 4, 7,
+            7, 6, 5,
+
+            // right 
+            5, 1, 0,
+            0, 4, 5,
+
+            // left
+            7, 3, 2,
+            2, 6, 7,
+
+            // front
+            5, 6, 2,
+            2, 1, 5,
+
+            // back
+            0, 3, 7,
+            7, 4, 0
         ];
         let (mut vbo, mut vao, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -171,7 +197,7 @@ fn main() -> std::io::Result<()> {
             shader_program.use_program();
 
             // create transformations
-            let mut model = Matrix4::identity();
+            let mut model = Matrix4::from_angle_x(Deg(-55.));//Matrix4::identity();
             model = model * Matrix4::from_translation(model_pos);
             let view = Matrix4::from_translation(vec3(0., 0., -3.));
             let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
@@ -187,7 +213,7 @@ fn main() -> std::io::Result<()> {
 
             gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
             // glBindVertexArray(0); // no need to unbind it every time
         }
 
