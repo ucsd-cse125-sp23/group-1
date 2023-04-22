@@ -12,5 +12,4 @@ pub struct PlayerCameraComponent {
 
 pub struct NetworkComponent {
     pub stream: TcpStream,
-    pub client_buf: [u8],
 }

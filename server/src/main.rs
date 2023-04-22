@@ -6,8 +6,7 @@ use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 use nalgebra::*;
 use rapier3d::prelude::*;
 
-mod client_components;
-use client_components::*;
+use shared::shared_components::*;
 mod server_components;
 use server_components::*;
 
@@ -40,7 +39,7 @@ impl ECS {
         }
     }
 
-    fn handle_client() {
+    fn connect_client() {
 
     }
 
@@ -59,7 +58,7 @@ impl ECS {
             camera_front_y: 0.0,
             camera_front_z: -1.0,
         });
-        self.position_components.insert(player, PositionComponent{x:0.0, y:0.0, z:0.0});
+        self.position_components.insert(player, PositionComponent{x:0.0, y:0.0, z:0.0, qx:0.0, qy:0.0, qz:-1.0, qw:0.0});
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
         self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, -1.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 0.0]).build();
@@ -95,6 +94,26 @@ impl ECS {
                 rigid_body.apply_impulse(impulse, true);
                 weapon.cooldown = 30;
             }
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct ClientECS {
+    name_components: SlotMap<Entity, String>,
+    position_components: SecondaryMap<Entity, PositionComponent>,
+    
+    players: Vec<Entity>,
+    dynamics: Vec<Entity>,
+}
+
+impl ClientECS {
+    fn from_ecs(ecs: ECS) -> ClientECS {
+        ClientECS {
+            name_components: ecs.name_components,
+            position_components: ecs.position_components,
+            players: ecs.players,
+            dynamics: ecs.dynamics,
         }
     }
 }

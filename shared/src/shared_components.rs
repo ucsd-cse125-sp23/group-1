@@ -26,6 +26,10 @@ pub struct PositionComponent {
     pub z: f32,
     // need rotation in unit quaternion format, unsure how to send as raw data
     // could be easier with unified linear algebra library? nalgebra works with serde (optional feature in Cargo.toml)
+    pub qx: f32,
+    pub qy: f32,
+    pub qz: f32,
+    pub qw: f32,
 }
 
 #[derive(Serialize, Deserialize)]
