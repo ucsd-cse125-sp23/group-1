@@ -72,6 +72,10 @@ fn main() -> std::io::Result<()> {
 
     // Set up OpenGL shaders
     let (shader_program, vao) = unsafe {
+        // configure global opengl state
+        // -----------------------------
+        gl::Enable(gl::DEPTH_TEST);
+
         // create shader program using shader.rs
         let shader_program = Shader::new(
             "shaders/shader.vs",
@@ -189,7 +193,7 @@ fn main() -> std::io::Result<()> {
         // ------
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             // activate shader
             shader_program.use_program();
@@ -222,8 +226,6 @@ fn main() -> std::io::Result<()> {
             gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
             // glBindVertexArray(0); // no need to unbind it every time
         }
-
-
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
