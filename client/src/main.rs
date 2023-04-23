@@ -282,7 +282,6 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 
 // process input and edit client sending packet
 fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData, input_component: &mut PlayerInputComponent) {
-    // TODO: change to modify input_component instead
     if window.get_key(Key::Down) == Action::Press {
         client_data.movement = String::from("down");
     } else if window.get_key(Key::Up) == Action::Press {
