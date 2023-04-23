@@ -1,5 +1,6 @@
 mod shader;
 mod macros;
+mod camera;
 
 // graphics
 extern crate glfw;
@@ -7,29 +8,27 @@ extern crate gl;
 
 use self::glfw::{Context, Key, Action};
 use self::gl::types::*;
+use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix, Point3};
 
-use std::convert::identity;
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
 use std::os::raw::c_void;
 use std::ptr;
 use std::mem;
 
-use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix, Point3};
+use crate::shader::Shader;
+use crate::camera::*;
 
 // network
 use std::io::{Read, Write};
 use serde::{Deserialize, Serialize};
 use std::net::{TcpStream};
 use std::str;
-use crate::shader::Shader;
+use shared::shared_components::*;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
-
-// network settings
-const SEND_TIME_INTERVAL: f64 = 0.3;
 
 #[derive(Serialize, Deserialize)]
 struct ClientData {
@@ -39,12 +38,22 @@ struct ClientData {
 
 #[derive(Serialize, Deserialize)]
 struct Coords {
-    x: f32,         // vec3() is f32, not f64
+    x: f32,
+    // vec3() is f32, not f64
     y: f32,
     z: f32,
 }
 
 fn main() -> std::io::Result<()> {
+    // create camera and camera information
+    let mut camera = Camera {
+        Position: Point3::new(0.0, 0.0, 3.0),
+        ..Camera::default()
+    };
+    let mut first_mouse = true;
+    let mut last_x: f32 = SCR_WIDTH as f32 / 2.0;
+    let mut last_y: f32 = SCR_HEIGHT as f32 / 2.0;
+
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -59,8 +68,12 @@ fn main() -> std::io::Result<()> {
         .expect("Failed to create GLFW window");
 
     window.make_current();
-    window.set_key_polling(true);
     window.set_framebuffer_size_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_scroll_polling(true);
+
+    // tell GLFW to capture our mouse
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     // gl: load all OpenGL function pointers
     // ---------------------------------------
@@ -68,7 +81,6 @@ fn main() -> std::io::Result<()> {
 
     // Create network TcpStream
     let mut stream = TcpStream::connect("localhost:8080")?;
-    let mut last_send_time: f64 = 0.0;
 
     // Set up OpenGL shaders
     let (shader_program, vao) = unsafe {
@@ -96,9 +108,9 @@ fn main() -> std::io::Result<()> {
             -0.5, -0.5, 0.5,    // bottom left
             -0.5, 0.5, 0.5      // top left
         ];
-        let indices = [ 
+        let indices = [
             // bottom
-            0, 1, 3,  
+            0, 1, 3,
             1, 2, 3,
             // top
             5, 4, 7,
@@ -154,10 +166,8 @@ fn main() -> std::io::Result<()> {
         (shader_program, vao)
     };
 
-    let mut coords = Coords {x:0.0, y:0.0, z:0.0};
-    let mut cam_pos = vec3(0., 0., 3.);
-    let mut cam_look = vec3(0., 0., -1.);
-    let mut cam_up = vec3(0., 1., 0.);
+    // coordinates to be send to server
+    let mut coords = Coords { x: 0.0, y: 0.0, z: 0.0 };
 
     // render loop
     // -----------
@@ -167,23 +177,24 @@ fn main() -> std::io::Result<()> {
             movement: String::from("no input"),
         };
 
+        // create player input component
+        let mut input_component = PlayerInputComponent::default();
+
         // events
         // ------
-        process_events(&mut window, &events);
+        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
 
         // process inputs
         // --------------
-        process_inputs(&mut window, &mut client_data);
+        process_inputs(&mut window, &mut client_data, &mut input_component);
 
         // Send & receive client data
-        if glfw.get_time() > last_send_time + SEND_TIME_INTERVAL {
-            last_send_time = glfw.get_time();
+        let j = serde_json::to_string(&input_component)?;
+        stream.write(j.as_bytes())?;
 
-            let j = serde_json::to_string(&client_data)?;
-            stream.write(j.as_bytes())?;
-
-            let mut buf = [0 as u8; 128];
-            let size = stream.read(&mut buf)?;
+        let mut buf = [0 as u8; 128];
+        let size = stream.read(&mut buf)?;
+        if size > 0 {
             let message: &str = str::from_utf8(&buf[0..size]).unwrap();
             coords = serde_json::from_str(message).unwrap();
             println!("{}", message);
@@ -201,25 +212,21 @@ fn main() -> std::io::Result<()> {
             // update model_pos based on message from server
             let model_pos = vec3(coords.x, coords.y, coords.z);
 
-            // create transformations
+            // create transformations and pass them to vertex shader
             let mut model = Matrix4::from_angle_x(Deg(-55.));//Matrix4::identity();////
             model = model * Matrix4::from_translation(model_pos);
-            let view = Matrix4::from_translation(vec3(0., 0., -3.));
+            shader_program.set_mat4(c_str!("model"), &model);
+
+            let view = camera.GetViewMatrix();
+            shader_program.set_mat4(c_str!("view"), &view);
+
             // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+            shader_program.set_mat4(c_str!("projection"), &projection);
 
             // camera coordinates calculation: u, v, w: points away from camera
 
             // let cam_point = cam_look - cam_pos;
-
-            // retrieve the matrix uniform locations (address of the matrices)
-            let model_loc = gl::GetUniformLocation(shader_program.id, c_str!("model").as_ptr());
-            let view_loc = gl::GetUniformLocation(shader_program.id, c_str!("view").as_ptr());
-
-            // pass matrices to vertex shader (3 different ways)
-            gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model.as_ptr());
-            gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view.as_ptr());
-            shader_program.set_mat4(c_str!("projection"), &projection);
 
             gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
             // gl::DrawArrays(gl::TRIANGLES, 0, 3);
@@ -235,8 +242,13 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-// NOTE: not the same version as in common.rs!
-fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
+/// Event processing function as introduced in 1.7.4 (Camera Class) and used in
+/// most later tutorials
+pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
+                      first_mouse: &mut bool,
+                      last_x: &mut f32,
+                      last_y: &mut f32,
+                      camera: &mut Camera) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -244,14 +256,33 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
                 // height will be significantly larger than specified on retina displays.
                 unsafe { gl::Viewport(0, 0, width, height) }
             }
-            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
+            glfw::WindowEvent::CursorPos(xpos, ypos) => {
+                let (xpos, ypos) = (xpos as f32, ypos as f32);
+                if *first_mouse {
+                    *last_x = xpos;
+                    *last_y = ypos;
+                    *first_mouse = false;
+                }
+
+                let xoffset = xpos - *last_x;
+                let yoffset = *last_y - ypos; // reversed since y-coordinates go from bottom to top
+
+                *last_x = xpos;
+                *last_y = ypos;
+
+                camera.ProcessMouseMovement(xoffset, yoffset, true);
+            }
+            glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
+                camera.ProcessMouseScroll(yoffset as f32);
+            }
             _ => {}
         }
     }
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData) {
+fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData, input_component: &mut PlayerInputComponent) {
+    // TODO: change to modify input_component instead
     if window.get_key(Key::Down) == Action::Press {
         client_data.movement = String::from("down");
     } else if window.get_key(Key::Up) == Action::Press {
@@ -260,5 +291,22 @@ fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData) {
         client_data.movement = String::from("left");
     } else if window.get_key(Key::Right) == Action::Press {
         client_data.movement = String::from("right");
+    }
+
+    if window.get_key(Key::W) == Action::Press {
+        input_component.w_pressed = true;
+    }
+    if window.get_key(Key::A) == Action::Press {
+        input_component.a_pressed = true;
+    }
+    if window.get_key(Key::S) == Action::Press {
+        input_component.s_pressed = true;
+    }
+    if window.get_key(Key::D) == Action::Press {
+        input_component.d_pressed = true;
+    }
+
+    if window.get_key(Key::Escape) == Action::Press {
+        window.set_should_close(true);
     }
 }

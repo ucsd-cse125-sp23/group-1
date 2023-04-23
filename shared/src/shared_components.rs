@@ -5,7 +5,7 @@ type Entity = DefaultKey;
 
 // client -> server component
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct PlayerInputComponent {
     // does this make sense to be a component?
     // we can't apply it to the ecs directly as we may receive multiple in the same tick
