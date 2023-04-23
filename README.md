@@ -9,6 +9,7 @@
     Shoot the other players and avoid getting hit. The last player standing is the winner! 🏆
   </p>
 </p>
+<br />
 
 ## 💻 Installation
 
