@@ -79,37 +79,32 @@ fn main() -> std::io::Result<()> {
         // ------------------------------------------------------------------
         // HINT: type annotation is crucial since default for float literals is f64
         let vertices: [f32; 24] = [
-            0.5, 0.5, 0.0,  // top right
-            0.5, -0.5, 0.0,  // bottom right
-            -0.5, -0.5, 0.0,  // bottom left
-            -0.5, 0.5, 0.0,   // top left
+            0.5, 0.5, -0.5,  // top right
+            0.5, -0.5, -0.5,  // bottom right
+            -0.5, -0.5, -0.5,  // bottom left
+            -0.5, 0.5, -0.5,   // top left
 
-            0.5, 0.5, 1.0,  // top right
-            0.5, -0.5, 1.0,  // bottom right
-            -0.5, -0.5, 1.0,  // bottom left
-            -0.5, 0.5, 1.0   // top left
+            0.5, 0.5, 0.5,  // top right
+            0.5, -0.5, 0.5,  // bottom right
+            -0.5, -0.5, 0.5,  // bottom left
+            -0.5, 0.5, 0.5   // top left
         ];
         let indices = [ 
             // bottom
             0, 1, 3,  
-            1, 2, 3,   
-
+            1, 2, 3,
             // top
             5, 4, 7,
             7, 6, 5,
-
             // right 
             5, 1, 0,
             0, 4, 5,
-
             // left
             7, 3, 2,
             2, 6, 7,
-
             // front
             5, 6, 2,
             2, 1, 5,
-
             // back
             0, 3, 7,
             7, 4, 0
@@ -157,10 +152,6 @@ fn main() -> std::io::Result<()> {
     let mut cam_look = vec3(0., 0., -1.);
     let mut cam_up = vec3(0., 1., 0.);
 
-    // set the projection matrix
-    // let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
-    // unsafe { shader_program.set_mat4(c_str!("projection"), &projection); }
-
     // render loop
     // -----------
     while !window.should_close() {
@@ -202,15 +193,13 @@ fn main() -> std::io::Result<()> {
             // create transformations
             let mut model = Matrix4::from_angle_x(Deg(-55.));//Matrix4::identity();////
             model = model * Matrix4::from_translation(model_pos);
+            let view = Matrix4::from_translation(vec3(0., 0., -3.));
+            let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
 
             // camera coordinates calculation: u, v, w: points away from camera
 
             // let cam_point = cam_look - cam_pos;
 
-
-
-            let view = Matrix4::from_translation(vec3(0., 0., -3.));
-            let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
 
             // retrieve the matrix uniform locations (address of the matrices)
             let model_loc = gl::GetUniformLocation(shader_program.id, c_str!("model").as_ptr());

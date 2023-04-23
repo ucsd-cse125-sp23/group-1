@@ -115,62 +115,62 @@ impl ECS {
     }
 }
 
-fn main() {
-    let mut rigid_body_set = RigidBodySet::new();
-    let mut collider_set = ColliderSet::new();
-
-    let gravity = vector![0.0, 0.0, 0.0];
-    let integration_parameters = IntegrationParameters::default();
-    let mut physics_pipeline = PhysicsPipeline::new();
-    let mut island_manager = IslandManager::new();
-    let mut broad_phase = BroadPhase::new();
-    let mut narrow_phase = NarrowPhase::new();
-    let mut impulse_joint_set = ImpulseJointSet::new();
-    let mut multibody_joint_set = MultibodyJointSet::new();
-    let mut ccd_solver = CCDSolver::new();
-    let physics_hooks = ();
-    let event_handler = ();
-
-    let mut ecs = ECS::new();
-
-    let player = ecs.new_player("dummy".to_string(), &mut rigid_body_set, &mut collider_set);
-
-    for i in 0..200 {
-
-        if i == 10 {
-            ecs.player_input_components[player].lmb_clicked = true;
-        } else {
-            
-        }
-        
-        ecs.player_fire(&mut rigid_body_set);    
-
-        physics_pipeline.step(
-            &gravity,
-            &integration_parameters,
-            &mut island_manager,
-            &mut broad_phase,
-            &mut narrow_phase,
-            &mut rigid_body_set,
-            &mut collider_set,
-            &mut impulse_joint_set,
-            &mut multibody_joint_set,
-            &mut ccd_solver,
-            None,
-            &physics_hooks,
-            &event_handler,
-        );
-
-        ecs.update_positions(&mut rigid_body_set);
-
-        let player_pos = &ecs.position_components[player];
-
-        println!(
-            "{}",
-            player_pos.z
-        );
-    }
-}
+// fn main() {
+//     let mut rigid_body_set = RigidBodySet::new();
+//     let mut collider_set = ColliderSet::new();
+//
+//     let gravity = vector![0.0, 0.0, 0.0];
+//     let integration_parameters = IntegrationParameters::default();
+//     let mut physics_pipeline = PhysicsPipeline::new();
+//     let mut island_manager = IslandManager::new();
+//     let mut broad_phase = BroadPhase::new();
+//     let mut narrow_phase = NarrowPhase::new();
+//     let mut impulse_joint_set = ImpulseJointSet::new();
+//     let mut multibody_joint_set = MultibodyJointSet::new();
+//     let mut ccd_solver = CCDSolver::new();
+//     let physics_hooks = ();
+//     let event_handler = ();
+//
+//     let mut ecs = ECS::new();
+//
+//     let player = ecs.new_player("dummy".to_string(), &mut rigid_body_set, &mut collider_set);
+//
+//     for i in 0..200 {
+//
+//         if i == 10 {
+//             ecs.player_input_components[player].lmb_clicked = true;
+//         } else {
+//
+//         }
+//
+//         ecs.player_fire(&mut rigid_body_set);
+//
+//         physics_pipeline.step(
+//             &gravity,
+//             &integration_parameters,
+//             &mut island_manager,
+//             &mut broad_phase,
+//             &mut narrow_phase,
+//             &mut rigid_body_set,
+//             &mut collider_set,
+//             &mut impulse_joint_set,
+//             &mut multibody_joint_set,
+//             &mut ccd_solver,
+//             None,
+//             &physics_hooks,
+//             &event_handler,
+//         );
+//
+//         ecs.update_positions(&mut rigid_body_set);
+//
+//         let player_pos = &ecs.position_components[player];
+//
+//         println!(
+//             "{}",
+//             player_pos.z
+//         );
+//     }
+// }
 
 // #[derive(Serialize, Deserialize)]
 // struct ClientData {
@@ -199,60 +199,60 @@ fn main() {
 //     movement: String,
 // }
 
-// fn handle_client(mut stream: TcpStream) {
-//     let mut client_buf = [0 as u8; 50]; // using 50 byte buf
+fn handle_client(mut stream: TcpStream) {
+    let mut client_buf = [0 as u8; 50]; // using 50 byte buf
 
-//     // TODO: move outside of handle client function for multiple clients
-//     // let mut state = GameState {
-//     //     players: Vec::new(),
-//     //     movement: String::from("none")
-//     // };
-//     // let mut dummy_player = Player {
-//     //     position: Coords {x:0.0, y:0.0, z:0.0},
-//     //     velocity: Coords {x:0.0, y:0.0, z:0.0},
-//     //     hp: 100,
-//     //     name: String::from("Dummy McDummyFace"),
-//     // };
-//     // state.players.push(dummy_player);
+    // TODO: move outside of handle client function for multiple clients
+    // let mut state = GameState {
+    //     players: Vec::new(),
+    //     movement: String::from("none")
+    // };
+    // let mut dummy_player = Player {
+    //     position: Coords {x:0.0, y:0.0, z:0.0},
+    //     velocity: Coords {x:0.0, y:0.0, z:0.0},
+    //     hp: 100,
+    //     name: String::from("Dummy McDummyFace"),
+    // };
+    // state.players.push(dummy_player);
 
-//     while match stream.read(&mut client_buf) {
-//         Ok(size) => {
-//             // process client messages
-//             let message : &str = str::from_utf8(&client_buf[0..size]).unwrap();
-//             let mut movement = "none";
-//             if message.len() > 0 {
-//                 let value : ClientData = serde_json::from_str(message).unwrap();
-//                 println!("received: {}", value.movement);
-//                 // update game state
-//                 state.movement = String::from(format!("SERVER: received {}", value.movement));
-//             }
-//             // write game state back to client
-//             // TODO: serialize state
-//             let res = stream.write(state.movement.as_bytes());
+    while match stream.read(&mut client_buf) {
+        Ok(size) => {
+            // process client messages
+            let message : &str = str::from_utf8(&client_buf[0..size]).unwrap();
+            let mut movement = "none";
+            if message.len() > 0 {
+                let value : ClientData = serde_json::from_str(message).unwrap();
+                println!("received: {}", value.movement);
+                // update game state
+                state.movement = String::from(format!("SERVER: received {}", value.movement));
+            }
+            // write game state back to client
+            // TODO: serialize state
+            let res = stream.write(state.movement.as_bytes());
 
-//             // status boolean
-//             size > 0
-//         },
-//         Err(_) => {
-//             println!("An error occurred");
-//             false
-//         }
-//     } {}
-// }
+            // status boolean
+            size > 0
+        },
+        Err(_) => {
+            println!("An error occurred");
+            false
+        }
+    } {}
+}
 
-// fn main() -> std::io::Result<()> {
-//     let listener = TcpListener::bind("localhost:8080")?;
+fn main() -> std::io::Result<()> {
+    let listener = TcpListener::bind("localhost:8080")?;
 
-//     // accepts connections automatically
-//     for stream in listener.incoming() {
-//         handle_client(stream?);
-//     }
+    // accepts connections automatically
+    for stream in listener.incoming() {
+        handle_client(stream?);
+    }
 
-//     /*  TODO:
-//             1. Update game state
-//             2. Send updated state
-//             3. Wait until tick ends
+    /*  TODO:
+            1. Update game state
+            2. Send updated state
+            3. Wait until tick ends
 
-//     */
-//     Ok(())
-// }
+    */
+    Ok(())
+}
