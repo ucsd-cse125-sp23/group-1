@@ -15,7 +15,7 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::mem;
 
-use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix};
+use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix, Point3};
 
 // network
 use std::io::{Read, Write};
@@ -37,8 +37,11 @@ struct ClientData {
     movement: String,
 }
 
-struct GameState {
-    placeholder: String,
+#[derive(Serialize, Deserialize)]
+struct Coords {
+    x: f32,         // vec3() is f32, not f64
+    y: f32,
+    z: f32,
 }
 
 fn main() -> std::io::Result<()> {
@@ -79,15 +82,15 @@ fn main() -> std::io::Result<()> {
         // ------------------------------------------------------------------
         // HINT: type annotation is crucial since default for float literals is f64
         let vertices: [f32; 24] = [
-            0.5, 0.5, -0.5,  // top right
-            0.5, -0.5, -0.5,  // bottom right
-            -0.5, -0.5, -0.5,  // bottom left
-            -0.5, 0.5, -0.5,   // top left
+            0.5, 0.5, -0.5,     // top right
+            0.5, -0.5, -0.5,    // bottom right
+            -0.5, -0.5, -0.5,   // bottom left
+            -0.5, 0.5, -0.5,    // top left
 
-            0.5, 0.5, 0.5,  // top right
-            0.5, -0.5, 0.5,  // bottom right
-            -0.5, -0.5, 0.5,  // bottom left
-            -0.5, 0.5, 0.5   // top left
+            0.5, 0.5, 0.5,      // top right
+            0.5, -0.5, 0.5,     // bottom right
+            -0.5, -0.5, 0.5,    // bottom left
+            -0.5, 0.5, 0.5      // top left
         ];
         let indices = [ 
             // bottom
@@ -147,7 +150,7 @@ fn main() -> std::io::Result<()> {
         (shader_program, vao)
     };
 
-    let mut model_pos = vec3(0., 0., 0.);
+    let mut coords = Coords {x:0.0, y:0.0, z:0.0};
     let mut cam_pos = vec3(0., 0., 3.);
     let mut cam_look = vec3(0., 0., -1.);
     let mut cam_up = vec3(0., 1., 0.);
@@ -166,7 +169,7 @@ fn main() -> std::io::Result<()> {
 
         // process inputs
         // --------------
-        process_inputs(&mut window, &mut client_data, &mut model_pos);
+        process_inputs(&mut window, &mut client_data);
 
         // Send & receive client data
         if glfw.get_time() > last_send_time + SEND_TIME_INTERVAL {
@@ -178,6 +181,7 @@ fn main() -> std::io::Result<()> {
             let mut buf = [0 as u8; 128];
             let size = stream.read(&mut buf)?;
             let message: &str = str::from_utf8(&buf[0..size]).unwrap();
+            coords = serde_json::from_str(message).unwrap();
             println!("{}", message);
         }
 
@@ -190,16 +194,19 @@ fn main() -> std::io::Result<()> {
             // activate shader
             shader_program.use_program();
 
+            // update model_pos based on message from server
+            let model_pos = vec3(coords.x, coords.y, coords.z);
+
             // create transformations
             let mut model = Matrix4::from_angle_x(Deg(-55.));//Matrix4::identity();////
             model = model * Matrix4::from_translation(model_pos);
             let view = Matrix4::from_translation(vec3(0., 0., -3.));
+            // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
             let projection = perspective(Deg(45.0), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
 
             // camera coordinates calculation: u, v, w: points away from camera
 
             // let cam_point = cam_look - cam_pos;
-
 
             // retrieve the matrix uniform locations (address of the matrices)
             let model_loc = gl::GetUniformLocation(shader_program.id, c_str!("model").as_ptr());
@@ -216,11 +223,7 @@ fn main() -> std::io::Result<()> {
             // glBindVertexArray(0); // no need to unbind it every time
         }
 
-        /*  TODO:
-                1. Check for* updated state
-                2. Update local game state
-                3. Render world
-        */
+
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -246,18 +249,14 @@ fn process_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::Windo
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData, model_pos: &mut Vector3<f32>) {
+fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData) {
     if window.get_key(Key::Down) == Action::Press {
         client_data.movement = String::from("down");
-        *model_pos += vec3(0., 0., -0.1);
     } else if window.get_key(Key::Up) == Action::Press {
         client_data.movement = String::from("up");
-        *model_pos += vec3(0., 0., 0.1);
     } else if window.get_key(Key::Left) == Action::Press {
         client_data.movement = String::from("left");
-        *model_pos += vec3(-0.1, 0., 0.);
     } else if window.get_key(Key::Right) == Action::Press {
         client_data.movement = String::from("right");
-        *model_pos += vec3(0.1, 0., 0.);
     }
 }
