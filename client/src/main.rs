@@ -21,7 +21,6 @@ use crate::camera::*;
 
 // network
 use std::io::{Read, Write};
-use serde::{Deserialize, Serialize};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
@@ -29,14 +28,6 @@ use shared::shared_components::*;
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
-
-#[derive(Serialize, Deserialize)]
-struct Coords {
-    x: f32,
-    // vec3() is f32, not f64
-    y: f32,
-    z: f32,
-}
 
 fn main() -> std::io::Result<()> {
     // create camera and camera information
@@ -75,6 +66,7 @@ fn main() -> std::io::Result<()> {
 
     // Create network TcpStream
     let mut stream = TcpStream::connect("localhost:8080")?;
+    stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
     let (shader_program, vao, cube_pos) = unsafe {
@@ -173,8 +165,8 @@ fn main() -> std::io::Result<()> {
         (shader_program, vao, cube_pos)
     };
 
-    // coordinates to be send to server
-    let mut coords = Coords { x: 0.0, y: 0.0, z: 0.0 };
+    // client ECS to be sent to server
+    let mut client_ecs = ClientECS::default();
 
     // render loop
     // -----------
@@ -196,15 +188,56 @@ fn main() -> std::io::Result<()> {
         input_component.camera_front_z = camera.Front.z;
 
         // Send & receive client data
-        let j = serde_json::to_string(&input_component)?;
-        stream.write(j.as_bytes())?;
+        let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+        let send_size = j.len() as u32;
+        let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
+        match stream.write(&send) {
+            Ok(_) => (),
+            Err(e) => eprintln!("Error sending input: {:?}", e),
+        };
 
-        let mut buf = [0 as u8; 128];
-        let size = stream.read(&mut buf)?;
-        if size > 0 {
-            let message: &str = str::from_utf8(&buf[0..size]).unwrap();
-            coords = serde_json::from_str(message).unwrap();
-            println!("{}", message);
+        // let mut buf = [0 as u8; 128];
+        // let size = stream.read(&mut buf)?;
+        // if size > 0 {
+        //     let message: &str = str::from_utf8(&buf[0..size]).unwrap();
+        //     coords = serde_json::from_str(message).unwrap();
+        //     println!("{}", message);
+        // }
+
+        loop {
+            let mut size_buf = [0 as u8; 4];
+            let size:u32;
+            match stream.peek(&mut size_buf) {
+                Ok(4) => {
+                    // it's tradition, dammit!
+                    size = u32::from_be_bytes(size_buf);
+                },
+                Ok(_) => {
+                    break;
+                },
+                Err(e) => {
+                    eprintln!("Failed to read message size from server: {}",e);
+                    // TODO: handle lost client
+                    break;
+                }
+            }
+            let s_size = size.try_into().unwrap();
+            let mut read_buf = vec![0 as u8; s_size];
+            match stream.peek(&mut read_buf) {
+                Ok(bytes_read) if bytes_read == s_size => {
+                    // if this throws an error we deserve to crash tbh
+                    stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
+                    let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                    let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                    client_ecs = value;
+                },
+                Ok(_) => {
+                    break;
+                },
+                Err(e) => {
+                    eprintln!("Failed to read message from server: {}",e);
+                },
+            }
         }
 
         // render
@@ -217,7 +250,10 @@ fn main() -> std::io::Result<()> {
             shader_program.use_program();
 
             // update model_pos based on message from server
-            let model_pos = vec3(coords.x, coords.y, coords.z);
+            let x = client_ecs.position_components[].x;
+            let y = client_ecs.position_components[].y;
+            let z = client_ecs.position_components[].z;
+            let model_pos = vec3(x,y,z);
 
             // create transformations and pass them to vertex shader
             let mut model = Matrix4::from_angle_x(Deg(-45.));
