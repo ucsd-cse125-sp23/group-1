@@ -12,6 +12,8 @@ shared = { path = "../shared" }
 cgmath = "0.16.1"
 gl = "0.14.0"
 glfw = "0.51.0"
+image = "0.19.0"
+tobj = "0.1.6"
 
 # Network
 serde = {version = "1.0", features = ["derive"]}
