@@ -8,7 +8,7 @@ extern crate gl;
 
 use self::glfw::{Context, Key, Action};
 use self::gl::types::*;
-use cgmath::{Matrix4, Deg, vec3, perspective, Matrix, Vector3, SquareMatrix, Point3};
+use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
@@ -29,12 +29,6 @@ use shared::shared_components::*;
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
-
-#[derive(Serialize, Deserialize)]
-struct ClientData {
-    client_id: u8,
-    movement: String,
-}
 
 #[derive(Serialize, Deserialize)]
 struct Coords {
@@ -83,7 +77,7 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("localhost:8080")?;
 
     // Set up OpenGL shaders
-    let (shader_program, vao) = unsafe {
+    let (shader_program, vao, cube_pos) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -128,6 +122,19 @@ fn main() -> std::io::Result<()> {
             0, 3, 7,
             7, 4, 0
         ];
+
+        // world space positions of our cubes
+        let cube_pos: [Vector3<f32>; 10] = [vec3(0.0, 0.0, 0.0),
+            vec3(2.0, 5.0, -15.0),
+            vec3(-1.5, -2.2, -2.5),
+            vec3(-3.8, -2.0, -12.3),
+            vec3(2.4, -0.4, -3.5),
+            vec3(-1.7, 3.0, -7.5),
+            vec3(1.3, -2.0, -2.5),
+            vec3(1.5, 2.0, -2.5),
+            vec3(1.5, 0.2, -1.5),
+            vec3(-1.3, 1.0, -1.5)];
+
         let (mut vbo, mut vao, mut ebo) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
@@ -163,7 +170,7 @@ fn main() -> std::io::Result<()> {
         // uncomment this call to draw in wireframe polygons.
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shader_program, vao)
+        (shader_program, vao, cube_pos)
     };
 
     // coordinates to be send to server
@@ -172,11 +179,6 @@ fn main() -> std::io::Result<()> {
     // render loop
     // -----------
     while !window.should_close() {
-        let mut client_data: ClientData = ClientData {
-            client_id: 1,
-            movement: String::from("no input"),
-        };
-
         // create player input component
         let mut input_component = PlayerInputComponent::default();
 
@@ -186,7 +188,12 @@ fn main() -> std::io::Result<()> {
 
         // process inputs
         // --------------
-        process_inputs(&mut window, &mut client_data, &mut input_component);
+        process_inputs(&mut window, &mut input_component);
+
+        // set camera front of input_component
+        input_component.camera_front_x = camera.Front.x;
+        input_component.camera_front_y = camera.Front.y;
+        input_component.camera_front_z = camera.Front.z;
 
         // Send & receive client data
         let j = serde_json::to_string(&input_component)?;
@@ -213,8 +220,8 @@ fn main() -> std::io::Result<()> {
             let model_pos = vec3(coords.x, coords.y, coords.z);
 
             // create transformations and pass them to vertex shader
-            let mut model = Matrix4::from_angle_x(Deg(-55.));//Matrix4::identity();////
-            model = model * Matrix4::from_translation(model_pos);
+            let mut model = Matrix4::from_angle_x(Deg(-45.));
+            model = Matrix4::from_translation(model_pos) * model;
             shader_program.set_mat4(c_str!("model"), &model);
 
             let view = camera.GetViewMatrix();
@@ -229,9 +236,20 @@ fn main() -> std::io::Result<()> {
             // let cam_point = cam_look - cam_pos;
 
             gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
-            // gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
-            // glBindVertexArray(0); // no need to unbind it every time
+            for (i, position) in cube_pos.iter().enumerate() {
+                // calculate the model matrix for each object and pass it to shader before drawing
+                let mut model;
+                if i == 0 {
+                    model = Matrix4::from_translation(model_pos);
+                } else {
+                    model = Matrix4::from_translation(*position);
+                }
+                let angle = 20.0 * i as f32;
+                model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                shader_program.set_mat4(c_str!("model"), &model);
+
+                gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
+            }
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -281,17 +299,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, client_data: &mut ClientData, input_component: &mut PlayerInputComponent) {
-    if window.get_key(Key::Down) == Action::Press {
-        client_data.movement = String::from("down");
-    } else if window.get_key(Key::Up) == Action::Press {
-        client_data.movement = String::from("up");
-    } else if window.get_key(Key::Left) == Action::Press {
-        client_data.movement = String::from("left");
-    } else if window.get_key(Key::Right) == Action::Press {
-        client_data.movement = String::from("right");
-    }
-
+fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent) {
     if window.get_key(Key::W) == Action::Press {
         input_component.w_pressed = true;
     }
