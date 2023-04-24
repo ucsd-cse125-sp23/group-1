@@ -166,7 +166,8 @@ fn main() -> std::io::Result<()> {
     };
 
     // client ECS to be sent to server
-    let mut client_ecs = ClientECS::default();
+    // let mut client_ecs = ClientECS::default();
+    let mut client_ecs: Option<ClientECS> = None;
 
     // render loop
     // -----------
@@ -229,7 +230,7 @@ fn main() -> std::io::Result<()> {
                     stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                     let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
                     let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
-                    client_ecs = value;
+                    client_ecs = Some(value);
                 },
                 Ok(_) => {
                     break;
@@ -250,9 +251,17 @@ fn main() -> std::io::Result<()> {
             shader_program.use_program();
 
             // update model_pos based on message from server
-            let x = client_ecs.position_components[].x;
-            let y = client_ecs.position_components[].y;
-            let z = client_ecs.position_components[].z;
+            let mut x = 0.0;
+            let mut y = 0.0;
+            let mut z = 0.0;
+            match &client_ecs {
+                Some(c_ecs) => {
+                    x = c_ecs.position_components[c_ecs.temp_entity].x;
+                    y = c_ecs.position_components[c_ecs.temp_entity].y;
+                    z = c_ecs.position_components[c_ecs.temp_entity].z;
+                }
+                None => ()
+            }
             let model_pos = vec3(x,y,z);
 
             // create transformations and pass them to vertex shader

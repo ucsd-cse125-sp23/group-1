@@ -95,6 +95,7 @@ impl ECS {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                         let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        eprintln!("{}",message);
                         let value : PlayerInputComponent = serde_json::from_str(message).expect("Error converting string to PlayerInputComponent");
                         ECS::combine_input(&mut input_temp, value);
                     },
@@ -239,7 +240,7 @@ fn main() {
         }
     }
 
-    // let player = ecs.players[0];
+    let player = ecs.players[0];
 
     // ecs.player_input_components[player].lmb_clicked = true;
 
@@ -280,7 +281,22 @@ fn main() {
         // println!( "{}", player_pos.z);
 
 
-        ecs.receive_inputs()
+        //temp server code
+        ecs.receive_inputs();
+        let input = & ecs.player_input_components[player];
+        let mut position = &mut ecs.position_components[ecs.temp_entity];
+        if input.s_pressed {
+            position.z += -0.001;
+        } else if input.w_pressed {
+            position.z += 0.001;
+        } else if input.a_pressed {
+            position.x += -0.001;
+        } else if input.d_pressed {
+            position.x += 0.001;
+        }
+        println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
+        ecs.update_clients();
+
     }
 }
 
