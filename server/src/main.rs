@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::io::{Read, Write};
+use std::io::{Read, Write, self};
 use std::net::{TcpListener, TcpStream};
-use std::{str,io,mem};
+use std::{str,thread::sleep,time::Duration};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 // use nalgebra::*;
 use rapier3d::prelude::*;
@@ -80,8 +80,12 @@ impl ECS {
                         size = u32::from_be_bytes(size_buf);
                     },
                     Ok(_) => {
+                        //is this necessary? nonblocking might already handle this. worth testing
                         break;
                     },
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        break;
+                    }
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
                         // TODO: handle lost client
@@ -90,12 +94,12 @@ impl ECS {
                 }
                 let s_size = size.try_into().unwrap();
                 let mut read_buf = vec![0 as u8; s_size];
+                //might be able to just read instead of peeking, requires testing
                 match stream.peek(&mut read_buf) {
                     Ok(bytes_read) if bytes_read == s_size => {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                         let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        eprintln!("{}",message);
                         let value : PlayerInputComponent = serde_json::from_str(message).expect("Error converting string to PlayerInputComponent");
                         ECS::combine_input(&mut input_temp, value);
                     },
@@ -128,11 +132,12 @@ impl ECS {
     fn update_clients(&mut self) {
         let client_ecs = self.client_ecs();
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
-        let size = j.len() as u32;
+        let size = j.len() as u32 + 4;
         for &player in &self.players {
             let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
                 Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e)
             }
         }
@@ -294,9 +299,9 @@ fn main() {
         } else if input.d_pressed {
             position.x += 0.001;
         }
-        println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
+        // println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
         ecs.update_clients();
-
+        // sleep(Duration::from_millis(100));
     }
 }
 

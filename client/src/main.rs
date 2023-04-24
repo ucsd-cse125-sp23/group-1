@@ -20,7 +20,7 @@ use crate::shader::Shader;
 use crate::camera::*;
 
 // network
-use std::io::{Read, Write};
+use std::io::{Read, Write, self};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
@@ -190,10 +190,11 @@ fn main() -> std::io::Result<()> {
 
         // Send & receive client data
         let j = serde_json::to_string(&input_component).expect("Input component serialization error");
-        let send_size = j.len() as u32;
+        let send_size = j.len() as u32 + 4;
         let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
         match stream.write(&send) {
             Ok(_) => (),
+            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
             Err(e) => eprintln!("Error sending input: {:?}", e),
         };
 
@@ -216,6 +217,9 @@ fn main() -> std::io::Result<()> {
                 Ok(_) => {
                     break;
                 },
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    break;
+                }
                 Err(e) => {
                     eprintln!("Failed to read message size from server: {}",e);
                     // TODO: handle lost client
