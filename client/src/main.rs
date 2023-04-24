@@ -33,7 +33,6 @@ const SCR_HEIGHT: u32 = 600;
 #[derive(Serialize, Deserialize)]
 struct Coords {
     x: f32,
-    // vec3() is f32, not f64
     y: f32,
     z: f32,
 }
@@ -77,7 +76,7 @@ fn main() -> std::io::Result<()> {
     let mut stream = TcpStream::connect("localhost:8080")?;
 
     // Set up OpenGL shaders
-    let (shader_program, vao, cube_pos) = unsafe {
+    let (shader_program, vaos, ebos, cube_pos, tetrahedron_pos) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -122,7 +121,6 @@ fn main() -> std::io::Result<()> {
             0, 3, 7,
             7, 4, 0
         ];
-
         // world space positions of our cubes
         let cube_pos: [Vector3<f32>; 10] = [vec3(0.0, 0.0, 0.0),
             vec3(2.0, 5.0, -15.0),
@@ -133,25 +131,71 @@ fn main() -> std::io::Result<()> {
             vec3(1.3, -2.0, -2.5),
             vec3(1.5, 2.0, -2.5),
             vec3(1.5, 0.2, -1.5),
-            vec3(-1.3, 1.0, -1.5)];
+            vec3(-1.3, 1.0, -1.5)
+        ];
 
-        let (mut vbo, mut vao, mut ebo) = (0, 0, 0);
-        gl::GenVertexArrays(1, &mut vao);
-        gl::GenBuffers(1, &mut vbo);
-        gl::GenBuffers(1, &mut ebo);
+        // tetrahedron information
+        let v_tetrahedron: [f32; 12] = [
+            -0.5, -0.5, -0.5,
+            0.5, -0.5, -0.5,
+            0.0, -0.5, 0.5,
+            0.0, 0.5, 0.0
+        ];
+        let idx_tetrahedron = [
+            0,1,2,
+            0,1,3,
+            1,2,3,
+            2,0,3,
+        ];
+        // world space positions of our tetrahedrons
+        let tetrahedron_pos: [Vector3<f32>; 5] = [
+            vec3(0.0, 0.0, 0.0),
+            vec3(1.0, 2.0, 3.0),
+            vec3(-2.0, 2.3, 7.5),
+            vec3(-4.0, 3.0, -12.3),
+            vec3(-2.4, 0.7, 3.5),
+        ];
+
+        let (mut vbos, mut vaos, mut ebos) = ([0,0], [0,0], [0,0]);
+        gl::GenVertexArrays(2, vaos.as_mut_ptr());
+        gl::GenBuffers(2, vbos.as_mut_ptr());
+        gl::GenBuffers(2, ebos.as_mut_ptr());
+
+        // setup cube
         // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        gl::BindVertexArray(vao);
+        gl::BindVertexArray(vaos[0]);
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbos[0]);
         gl::BufferData(gl::ARRAY_BUFFER,
                        (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                        &vertices[0] as *const f32 as *const c_void,
                        gl::STATIC_DRAW);
 
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebos[0]);
         gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
                        (indices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                        &indices[0] as *const i32 as *const c_void,
+                       gl::STATIC_DRAW);
+
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        gl::EnableVertexAttribArray(0);
+
+        // note that this is allowed, the call to gl::VertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+
+        // setup tetrahedron
+        gl::BindVertexArray(vaos[1]);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbos[1]);
+        gl::BufferData(gl::ARRAY_BUFFER,
+                       (v_tetrahedron.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                       &v_tetrahedron[0] as *const f32 as *const c_void,
+                       gl::STATIC_DRAW);
+
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebos[1]);
+        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                       (idx_tetrahedron.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                       &idx_tetrahedron[0] as *const i32 as *const c_void,
                        gl::STATIC_DRAW);
 
         gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
@@ -170,7 +214,7 @@ fn main() -> std::io::Result<()> {
         // uncomment this call to draw in wireframe polygons.
         // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
 
-        (shader_program, vao, cube_pos)
+        (shader_program, vaos, ebos, cube_pos, tetrahedron_pos)
     };
 
     // coordinates to be send to server
@@ -235,7 +279,8 @@ fn main() -> std::io::Result<()> {
 
             // let cam_point = cam_look - cam_pos;
 
-            gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
+            gl::BindVertexArray(vaos[0]); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebos[0]);
             for (i, position) in cube_pos.iter().enumerate() {
                 // calculate the model matrix for each object and pass it to shader before drawing
                 let mut model;
@@ -249,6 +294,19 @@ fn main() -> std::io::Result<()> {
                 shader_program.set_mat4(c_str!("model"), &model);
 
                 gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
+                // gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+
+            gl::BindVertexArray(vaos[1]); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebos[1]);
+            for (i, position) in tetrahedron_pos.iter().enumerate() {
+                // calculate the model matrix for each object and pass it to shader before drawing
+                let mut model = Matrix4::from_translation(*position);
+                let angle = 20.0 * i as f32;
+                model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                shader_program.set_mat4(c_str!("model"), &model);
+
+                gl::DrawElements(gl::TRIANGLES, 12, gl::UNSIGNED_INT, ptr::null());
             }
         }
 
