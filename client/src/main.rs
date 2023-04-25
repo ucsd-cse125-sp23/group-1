@@ -1,23 +1,22 @@
 mod shader;
 mod macros;
 mod camera;
+mod mesh;
+mod model;
 
 // graphics
 extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, Action};
-use self::gl::types::*;
 use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
-use std::os::raw::c_void;
-use std::ptr;
-use std::mem;
 
 use crate::shader::Shader;
 use crate::camera::*;
+use crate::model::Model;
 
 // network
 use std::io::{Read, Write, self};
@@ -69,7 +68,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, vao, cube_pos) = unsafe {
+    let (shader_program, models, cube_pos) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -79,41 +78,6 @@ fn main() -> std::io::Result<()> {
             "shaders/shader.vs",
             "shaders/shader.fs",
         );
-
-        // set up vertex data (and buffer(s)) and configure vertex attributes
-        // ------------------------------------------------------------------
-        // HINT: type annotation is crucial since default for float literals is f64
-        let vertices: [f32; 24] = [
-            0.5, 0.5, -0.5,     // top right
-            0.5, -0.5, -0.5,    // bottom right
-            -0.5, -0.5, -0.5,   // bottom left
-            -0.5, 0.5, -0.5,    // top left
-
-            0.5, 0.5, 0.5,      // top right
-            0.5, -0.5, 0.5,     // bottom right
-            -0.5, -0.5, 0.5,    // bottom left
-            -0.5, 0.5, 0.5      // top left
-        ];
-        let indices = [
-            // bottom
-            0, 1, 3,
-            1, 2, 3,
-            // top
-            5, 4, 7,
-            7, 6, 5,
-            // right 
-            5, 1, 0,
-            0, 4, 5,
-            // left
-            7, 3, 2,
-            2, 6, 7,
-            // front
-            5, 6, 2,
-            2, 1, 5,
-            // back
-            0, 3, 7,
-            7, 4, 0
-        ];
 
         // world space positions of our cubes
         let cube_pos: [Vector3<f32>; 10] = [vec3(0.0, 0.0, 0.0),
@@ -125,44 +89,14 @@ fn main() -> std::io::Result<()> {
             vec3(1.3, -2.0, -2.5),
             vec3(1.5, 2.0, -2.5),
             vec3(1.5, 0.2, -1.5),
-            vec3(-1.3, 1.0, -1.5)];
+            vec3(-1.3, 1.0, -1.5)
+        ];
 
-        let (mut vbo, mut vao, mut ebo) = (0, 0, 0);
-        gl::GenVertexArrays(1, &mut vao);
-        gl::GenBuffers(1, &mut vbo);
-        gl::GenBuffers(1, &mut ebo);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        gl::BindVertexArray(vao);
+        // load models
+        // -----------
+        let models = Model::new("resources/cube/cube.obj");
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(gl::ARRAY_BUFFER,
-                       (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                       &vertices[0] as *const f32 as *const c_void,
-                       gl::STATIC_DRAW);
-
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
-                       (indices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                       &indices[0] as *const i32 as *const c_void,
-                       gl::STATIC_DRAW);
-
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
-        gl::EnableVertexAttribArray(0);
-
-        // note that this is allowed, the call to gl::VertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-
-        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-        // gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0);
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        gl::BindVertexArray(0);
-
-        // uncomment this call to draw in wireframe polygons.
-        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-
-        (shader_program, vao, cube_pos)
+        (shader_program, models, cube_pos)
     };
 
     // client ECS to be sent to server
@@ -269,9 +203,9 @@ fn main() -> std::io::Result<()> {
             let model_pos = vec3(x,y,z);
 
             // create transformations and pass them to vertex shader
-            let mut model = Matrix4::from_angle_x(Deg(-45.));
-            model = Matrix4::from_translation(model_pos) * model;
-            shader_program.set_mat4(c_str!("model"), &model);
+            let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
+            model_mat = Matrix4::from_translation(model_pos) * model_mat;
+            shader_program.set_mat4(c_str!("model"), &model_mat);
 
             let view = camera.GetViewMatrix();
             shader_program.set_mat4(c_str!("view"), &view);
@@ -284,7 +218,6 @@ fn main() -> std::io::Result<()> {
 
             // let cam_point = cam_look - cam_pos;
 
-            gl::BindVertexArray(vao); // seeing as we only have a single vao there's no need to bind it every time, but we'll do so to keep things a bit more organized
             for (i, position) in cube_pos.iter().enumerate() {
                 // calculate the model matrix for each object and pass it to shader before drawing
                 let mut model;
@@ -294,10 +227,11 @@ fn main() -> std::io::Result<()> {
                     model = Matrix4::from_translation(*position);
                 }
                 let angle = 20.0 * i as f32;
+                model = model * Matrix4::from_scale(0.5);
                 model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
                 shader_program.set_mat4(c_str!("model"), &model);
 
-                gl::DrawElements(gl::TRIANGLES, 36, gl::UNSIGNED_INT, ptr::null());
+                models.draw(&shader_program);
             }
         }
 
