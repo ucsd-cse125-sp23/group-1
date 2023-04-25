@@ -71,6 +71,20 @@ pub struct PositionComponent {
     pub qw: f32,
 }
 
+impl PositionComponent {
+    pub fn default() -> PositionComponent{
+        PositionComponent {
+            x:  (0.0),
+            y:  (0.0),
+            z:  (0.0),
+            qx: (0.0),
+            qy: (0.0),
+            qz: (0.0),
+            qw: (1.0)
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
     pub cooldown: i16,
