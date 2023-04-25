@@ -35,7 +35,7 @@ fn main() {
     // let player = ecs.new_player("dummy".to_string(), &mut rigid_body_set, &mut collider_set);
 
     // connection state
-    let listener = TcpListener::bind("0.0.0.0:2345").expect("Error binding address");
+    let listener = TcpListener::bind("localhost:8080").expect("Error binding address");
     loop {
         println!("Waiting for client...");
         ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
