@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write, self};
 use std::net::{TcpListener, TcpStream};
-use std::{str,thread::sleep,time::Duration};
+use std::{str,thread::sleep,time::Duration, time::Instant};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 // use nalgebra::*;
 use rapier3d::prelude::*;
@@ -11,6 +11,10 @@ mod server_components;
 use server_components::*;
 
 type Entity = DefaultKey;
+
+// server tick speed, in ms
+// stored as 64 bit int to avoid casting for comparison
+const TICK_SPEED: u64 = 50;
 
 struct ECS {
     name_components: SlotMap<Entity, String>,
@@ -285,6 +289,8 @@ fn main() {
 
         // println!( "{}", player_pos.z);
 
+        // BEGIN SERVER TICK
+        let start = Instant::now();
 
         //temp server code
         ecs.receive_inputs();
@@ -301,7 +307,16 @@ fn main() {
         }
         // println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
         ecs.update_clients();
-        // sleep(Duration::from_millis(100));
+
+        // END SERVER TICK
+        let end = Instant::now();
+        let tick = end.duration_since(start);
+        let tick_ms = tick.as_millis() as u64;
+        if tick_ms > TICK_SPEED  {
+            eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, TICK_SPEED);
+        } else { 
+            sleep(Duration::from_millis(TICK_SPEED) - tick);
+        }
     }
 }
 
