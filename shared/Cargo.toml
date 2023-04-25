@@ -1,23 +1,12 @@
 [package]
-name = "group-1"
+name = "shared"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-shared = { path = "../shared" }
-
-# Graphics
-cgmath = "0.16.1"
-gl = "0.14.0"
-glfw = "0.51.0"
-image = "0.19.0"
-tobj = "0.1.6"
-
-# Network
 serde = {version = "1.0", features = ["derive"]}
-serde_json = "1.0.96"
-
-# SlotMap
+rapier3d = { version = "0.17.2", features = [ "simd-stable" ] }
+nalgebra = "0.32.2"
 slotmap = { version = "1.0.6", features = ["serde"] }
