@@ -6,6 +6,7 @@ use std::net::{TcpListener};
 
 use shared::shared_components::*;
 mod ecs;
+mod init_world;
 mod server_components;
 
 // server tick speed, in ms

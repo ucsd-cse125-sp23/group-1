@@ -1,4 +1,5 @@
 use rapier3d::prelude::*;
+use nalgebra::{UnitQuaternion,Isometry3,Translation3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -16,6 +17,7 @@ pub struct ECS {
     pub player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
+    pub model_components: SecondaryMap<Entity, ModelComponent>,
     
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
@@ -24,6 +26,7 @@ pub struct ECS {
 
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
+    pub renderables: Vec<Entity>,
 
     pub temp_entity: Entity,
 }
@@ -35,11 +38,13 @@ impl ECS {
             player_input_components: SecondaryMap::new(),
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
+            model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
+            renderables: vec![],
             temp_entity: DefaultKey::default(),
         }
     }
@@ -195,6 +200,28 @@ impl ECS {
         let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
+    }
+
+    pub fn spawn_prop(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, 
+        name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, rot_x: f32, rot_y: f32, rot_z: f32, 
+        dynamic: bool, shape: SharedShape, density: f32, restitution: f32) {
+            let entity = self.name_components.insert(name);
+            self.renderables.push(entity);
+            let rot = UnitQuaternion::from_euler_angles(rot_x,rot_y,rot_z);
+            self.position_components.insert(entity, PositionComponent { x: (pos_x), y: (pos_y), z: (pos_z), qx: (rot.i), qy: (rot.j), qz: (rot.k), qw: (rot.w) });
+            self.model_components.insert(entity,ModelComponent { modelname });
+            let rigid_body: RigidBody;
+            if dynamic {
+                self.dynamics.push(entity);
+                rigid_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+            } else {
+                rigid_body = RigidBodyBuilder::fixed().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+            }
+            let handle = rigid_body_set.insert(rigid_body);
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).build();
+            let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+            self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
+
     }
 
     /**

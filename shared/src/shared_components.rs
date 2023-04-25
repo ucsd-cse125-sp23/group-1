@@ -85,6 +85,10 @@ impl PositionComponent {
     }
 }
 
+pub struct ModelComponent {
+    pub modelname: String,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
     pub cooldown: i16,
