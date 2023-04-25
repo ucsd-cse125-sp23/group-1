@@ -5,11 +5,9 @@ mod mesh;
 mod model;
 
 // graphics
-extern crate glfw;
-extern crate gl;
-
-use self::glfw::{Context, Key, Action};
+use glfw::{Context, Key, Action};
 use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use gltf::Gltf;
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
@@ -37,6 +35,25 @@ struct Coords {
 }
 
 fn main() -> std::io::Result<()> {
+    let gltf_file = Gltf::open("resources/test_skeleton.gltf");
+
+    let gltf = match gltf_file {
+        Ok(gltf) => gltf,
+        Err(err) => panic!("Problem reading gltf: {:?}", err),
+    };
+
+    for scene in gltf.scenes() {
+        for node in scene.nodes() {
+            println!(
+                "Node #{} has {} children",
+                node.index(),
+                node.children().count(),
+            );
+        }
+    }
+
+    return Result::Ok(());
+
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
