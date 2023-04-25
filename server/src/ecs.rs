@@ -98,7 +98,7 @@ impl ECS {
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
                         // TODO: handle lost client
-                        break;
+                        panic!("Lost client connection");
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -155,7 +155,7 @@ impl ECS {
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e)
+                Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
             }
         }
     }

@@ -12,6 +12,8 @@ mod server_components;
 // stored as 64 bit int to avoid casting for comparison
 const TICK_SPEED: u64 = 50;
 
+const MOVE_DELTA: f32 = 0.1;
+
 fn main() {
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
@@ -33,7 +35,7 @@ fn main() {
     // let player = ecs.new_player("dummy".to_string(), &mut rigid_body_set, &mut collider_set);
 
     // connection state
-    let listener = TcpListener::bind("localhost:8080").expect("Error binding address");
+    let listener = TcpListener::bind("0.0.0.0:2345").expect("Error binding address");
     loop {
         println!("Waiting for client...");
         ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
@@ -95,13 +97,13 @@ fn main() {
         let input = & ecs.player_input_components[player];
         let mut position = &mut ecs.position_components[ecs.temp_entity];
         if input.s_pressed {
-            position.z += -0.001;
+            position.z += -MOVE_DELTA;
         } else if input.w_pressed {
-            position.z += 0.001;
+            position.z += MOVE_DELTA;
         } else if input.a_pressed {
-            position.x += -0.001;
+            position.x += -MOVE_DELTA;
         } else if input.d_pressed {
-            position.x += 0.001;
+            position.x += MOVE_DELTA;
         }
         // println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
         ecs.update_clients();
