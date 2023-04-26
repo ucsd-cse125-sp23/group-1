@@ -65,6 +65,13 @@ fn main() -> std::io::Result<()> {
 
     // Create network TcpStream
     let mut stream = TcpStream::connect("localhost:8080")?;
+
+    // receive and save client id
+    let mut read_buf = [0u8, 1];
+    stream.read(&mut read_buf).unwrap();
+    let client_id = read_buf[0];
+    println!("client id: {}", client_id);
+
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders

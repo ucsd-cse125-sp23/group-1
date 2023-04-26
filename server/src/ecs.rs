@@ -55,11 +55,16 @@ impl ECS {
     pub fn connect_client(&mut self, listener: &TcpListener, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
         match listener.accept() {
             Ok((stream, addr)) => {
-                println!("Client connected: {addr:?}");
-                stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
+                let mut curr_stream = stream;
+                println!("Client connected: {addr:?}, client id: {}", self.players.len());
+                // send client id -- supports no more than 255 clients
+                let client_id = self.players.len() as u8;
+                // if this error happens something is very wrong with the connection
+                curr_stream.write(&[client_id]).unwrap();
+                curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
-                self.network_components.insert(player, NetworkComponent { stream });
+                self.network_components.insert(player, NetworkComponent { stream:curr_stream });
                 println!("Name: {}", name);
             },
             Err(e) => {
