@@ -3,6 +3,7 @@ mod macros;
 mod camera;
 mod mesh;
 mod model;
+mod joint;
 
 // graphics
 use glfw::{Context, Key, Action};
@@ -21,18 +22,37 @@ use std::io::{Read, Write, self};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
+use crate::joint::Joint;
+use crate::mesh::Vertex;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
 
 fn main() -> std::io::Result<()> {
-    let gltf_file = Gltf::open("resources/test_skeleton.gltf");
+    let gltf_file = Gltf::open("resources/test_plane.gltf");
 
     let gltf = match gltf_file {
         Ok(gltf) => gltf,
         Err(err) => panic!("Problem reading gltf: {:?}", err),
     };
+
+    let mut vertices = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
+
+    let mut buffer_data = Vec::new();
+    for buffer in gltf.buffers() {
+        match buffer.source() {
+            gltf::buffer::Source::Bin => {
+                if let Some(blob) = gltf.blob.as_deref() {
+                    buffer_data.push(blob.into());
+                }
+                // let bin = uri.as_bytes();
+                // buffer_data.push(bin);
+            }
+            _ => {}
+        }
+    }
 
     for scene in gltf.scenes() {
         for node in scene.nodes() {
@@ -41,6 +61,17 @@ fn main() -> std::io::Result<()> {
                 node.index(),
                 node.children().count(),
             );
+            let mesh = node.mesh().expect("Got mesh");
+            let primitives = mesh.primitives();
+            primitives.for_each(|primitive| {
+                let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
+                if let Some(vertex_attribute) = reader.read_positions() {
+                    vertex_attribute.for_each(|vertex| {
+                        dbg!(vertex);
+                        vertices.push(vertex);
+                    })
+                }
+            });
         }
     }
 
