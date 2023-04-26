@@ -24,10 +24,6 @@ use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
 
-// graphics settings
-const SCR_WIDTH: u32 = 800;
-const SCR_HEIGHT: u32 = 600;
-
 fn main() -> std::io::Result<()> {
     // create camera and camera information
     let mut camera = Camera {
@@ -35,8 +31,8 @@ fn main() -> std::io::Result<()> {
         ..Camera::default()
     };
     let mut first_mouse = true;
-    let mut last_x: f32 = SCR_WIDTH as f32 / 2.0;
-    let mut last_y: f32 = SCR_HEIGHT as f32 / 2.0;
+    let mut last_x: f32 = shared::SCR_WIDTH as f32 / 2.0;
+    let mut last_y: f32 = shared::SCR_HEIGHT as f32 / 2.0;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -48,7 +44,7 @@ fn main() -> std::io::Result<()> {
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw.create_window(shared::SCR_WIDTH, shared::SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window");
 
     window.make_current();
@@ -57,7 +53,7 @@ fn main() -> std::io::Result<()> {
     window.set_scroll_polling(true);
 
     // tell GLFW to capture our mouse
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    window.set_cursor_mode(glfw::CursorMode::Hidden);
 
     // gl: load all OpenGL function pointers
     // ---------------------------------------
@@ -144,10 +140,11 @@ fn main() -> std::io::Result<()> {
             let size:u32;
             match stream.peek(&mut size_buf) {
                 Ok(4) => {
-                    // it's tradition, dammit!
+                    // big-endian for networks. it's tradition, dammit!
                     size = u32::from_be_bytes(size_buf);
                 },
                 Ok(_) => {
+                    // incomplete size field, wait for next tick
                     break;
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -210,7 +207,7 @@ fn main() -> std::io::Result<()> {
             shader_program.set_mat4(c_str!("view"), &view);
 
             // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
             shader_program.set_mat4(c_str!("projection"), &projection);
 
             // camera coordinates calculation: u, v, w: points away from camera
@@ -295,6 +292,7 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
         input_component.d_pressed = true;
     }
 
+    // TODO: keep for now, eventually this may be a menu
     if window.get_key(Key::Escape) == Action::Press {
         window.set_should_close(true);
     }

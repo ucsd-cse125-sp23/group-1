@@ -3,18 +3,26 @@ use rapier3d::prelude::*;
 use std::{thread::sleep,time::Duration, time::Instant};
 use std::io::{self};
 use std::net::{TcpListener};
+use std::collections::HashMap;
+use config::Config;
 
 use shared::shared_components::*;
 mod ecs;
 mod server_components;
 
-// server tick speed, in ms
-// stored as 64 bit int to avoid casting for comparison
-const TICK_SPEED: u64 = 50;
-
-const MOVE_DELTA: f32 = 0.1;
+fn load_settings() {
+    let settings = Config::builder()
+        .add_source(config::File::with_name("../shared/Settings.toml"))
+        .build()
+        .unwrap();
+    let settings_map = settings
+        .try_deserialize::<HashMap<String, String>>()
+        .unwrap();
+}
 
 fn main() {
+    // LOAD SETTINGS
+    
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
@@ -97,13 +105,13 @@ fn main() {
         let input = & ecs.player_input_components[player];
         let mut position = &mut ecs.position_components[ecs.temp_entity];
         if input.s_pressed {
-            position.z += -MOVE_DELTA;
+            position.z += -shared::MOVE_DELTA;
         } else if input.w_pressed {
-            position.z += MOVE_DELTA;
+            position.z += shared::MOVE_DELTA;
         } else if input.a_pressed {
-            position.x += -MOVE_DELTA;
+            position.x += -shared::MOVE_DELTA;
         } else if input.d_pressed {
-            position.x += MOVE_DELTA;
+            position.x += shared::MOVE_DELTA;
         }
         // println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
         ecs.update_clients();
@@ -112,10 +120,10 @@ fn main() {
         let end = Instant::now();
         let tick = end.duration_since(start);
         let tick_ms = tick.as_millis() as u64;
-        if tick_ms > TICK_SPEED  {
-            eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, TICK_SPEED);
+        if tick_ms > shared::TICK_SPEED  {
+            eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
         } else { 
-            sleep(Duration::from_millis(TICK_SPEED) - tick);
+            sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
         }
     }
 }
