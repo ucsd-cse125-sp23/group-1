@@ -139,14 +139,6 @@ fn main() -> std::io::Result<()> {
             Err(e) => eprintln!("Error sending input: {:?}", e),
         };
 
-        // let mut buf = [0 as u8; 128];
-        // let size = stream.read(&mut buf)?;
-        // if size > 0 {
-        //     let message: &str = str::from_utf8(&buf[0..size]).unwrap();
-        //     coords = serde_json::from_str(message).unwrap();
-        //     println!("{}", message);
-        // }
-
         loop {
             let mut size_buf = [0 as u8; 4];
             let size:u32;
