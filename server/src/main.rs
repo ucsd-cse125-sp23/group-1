@@ -12,6 +12,7 @@ use slotmap::{Key};
 
 use shared::shared_components::*;
 mod ecs;
+mod init_world;
 mod server_components;
 
 fn load_settings() {
