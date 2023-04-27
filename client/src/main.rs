@@ -8,7 +8,7 @@ mod model;
 extern crate glfw;
 extern crate gl;
 
-use self::glfw::{Context, Key, Action};
+use self::glfw::{Context, Key, MouseButton, Action};
 use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
 
 use std::sync::mpsc::Receiver;
@@ -295,6 +295,9 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     }
     if window.get_key(Key::D) == Action::Press {
         input_component.d_pressed = true;
+    }
+    if window.get_mouse_button(MouseButton::Button1) == Action::Press {
+        input_component.lmb_clicked = true;
     }
 
     // TODO: add additional quit hotkey?

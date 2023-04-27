@@ -26,17 +26,17 @@ fn main() {
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
-    // let gravity = vector![0.0, 0.0, 0.0];
-    // let integration_parameters = IntegrationParameters::default();
-    // let mut physics_pipeline = PhysicsPipeline::new();
-    // let mut island_manager = IslandManager::new();
-    // let mut broad_phase = BroadPhase::new();
-    // let mut narrow_phase = NarrowPhase::new();
-    // let mut impulse_joint_set = ImpulseJointSet::new();
-    // let mut multibody_joint_set = MultibodyJointSet::new();
-    // let mut ccd_solver = CCDSolver::new();
-    // let physics_hooks = ();
-    // let event_handler = ();
+    let gravity = vector![0.0, 0.0, 0.0];
+    let integration_parameters = IntegrationParameters::default();
+    let mut physics_pipeline = PhysicsPipeline::new();
+    let mut island_manager = IslandManager::new();
+    let mut broad_phase = BroadPhase::new();
+    let mut narrow_phase = NarrowPhase::new();
+    let mut impulse_joint_set = ImpulseJointSet::new();
+    let mut multibody_joint_set = MultibodyJointSet::new();
+    let mut ccd_solver = CCDSolver::new();
+    let physics_hooks = ();
+    let event_handler = ();
 
     let mut ecs = ecs::ECS::new();
 
@@ -99,19 +99,40 @@ fn main() {
 
         // for each player, update position
         // TODO: move relative to mouse orientation, switch to velocity?d
-        for player in &ecs.players {
-            let input = & ecs.player_input_components[*player];
-            let mut position = &mut ecs.position_components[*player];
-            if input.s_pressed {
-                position.z += -shared::MOVE_DELTA;
-            } else if input.w_pressed {
-                position.z += shared::MOVE_DELTA;
-            } else if input.a_pressed {
-                position.x += -shared::MOVE_DELTA;
-            } else if input.d_pressed {
-                position.x += shared::MOVE_DELTA;
-            }
-        }
+        // for player in &ecs.players {
+        //     let input = & ecs.player_input_components[*player];
+        //     let mut position = &mut ecs.position_components[*player];
+        //     if input.s_pressed {
+        //         position.z += -shared::MOVE_DELTA;
+        //     } else if input.w_pressed {
+        //         position.z += shared::MOVE_DELTA;
+        //     } else if input.a_pressed {
+        //         position.x += -shared::MOVE_DELTA;
+        //     } else if input.d_pressed {
+        //         position.x += shared::MOVE_DELTA;
+        //     }
+        // }
+
+        ecs.player_fire(&mut rigid_body_set); 
+
+        ecs.update_positions(&mut rigid_body_set);
+
+        physics_pipeline.step(
+            &gravity,
+            &integration_parameters,
+            &mut island_manager,
+            &mut broad_phase,
+            &mut narrow_phase,
+            &mut rigid_body_set,
+            &mut collider_set,
+            &mut impulse_joint_set,
+            &mut multibody_joint_set,
+            &mut ccd_solver,
+            None,
+            &physics_hooks,
+            &event_handler,
+        );
+
         ecs.update_clients();
 
         // END SERVER TICK

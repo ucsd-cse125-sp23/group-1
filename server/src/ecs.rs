@@ -236,9 +236,9 @@ impl ECS {
             if input.lmb_clicked && weapon.cooldown == 0 {
                 println!("firing!");
                 let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
-                let impulse = -10.0 * self.player_camera_components[player].camera_front;
+                let impulse = -1.0 * vector![input.camera_front_x, input.camera_front_y, input.camera_front_z].normalize();
                 rigid_body.apply_impulse(impulse, true);
-                weapon.cooldown = 30;
+                // weapon.cooldown = 30;
             }
         }
     }
