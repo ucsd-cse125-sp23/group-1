@@ -19,7 +19,7 @@ use crate::camera::*;
 use crate::model::Model;
 
 // network
-use std::io::{Read, Write, self};
+use std::io::{Read, Write, self, Cursor};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
@@ -53,7 +53,7 @@ fn main() -> std::io::Result<()> {
     window.set_scroll_polling(true);
 
     // tell GLFW to capture our mouse
-    window.set_cursor_mode(glfw::CursorMode::Hidden);
+    window.set_cursor_mode(glfw::CursorMode::Disabled);
 
     // gl: load all OpenGL function pointers
     // ---------------------------------------
@@ -65,7 +65,7 @@ fn main() -> std::io::Result<()> {
     // receive and save client id
     let mut read_buf = [0u8, 1];
     stream.read(&mut read_buf).unwrap();
-    let client_id = read_buf[0];
+    let client_id = read_buf[0] as usize;
     println!("client id: {}", client_id);
 
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
@@ -184,24 +184,28 @@ fn main() -> std::io::Result<()> {
             // activate shader
             shader_program.use_program();
 
-            // update model_pos based on message from server
+            // update player pos based on message from server
             let mut x = 0.0;
             let mut y = 0.0;
             let mut z = 0.0;
             match &client_ecs {
                 Some(c_ecs) => {
-                    x = c_ecs.position_components[c_ecs.temp_entity].x;
-                    y = c_ecs.position_components[c_ecs.temp_entity].y;
-                    z = c_ecs.position_components[c_ecs.temp_entity].z;
+                    let player_key = c_ecs.players[client_id];
+                    x = c_ecs.position_components[player_key].x;
+                    y = c_ecs.position_components[player_key].y;
+                    z = c_ecs.position_components[player_key].z;
                 }
                 None => ()
             }
-            let model_pos = vec3(x,y,z);
+            // let model_pos = vec3(x,y,z);
+            camera.Position.x = x;
+            camera.Position.y = y;
+            camera.Position.z = z;
 
             // create transformations and pass them to vertex shader
-            let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
-            model_mat = Matrix4::from_translation(model_pos) * model_mat;
-            shader_program.set_mat4(c_str!("model"), &model_mat);
+            // let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
+            // model_mat = Matrix4::from_translation(model_pos) * model_mat;
+            // shader_program.set_mat4(c_str!("model"), &model_mat);
 
             let view = camera.GetViewMatrix();
             shader_program.set_mat4(c_str!("view"), &view);
@@ -217,11 +221,12 @@ fn main() -> std::io::Result<()> {
             for (i, position) in cube_pos.iter().enumerate() {
                 // calculate the model matrix for each object and pass it to shader before drawing
                 let mut model;
-                if i == 0 {
-                    model = Matrix4::from_translation(model_pos);
-                } else {
-                    model = Matrix4::from_translation(*position);
-                }
+                model = Matrix4::from_translation(*position);
+                // if i == 0 {
+                //     model = Matrix4::from_translation(model_pos);
+                // } else {
+                //     model = Matrix4::from_translation(*position);
+                // }
                 let angle = 20.0 * i as f32;
                 model = model * Matrix4::from_scale(0.5);
                 model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
@@ -292,8 +297,15 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
         input_component.d_pressed = true;
     }
 
-    // TODO: keep for now, eventually this may be a menu
+    // TODO: add additional quit hotkey?
+
+    // Defocuses window
     if window.get_key(Key::Escape) == Action::Press {
-        window.set_should_close(true);
+        window.set_cursor_mode(glfw::CursorMode::Normal);
+    }
+
+    // Refocus by clicking on window
+    if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press {
+        window.set_cursor_mode(glfw::CursorMode::Disabled);
     }
 }

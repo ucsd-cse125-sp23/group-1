@@ -57,10 +57,6 @@ fn main() {
         }
     }
 
-    let player = ecs.players[0];
-
-    // ecs.player_input_components[player].lmb_clicked = true;
-
     let cube = ecs.name_components.insert("cube".to_string());
     ecs.position_components.insert(cube, PositionComponent::default());
     ecs.temp_entity = cube;
@@ -99,21 +95,23 @@ fn main() {
 
         // BEGIN SERVER TICK
         let start = Instant::now();
-
-        //temp server code
         ecs.receive_inputs();
-        let input = & ecs.player_input_components[player];
-        let mut position = &mut ecs.position_components[ecs.temp_entity];
-        if input.s_pressed {
-            position.z += -shared::MOVE_DELTA;
-        } else if input.w_pressed {
-            position.z += shared::MOVE_DELTA;
-        } else if input.a_pressed {
-            position.x += -shared::MOVE_DELTA;
-        } else if input.d_pressed {
-            position.x += shared::MOVE_DELTA;
+
+        // for each player, update position
+        // TODO: move relative to mouse orientation, switch to velocity?d
+        for player in &ecs.players {
+            let input = & ecs.player_input_components[*player];
+            let mut position = &mut ecs.position_components[*player];
+            if input.s_pressed {
+                position.z += -shared::MOVE_DELTA;
+            } else if input.w_pressed {
+                position.z += shared::MOVE_DELTA;
+            } else if input.a_pressed {
+                position.x += -shared::MOVE_DELTA;
+            } else if input.d_pressed {
+                position.x += shared::MOVE_DELTA;
+            }
         }
-        // println!("sending coords: {}, {}, {}", position.x, position.y, position.z);
         ecs.update_clients();
 
         // END SERVER TICK
