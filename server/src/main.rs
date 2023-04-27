@@ -1,6 +1,6 @@
 // use nalgebra::*;
 use rapier3d::prelude::*;
-use std::{thread::sleep,time::Duration, time::Instant};
+use std::{time::Duration, time::Instant};
 use std::io::{self};
 use std::net::{TcpListener};
 use std::collections::HashMap;
@@ -119,9 +119,7 @@ fn main() {
         if tick_ms > shared::TICK_SPEED  {
             eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
         } else { 
-            sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
-            // tick seems to be twice as long as it should be?
-            // eprintln!("total: {}ms",Instant::now().duration_since(start).as_millis());
+            spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
         }
     }
 }
