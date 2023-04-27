@@ -6,10 +6,6 @@ use std::net::{TcpListener};
 use std::collections::HashMap;
 use config::Config;
 
-// temporary imports, remove when temp_entity is removed
-use server_components::PhysicsComponent;
-use slotmap::{Key};
-
 use shared::shared_components::*;
 mod ecs;
 mod init_world;

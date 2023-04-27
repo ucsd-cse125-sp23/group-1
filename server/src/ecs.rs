@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3,Rotation3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
