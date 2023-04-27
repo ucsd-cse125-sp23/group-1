@@ -9,7 +9,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
@@ -188,16 +188,31 @@ fn main() -> std::io::Result<()> {
             let mut x = 0.0;
             let mut y = 0.0;
             let mut z = 0.0;
+            // temp cube pos, remove later:
+            let mut cube_x = 0.0;
+            let mut cube_y = 0.0;
+            let mut cube_z = 0.0;
+            let mut cube_qx = 0.0;
+            let mut cube_qy = 0.0;
+            let mut cube_qz = 0.0;
+            let mut cube_qw = 1.0;
             match &client_ecs {
                 Some(c_ecs) => {
                     let player_key = c_ecs.players[client_id];
                     x = c_ecs.position_components[player_key].x;
                     y = c_ecs.position_components[player_key].y;
                     z = c_ecs.position_components[player_key].z;
+                    cube_x = c_ecs.position_components[c_ecs.temp_entity].x;
+                    cube_y = c_ecs.position_components[c_ecs.temp_entity].y;
+                    cube_z = c_ecs.position_components[c_ecs.temp_entity].z;
+                    cube_qx = c_ecs.position_components[c_ecs.temp_entity].qx;
+                    cube_qy = c_ecs.position_components[c_ecs.temp_entity].qy;
+                    cube_qz = c_ecs.position_components[c_ecs.temp_entity].qz;
+                    cube_qw = c_ecs.position_components[c_ecs.temp_entity].qw;
                 }
                 None => ()
             }
-            // let model_pos = vec3(x,y,z);
+            let model_pos = vec3(cube_x,cube_y,cube_z);
             camera.Position.x = x;
             camera.Position.y = y;
             camera.Position.z = z;
@@ -221,15 +236,17 @@ fn main() -> std::io::Result<()> {
             for (i, position) in cube_pos.iter().enumerate() {
                 // calculate the model matrix for each object and pass it to shader before drawing
                 let mut model;
-                model = Matrix4::from_translation(*position);
-                // if i == 0 {
-                //     model = Matrix4::from_translation(model_pos);
-                // } else {
-                //     model = Matrix4::from_translation(*position);
-                // }
-                let angle = 20.0 * i as f32;
-                model = model * Matrix4::from_scale(0.5);
-                model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                // model = Matrix4::from_translation(*position);
+                if i == 0 {
+                    model = Matrix4::from_translation(model_pos);
+                    model = model * Matrix4::from_scale(0.5);
+                    model = model * Matrix4::from(Quaternion::new(cube_qw, cube_qx, cube_qy, cube_qz));
+                } else {
+                    model = Matrix4::from_translation(*position);
+                    let angle = 20.0 * i as f32;
+                    model = model * Matrix4::from_scale(0.5);
+                    model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                }
                 shader_program.set_mat4(c_str!("model"), &model);
 
                 models.draw(&shader_program);

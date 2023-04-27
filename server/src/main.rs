@@ -6,6 +6,10 @@ use std::net::{TcpListener};
 use std::collections::HashMap;
 use config::Config;
 
+// temporary imports, remove when temp_entity is removed
+use server_components::PhysicsComponent;
+use slotmap::{Key};
+
 use shared::shared_components::*;
 mod ecs;
 mod server_components;
@@ -37,6 +41,7 @@ fn main() {
     let mut ccd_solver = CCDSolver::new();
     let physics_hooks = ();
     let event_handler = ();
+    let mut query_pipeline = QueryPipeline::new();
 
     let mut ecs = ecs::ECS::new();
 
@@ -57,8 +62,16 @@ fn main() {
         }
     }
 
+    // temp cube object
     let cube = ecs.name_components.insert("cube".to_string());
     ecs.position_components.insert(cube, PositionComponent::default());
+    let cube_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 0.0]).build();
+    let cube_handle = rigid_body_set.insert(cube_body);
+    let cube_collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).user_data(cube.data().as_ffi() as u128).build();
+    let cube_collider_handle = collider_set.insert_with_parent(cube_collider, cube_handle, &mut rigid_body_set);
+    ecs.physics_components.insert(cube, PhysicsComponent { handle: (cube_handle), collider_handle: (cube_collider_handle) });
+    ecs.dynamics.push(cube);
+
     ecs.temp_entity = cube;
 
     loop {
@@ -97,8 +110,8 @@ fn main() {
         let start = Instant::now();
         ecs.receive_inputs();
 
-        // for each player, update position
-        // TODO: move relative to mouse orientation, switch to velocity?d
+        // // for each player, update position
+        // // TODO: move relative to mouse orientation, switch to velocity?d
         // for player in &ecs.players {
         //     let input = & ecs.player_input_components[*player];
         //     let mut position = &mut ecs.position_components[*player];
@@ -113,7 +126,7 @@ fn main() {
         //     }
         // }
 
-        ecs.player_fire(&mut rigid_body_set); 
+        ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
 
         ecs.update_positions(&mut rigid_body_set);
 
@@ -132,6 +145,7 @@ fn main() {
             &physics_hooks,
             &event_handler,
         );
+        query_pipeline.update(&rigid_body_set, &collider_set);
 
         ecs.update_clients();
 
