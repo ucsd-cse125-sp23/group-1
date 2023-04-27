@@ -19,14 +19,10 @@ use crate::camera::*;
 use crate::model::Model;
 
 // network
-use std::io::{Read, Write, self};
+use std::io::{Read, Write, self, Cursor};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
-
-// graphics settings
-const SCR_WIDTH: u32 = 800;
-const SCR_HEIGHT: u32 = 600;
 
 fn main() -> std::io::Result<()> {
     // create camera and camera information
@@ -35,8 +31,8 @@ fn main() -> std::io::Result<()> {
         ..Camera::default()
     };
     let mut first_mouse = true;
-    let mut last_x: f32 = SCR_WIDTH as f32 / 2.0;
-    let mut last_y: f32 = SCR_HEIGHT as f32 / 2.0;
+    let mut last_x: f32 = shared::SCR_WIDTH as f32 / 2.0;
+    let mut last_y: f32 = shared::SCR_HEIGHT as f32 / 2.0;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -48,7 +44,7 @@ fn main() -> std::io::Result<()> {
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw.create_window(shared::SCR_WIDTH, shared::SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window");
 
     window.make_current();
@@ -65,6 +61,13 @@ fn main() -> std::io::Result<()> {
 
     // Create network TcpStream
     let mut stream = TcpStream::connect("localhost:8080")?;
+
+    // receive and save client id
+    let mut read_buf = [0u8, 1];
+    stream.read(&mut read_buf).unwrap();
+    let client_id = read_buf[0] as usize;
+    println!("client id: {}", client_id);
+
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
@@ -132,23 +135,16 @@ fn main() -> std::io::Result<()> {
             Err(e) => eprintln!("Error sending input: {:?}", e),
         };
 
-        // let mut buf = [0 as u8; 128];
-        // let size = stream.read(&mut buf)?;
-        // if size > 0 {
-        //     let message: &str = str::from_utf8(&buf[0..size]).unwrap();
-        //     coords = serde_json::from_str(message).unwrap();
-        //     println!("{}", message);
-        // }
-
         loop {
             let mut size_buf = [0 as u8; 4];
             let size:u32;
             match stream.peek(&mut size_buf) {
                 Ok(4) => {
-                    // it's tradition, dammit!
+                    // big-endian for networks. it's tradition, dammit!
                     size = u32::from_be_bytes(size_buf);
                 },
                 Ok(_) => {
+                    // incomplete size field, wait for next tick
                     break;
                 },
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -188,30 +184,34 @@ fn main() -> std::io::Result<()> {
             // activate shader
             shader_program.use_program();
 
-            // update model_pos based on message from server
+            // update player pos based on message from server
             let mut x = 0.0;
             let mut y = 0.0;
             let mut z = 0.0;
             match &client_ecs {
                 Some(c_ecs) => {
-                    x = c_ecs.position_components[c_ecs.temp_entity].x;
-                    y = c_ecs.position_components[c_ecs.temp_entity].y;
-                    z = c_ecs.position_components[c_ecs.temp_entity].z;
+                    let player_key = c_ecs.players[client_id];
+                    x = c_ecs.position_components[player_key].x;
+                    y = c_ecs.position_components[player_key].y;
+                    z = c_ecs.position_components[player_key].z;
                 }
                 None => ()
             }
-            let model_pos = vec3(x,y,z);
+            // let model_pos = vec3(x,y,z);
+            camera.Position.x = x;
+            camera.Position.y = y;
+            camera.Position.z = z;
 
             // create transformations and pass them to vertex shader
-            let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
-            model_mat = Matrix4::from_translation(model_pos) * model_mat;
-            shader_program.set_mat4(c_str!("model"), &model_mat);
+            // let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
+            // model_mat = Matrix4::from_translation(model_pos) * model_mat;
+            // shader_program.set_mat4(c_str!("model"), &model_mat);
 
             let view = camera.GetViewMatrix();
             shader_program.set_mat4(c_str!("view"), &view);
 
             // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
             shader_program.set_mat4(c_str!("projection"), &projection);
 
             // camera coordinates calculation: u, v, w: points away from camera
@@ -221,11 +221,12 @@ fn main() -> std::io::Result<()> {
             for (i, position) in cube_pos.iter().enumerate() {
                 // calculate the model matrix for each object and pass it to shader before drawing
                 let mut model;
-                if i == 0 {
-                    model = Matrix4::from_translation(model_pos);
-                } else {
-                    model = Matrix4::from_translation(*position);
-                }
+                model = Matrix4::from_translation(*position);
+                // if i == 0 {
+                //     model = Matrix4::from_translation(model_pos);
+                // } else {
+                //     model = Matrix4::from_translation(*position);
+                // }
                 let angle = 20.0 * i as f32;
                 model = model * Matrix4::from_scale(0.5);
                 model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
@@ -296,7 +297,15 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
         input_component.d_pressed = true;
     }
 
+    // TODO: add additional quit hotkey?
+
+    // Defocuses window
     if window.get_key(Key::Escape) == Action::Press {
-        window.set_should_close(true);
+        window.set_cursor_mode(glfw::CursorMode::Normal);
+    }
+
+    // Refocus by clicking on window
+    if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press {
+        window.set_cursor_mode(glfw::CursorMode::Disabled);
     }
 }
