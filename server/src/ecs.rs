@@ -1,5 +1,6 @@
 use rapier3d::prelude::*;
-use slotmap::{SlotMap, SecondaryMap, DefaultKey};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3};
+use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
 use std::net::{TcpListener};
@@ -16,6 +17,7 @@ pub struct ECS {
     pub player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
+    pub model_components: SecondaryMap<Entity, ModelComponent>,
     
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
@@ -24,6 +26,7 @@ pub struct ECS {
 
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
+    pub renderables: Vec<Entity>,
 
     pub temp_entity: Entity,
 }
@@ -35,11 +38,13 @@ impl ECS {
             player_input_components: SecondaryMap::new(),
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
+            model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
+            renderables: vec![],
             temp_entity: DefaultKey::default(),
         }
     }
@@ -126,6 +131,7 @@ impl ECS {
                 }
             }
             // once all inputs have been aggregated for this player
+            self.player_camera_components[player].camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
             self.player_input_components[player] = input_temp;
         }
     }
@@ -194,12 +200,34 @@ impl ECS {
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
         self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, -1.0]});
-        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 0.0]).build();
+        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().build();
         let handle = rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).build();
+        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
+    }
+
+    pub fn spawn_prop(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, 
+        name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, rot_x: f32, rot_y: f32, rot_z: f32, 
+        dynamic: bool, shape: SharedShape, density: f32, restitution: f32) {
+            let entity = self.name_components.insert(name);
+            self.renderables.push(entity);
+            let rot = UnitQuaternion::from_euler_angles(rot_x,rot_y,rot_z);
+            self.position_components.insert(entity, PositionComponent { x: (pos_x), y: (pos_y), z: (pos_z), qx: (rot.i), qy: (rot.j), qz: (rot.k), qw: (rot.w) });
+            self.model_components.insert(entity,ModelComponent { modelname });
+            let rigid_body: RigidBody;
+            if dynamic {
+                self.dynamics.push(entity);
+                rigid_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+            } else {
+                rigid_body = RigidBodyBuilder::fixed().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+            }
+            let handle = rigid_body_set.insert(rigid_body);
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(entity.data().as_ffi() as u128).build();
+            let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+            self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
+
     }
 
     /**
@@ -226,7 +254,7 @@ impl ECS {
      *
      * @param rigid_body_set
      */
-    pub fn player_fire(&mut self, rigid_body_set: &mut RigidBodySet) {
+    pub fn player_fire(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, query_pipeline: & QueryPipeline) {
         for &player in &self.players {
             let mut weapon = &mut self.player_weapon_components[player];
             let input = &self.player_input_components[player];
@@ -235,9 +263,33 @@ impl ECS {
             }
             if input.lmb_clicked && weapon.cooldown == 0 {
                 println!("firing!");
+                let fire_vec = &self.player_camera_components[player].camera_front;
+                let impulse = 10.0 * fire_vec;
+                let position = &self.position_components[player];
+
+                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let max_toi = 1000.0; //depends on size of map
+                let solid = true;
+                let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
+                match query_pipeline.cast_ray(rigid_body_set, collider_set, &ray, max_toi, solid, filter) {
+                    Some((target_collider_handle, toi)) => {
+                        let target_collider = collider_set.get_mut(target_collider_handle).unwrap();
+                        let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                        let target_name = & self.name_components[target];
+                        println!("Hit target {}",target_name);
+                        let hit_point = ray.point_at(toi);
+                        let target_body = rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+                        target_body.apply_impulse_at_point(impulse, hit_point, true);
+
+                    },
+                    None => {
+                        println!("Miss");
+                    },
+                }
+
                 let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
-                let impulse = -10.0 * self.player_camera_components[player].camera_front;
-                rigid_body.apply_impulse(impulse, true);
+                rigid_body.apply_impulse(-impulse, true);
+                // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
             }
         }
