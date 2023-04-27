@@ -46,7 +46,10 @@ fn main() {
 
     let mut ecs = ecs::ECS::new();
 
-    // let player = ecs.new_player("dummy".to_string(), &mut rigid_body_set, &mut collider_set);
+    init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
+
+    // temp cube object
+    ecs.temp_entity = ecs.dynamics[0];
 
     // connection state
     let listener = TcpListener::bind("localhost:8080").expect("Error binding address");
@@ -63,52 +66,11 @@ fn main() {
         }
     }
 
-    // temp cube object
-    let cube = ecs.name_components.insert("cube".to_string());
-    ecs.position_components.insert(cube, PositionComponent::default());
-    let cube_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 0.0]).build();
-    let cube_handle = rigid_body_set.insert(cube_body);
-    let cube_collider = ColliderBuilder::cuboid(0.5, 0.5, 0.5).user_data(cube.data().as_ffi() as u128).build();
-    let cube_collider_handle = collider_set.insert_with_parent(cube_collider, cube_handle, &mut rigid_body_set);
-    ecs.physics_components.insert(cube, PhysicsComponent { handle: (cube_handle), collider_handle: (cube_collider_handle) });
-    ecs.dynamics.push(cube);
-
-    ecs.temp_entity = cube;
-
     loop {
-
-        // if i == 10 {
-        //     ecs.player_input_components[player].lmb_clicked = true;
-        // } else {
-            
-        // }
-        
-        // ecs.player_fire(&mut rigid_body_set);    
-
-        // physics_pipeline.step(
-        //     &gravity,
-        //     &integration_parameters,
-        //     &mut island_manager,
-        //     &mut broad_phase,
-        //     &mut narrow_phase,
-        //     &mut rigid_body_set,
-        //     &mut collider_set,
-        //     &mut impulse_joint_set,
-        //     &mut multibody_joint_set,
-        //     &mut ccd_solver,
-        //     None,
-        //     &physics_hooks,
-        //     &event_handler,
-        // );
-
-        // ecs.update_positions(&mut rigid_body_set);
-
-        // let player_pos = &ecs.position_components[player];
-
-        // println!( "{}", player_pos.z);
 
         // BEGIN SERVER TICK
         let start = Instant::now();
+
         ecs.receive_inputs();
 
         // // for each player, update position
@@ -158,6 +120,8 @@ fn main() {
             eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
         } else { 
             sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
+            // tick seems to be twice as long as it should be?
+            // eprintln!("total: {}ms",Instant::now().duration_since(start).as_millis());
         }
     }
 }

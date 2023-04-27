@@ -224,7 +224,7 @@ impl ECS {
                 rigid_body = RigidBodyBuilder::fixed().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
             }
             let handle = rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).build();
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(entity.data().as_ffi() as u128).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
             self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
 
