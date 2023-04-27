@@ -90,6 +90,7 @@ fn main() {
         // }
 
         ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
+        ecs.player_move(&mut rigid_body_set);
 
         ecs.update_positions(&mut rigid_body_set);
 

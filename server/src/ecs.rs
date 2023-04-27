@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3,Rotation3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -131,7 +131,10 @@ impl ECS {
                 }
             }
             // once all inputs have been aggregated for this player
-            self.player_camera_components[player].camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            let camera = &mut self.player_camera_components[player];
+            camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
+            camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
             self.player_input_components[player] = input_temp;
         }
     }
@@ -149,6 +152,8 @@ impl ECS {
         curr.a_pressed |= value.a_pressed;
         curr.s_pressed |= value.s_pressed;
         curr.d_pressed |= value.d_pressed;
+        curr.shift_pressed |= value.shift_pressed;
+        curr.ctrl_pressed |= value.ctrl_pressed;
         curr.camera_front_x = value.camera_front_x;
         curr.camera_front_y = value.camera_front_y;
         curr.camera_front_z = value.camera_front_z;
@@ -199,8 +204,8 @@ impl ECS {
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
-        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, -1.0]});
-        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().build();
+        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
@@ -291,6 +296,33 @@ impl ECS {
                 rigid_body.apply_impulse(-impulse, true);
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
+            }
+        }
+    }
+
+    pub fn player_move(&mut self, rigid_body_set: &mut RigidBodySet) {
+        for &player in &self.players {
+            let input = &self.player_input_components[player];
+            let camera = &self.player_camera_components[player];
+            let impulse = 0.05;
+            let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            if input.w_pressed && !input.s_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_front, true);
+            }
+            if input.s_pressed && !input.w_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_front, true);
+            }
+            if input.a_pressed && !input.d_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_right, true);
+            }
+            if input.d_pressed && !input.a_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_right, true);
+            }
+            if input.shift_pressed && !input.ctrl_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_up, true);
+            }
+            if input.ctrl_pressed && !input.shift_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_up, true);
             }
         }
     }
