@@ -28,7 +28,8 @@ fn main() {
     let mut collider_set = ColliderSet::new();
 
     let gravity = vector![0.0, 0.0, 0.0];
-    let integration_parameters = IntegrationParameters::default();
+    let integration_parameters = IntegrationParameters { dt: (shared::TICK_SPEED as f32) / 1000.0, ..Default::default()};
+    println!("{}",integration_parameters.dt);
     let mut physics_pipeline = PhysicsPipeline::new();
     let mut island_manager = IslandManager::new();
     let mut broad_phase = BroadPhase::new();
