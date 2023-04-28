@@ -12,6 +12,7 @@ pub struct PlayerInputComponent {
     pub a_pressed: bool,
     pub s_pressed: bool,
     pub d_pressed: bool,
+    pub r_pressed: bool,
     pub shift_pressed: bool,
     pub ctrl_pressed: bool,
     pub camera_front_x: f32,
@@ -30,6 +31,7 @@ impl PlayerInputComponent {
             d_pressed: false,
             shift_pressed: false,
             ctrl_pressed: false,
+            r_pressed: false,
             camera_front_x: 0.0,
             camera_front_y: 0.0,
             camera_front_z: -1.0,
@@ -92,4 +94,6 @@ pub struct ModelComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
     pub cooldown: i16,
+    pub ammo: u8,
+    pub reloading: bool,
 }

@@ -29,7 +29,6 @@ fn main() {
 
     let gravity = vector![0.0, 0.0, 0.0];
     let integration_parameters = IntegrationParameters { dt: (shared::TICK_SPEED as f32) / 1000.0, ..Default::default()};
-    println!("{}",integration_parameters.dt);
     let mut physics_pipeline = PhysicsPipeline::new();
     let mut island_manager = IslandManager::new();
     let mut broad_phase = BroadPhase::new();
@@ -69,22 +68,6 @@ fn main() {
         let start = Instant::now();
 
         ecs.receive_inputs();
-
-        // // for each player, update position
-        // // TODO: move relative to mouse orientation, switch to velocity?d
-        // for player in &ecs.players {
-        //     let input = & ecs.player_input_components[*player];
-        //     let mut position = &mut ecs.position_components[*player];
-        //     if input.s_pressed {
-        //         position.z += -shared::MOVE_DELTA;
-        //     } else if input.w_pressed {
-        //         position.z += shared::MOVE_DELTA;
-        //     } else if input.a_pressed {
-        //         position.x += -shared::MOVE_DELTA;
-        //     } else if input.d_pressed {
-        //         position.x += shared::MOVE_DELTA;
-        //     }
-        // }
 
         ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
         ecs.player_move(&mut rigid_body_set);

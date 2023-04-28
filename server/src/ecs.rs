@@ -154,6 +154,7 @@ impl ECS {
         curr.d_pressed |= value.d_pressed;
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
+        curr.r_pressed |= value.r_pressed;
         curr.camera_front_x = value.camera_front_x;
         curr.camera_front_y = value.camera_front_y;
         curr.camera_front_z = value.camera_front_z;
@@ -203,7 +204,7 @@ impl ECS {
         self.dynamics.push(player);
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
-        self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
+        self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
         self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
@@ -265,8 +266,13 @@ impl ECS {
             let input = &self.player_input_components[player];
             if weapon.cooldown > 0 {
                 weapon.cooldown -= 1;
+                if weapon.reloading && weapon.cooldown == 0 {
+                    weapon.ammo = 6;
+                    weapon.reloading = false;
+                    println!("ammo: {}",weapon.ammo);
+                }
             }
-            if input.lmb_clicked && weapon.cooldown == 0 {
+            if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
                 println!("firing!");
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
@@ -296,6 +302,12 @@ impl ECS {
                 rigid_body.apply_impulse(-impulse, true);
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
+                weapon.ammo -= 1;
+                println!("ammo: {}",weapon.ammo);
+            } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < 6)) && weapon.cooldown == 0 {
+                println!("reloading...");
+                weapon.cooldown = 180;
+                weapon.reloading = true;
             }
         }
     }

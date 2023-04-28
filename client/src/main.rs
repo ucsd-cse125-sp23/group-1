@@ -319,6 +319,9 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     if window.get_key(Key::LeftControl) == Action::Press {
         input_component.ctrl_pressed = true;
     }
+    if window.get_key(Key::R) == Action::Press {
+        input_component.r_pressed = true;
+    }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;
     }
