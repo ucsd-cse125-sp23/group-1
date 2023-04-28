@@ -102,11 +102,10 @@ fn main() {
             &mut impulse_joint_set,
             &mut multibody_joint_set,
             &mut ccd_solver,
-            None,
+            Some(&mut query_pipeline),
             &physics_hooks,
             &event_handler,
         );
-        query_pipeline.update(&rigid_body_set, &collider_set);
 
         ecs.update_clients();
 
