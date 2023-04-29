@@ -45,8 +45,9 @@ impl PlayerInputComponent {
 pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub players: Vec<Entity>,
-    pub temp_entity: Entity,
+    pub renderables: Vec<Entity>,
 }
 
 impl ClientECS {
@@ -54,8 +55,9 @@ impl ClientECS {
         ClientECS{
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
+            model_components: SecondaryMap::new(),
             players: vec![],
-            temp_entity: DefaultKey::default(),
+            renderables: vec![],
         }
     }
 }
@@ -87,6 +89,7 @@ impl PositionComponent {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ModelComponent {
     pub modelname: String,
 }

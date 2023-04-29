@@ -184,8 +184,9 @@ impl ECS {
         ClientECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
+            model_components: self.model_components.clone(),
             players: self.players.clone(),
-            temp_entity: self.temp_entity,
+            renderables: self.renderables.clone(),
         }
     }
 
