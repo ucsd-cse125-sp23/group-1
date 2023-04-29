@@ -200,7 +200,7 @@ fn main() -> std::io::Result<()> {
                         let model_qy = c_ecs.position_components[renderable].qy;
                         let model_qz = c_ecs.position_components[renderable].qz;
                         let model_qw = c_ecs.position_components[renderable].qw;
-                        let rot_mat = Matrix4::from(Quaternion::new(model_qx, model_qy, model_qz, model_qw));
+                        let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
                         
                         // setup scale matrix (skip for now)
                         let scale_mat = Matrix4::from_scale(1.0);
