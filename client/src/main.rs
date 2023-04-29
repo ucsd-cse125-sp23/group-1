@@ -3,12 +3,11 @@ mod macros;
 mod camera;
 mod mesh;
 mod model;
-mod joint;
 
 // graphics
 use glfw::{Context, Key, Action};
 use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
-use gltf::Gltf;
+use russimp::scene::{PostProcess, Scene};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
@@ -22,7 +21,6 @@ use std::io::{Read, Write, self};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
-use crate::joint::Joint;
 use crate::mesh::Vertex;
 
 // graphics settings
@@ -30,52 +28,43 @@ const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
 
 fn main() -> std::io::Result<()> {
-    let gltf_file = Gltf::open("resources/test_plane.gltf");
+    let scene = Scene::from_file("resources/tmp.fbx",
+                                 vec![
+                                     PostProcess::CalculateTangentSpace,
+                                     PostProcess::Triangulate,
+                                     PostProcess::JoinIdenticalVertices,
+                                     PostProcess::SortByPrimitiveType]).unwrap();
 
-    let gltf = match gltf_file {
-        Ok(gltf) => gltf,
-        Err(err) => panic!("Problem reading gltf: {:?}", err),
-    };
+    for mesh in scene.meshes {
+        println!("{}", mesh.vertices.len());
+        for vertex in mesh.vertices {
+            println!("{:?}", vertex);
+        }
+    }
 
-    let mut vertices = Vec::new();
-    let mut indices: Vec<u32> = Vec::new();
-
-    let mut buffer_data = Vec::new();
-    for buffer in gltf.buffers() {
-        match buffer.source() {
-            gltf::buffer::Source::Bin => {
-                if let Some(blob) = gltf.blob.as_deref() {
-                    buffer_data.push(blob.into());
-                }
-                // let bin = uri.as_bytes();
-                // buffer_data.push(bin);
+    for animation in scene.animations {
+        for channel in animation.channels {
+            for position_key in channel.position_keys {
+                println!("{}: {:?}", position_key.time, position_key.value);
             }
-            _ => {}
+        }
+        // for mesh_channel in animation.morph_mesh_channels {
+        //     for key in mesh_channel.keys {
+        //         println!("{}", key.time);
+        //         for value in key.weights {
+        //             println!("  {}", value);
+        //         }
+        //     }
+        // }
+    }
+
+    for md in scene.metadata {
+        for i in 0..md.keys.len() {
+            println!("{}: {:?}", md.keys[i], md.values[i]);
         }
     }
 
-    for scene in gltf.scenes() {
-        for node in scene.nodes() {
-            println!(
-                "Node #{} has {} children",
-                node.index(),
-                node.children().count(),
-            );
-            let mesh = node.mesh().expect("Got mesh");
-            let primitives = mesh.primitives();
-            primitives.for_each(|primitive| {
-                let reader = primitive.reader(|buffer| Some(&buffer_data[buffer.index()]));
-                if let Some(vertex_attribute) = reader.read_positions() {
-                    vertex_attribute.for_each(|vertex| {
-                        dbg!(vertex);
-                        vertices.push(vertex);
-                    })
-                }
-            });
-        }
-    }
-
-    return Result::Ok(());
+    return Ok(());
 
     // create camera and camera information
     let mut camera = Camera {
@@ -190,20 +179,20 @@ fn main() -> std::io::Result<()> {
 
         loop {
             let mut size_buf = [0 as u8; 4];
-            let size:u32;
+            let size: u32;
             match stream.peek(&mut size_buf) {
                 Ok(4) => {
                     // it's tradition, dammit!
                     size = u32::from_be_bytes(size_buf);
-                },
+                }
                 Ok(_) => {
                     break;
-                },
+                }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                     break;
                 }
                 Err(e) => {
-                    eprintln!("Failed to read message size from server: {}",e);
+                    eprintln!("Failed to read message size from server: {}", e);
                     // TODO: handle lost client
                     break;
                 }
@@ -214,16 +203,16 @@ fn main() -> std::io::Result<()> {
                 Ok(bytes_read) if bytes_read == s_size => {
                     // if this throws an error we deserve to crash tbh
                     stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                    let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                    let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                    let message: &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                    let value: ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                     client_ecs = Some(value);
-                },
+                }
                 Ok(_) => {
                     break;
-                },
+                }
                 Err(e) => {
-                    eprintln!("Failed to read message from server: {}",e);
-                },
+                    eprintln!("Failed to read message from server: {}", e);
+                }
             }
         }
 
@@ -248,7 +237,7 @@ fn main() -> std::io::Result<()> {
                 }
                 None => ()
             }
-            let model_pos = vec3(x,y,z);
+            let model_pos = vec3(x, y, z);
 
             // create transformations and pass them to vertex shader
             let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
@@ -259,7 +248,7 @@ fn main() -> std::io::Result<()> {
             shader_program.set_mat4(c_str!("view"), &view);
 
             // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
             shader_program.set_mat4(c_str!("projection"), &projection);
 
             // camera coordinates calculation: u, v, w: points away from camera
