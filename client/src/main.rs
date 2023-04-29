@@ -188,27 +188,29 @@ fn main() -> std::io::Result<()> {
                     set_camera_pos(&mut camera, player_pos, &shader_program);
 
                     for &renderable in &c_ecs.renderables {
-                        // setup position matrix
-                        let model_x = c_ecs.position_components[renderable].x;
-                        let model_y = c_ecs.position_components[renderable].y;
-                        let model_z = c_ecs.position_components[renderable].z;
-                        let model_pos = vec3(model_x, model_y, model_z);
-                        let pos_mat = Matrix4::from_translation(model_pos);
+                        if renderable != player_key {
+                            // setup position matrix
+                            let model_x = c_ecs.position_components[renderable].x;
+                            let model_y = c_ecs.position_components[renderable].y;
+                            let model_z = c_ecs.position_components[renderable].z;
+                            let model_pos = vec3(model_x, model_y, model_z);
+                            let pos_mat = Matrix4::from_translation(model_pos);
                         
-                        // setup rotation matrix
-                        let model_qx = c_ecs.position_components[renderable].qx;
-                        let model_qy = c_ecs.position_components[renderable].qy;
-                        let model_qz = c_ecs.position_components[renderable].qz;
-                        let model_qw = c_ecs.position_components[renderable].qw;
-                        let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
+                            // setup rotation matrix
+                            let model_qx = c_ecs.position_components[renderable].qx;
+                            let model_qy = c_ecs.position_components[renderable].qy;
+                            let model_qz = c_ecs.position_components[renderable].qz;
+                            let model_qw = c_ecs.position_components[renderable].qw;
+                            let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
                         
-                        // setup scale matrix (skip for now)
-                        let scale_mat = Matrix4::from_scale(1.0);
+                            // setup scale matrix (skip for now)
+                            let scale_mat = Matrix4::from_scale(1.0);
                         
-                        let model = pos_mat * scale_mat * rot_mat;
-                        shader_program.set_mat4(c_str!("model"), &model);
-                        let model_name = &c_ecs.model_components[renderable].modelname;
-                        models[model_name].draw(&shader_program);
+                            let model = pos_mat * scale_mat * rot_mat;
+                            shader_program.set_mat4(c_str!("model"), &model);
+                            let model_name = &c_ecs.model_components[renderable].modelname;
+                            models[model_name].draw(&shader_program);
+                        }
                     }
                 }
                 None => {

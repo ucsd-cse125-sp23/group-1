@@ -203,6 +203,8 @@ impl ECS {
         let player = self.name_components.insert(name);
         self.players.push(player);
         self.dynamics.push(player);
+        self.renderables.push(player);
+        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string() });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
