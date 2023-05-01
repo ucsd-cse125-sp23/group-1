@@ -1,70 +1,89 @@
-mod shader;
-mod macros;
 mod camera;
+mod macros;
 mod mesh;
 mod model;
+mod shader;
 
 // graphics
-use glfw::{Context, Key, Action};
-use cgmath::{Matrix4, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Vector3};
+use glfw::{Action, Context, Key};
 use russimp::scene::{PostProcess, Scene};
 
-use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
+use std::sync::mpsc::Receiver;
 
-use crate::shader::Shader;
 use crate::camera::*;
 use crate::model::Model;
+use crate::shader::Shader;
 
 // network
-use std::io::{Read, Write, self};
-use std::net::{TcpStream};
-use std::str;
 use shared::shared_components::*;
-use crate::mesh::Vertex;
+use std::io::{self, Read, Write};
+use std::net::TcpStream;
+use std::ops::Deref;
+use std::str;
+use russimp::sys::aiScene;
+use russimp::texture::TextureType;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
 
 fn main() -> std::io::Result<()> {
-    let scene = Scene::from_file("resources/tmp.fbx",
-                                 vec![
-                                     PostProcess::CalculateTangentSpace,
-                                     PostProcess::Triangulate,
-                                     PostProcess::JoinIdenticalVertices,
-                                     PostProcess::SortByPrimitiveType]).unwrap();
+    // experimenting with russimp
+    // TODO: probably remove them eventually
+    let scene = Scene::from_file(
+        "resources/textured_cube.fbx",
+        vec![PostProcess::Triangulate, PostProcess::JoinIdenticalVertices],
+    )
+    .unwrap();
 
-    for mesh in scene.meshes {
-        println!("{}", mesh.vertices.len());
-        for vertex in mesh.vertices {
-            println!("{:?}", vertex);
-        }
-    }
+    for mesh in &scene.meshes {
+        let mat_id = mesh.material_index as usize;
+        println!("{}", scene.materials.len());
+        println!("{:?}", &scene.materials[mat_id].textures);
+        let texture = &scene.materials[mat_id].textures[&TextureType::Diffuse][0];
 
-    for animation in scene.animations {
-        for channel in animation.channels {
-            for position_key in channel.position_keys {
-                println!("{}: {:?}", position_key.time, position_key.value);
-            }
-        }
-        // for mesh_channel in animation.morph_mesh_channels {
-        //     for key in mesh_channel.keys {
-        //         println!("{}", key.time);
-        //         for value in key.weights {
-        //             println!("  {}", value);
-        //         }
+        // for tex_coord in &mesh.texture_coords {
+        //     match tex_coord {
+        //         Some(tex) => {
+        //             println!("{}", tex.len());
+        //             println!("{:?}", tex);
+        //         },
+        //         None => println!("{:?}", tex_coord)
         //     }
+        // }
+        // for face in &mesh.faces {
+        //     println!("{:?}", face.0);
+        // }
+        // for bone in &mesh.bones {
+        //     println!("{:?}", bone.weights);
+        // }
+        // println!("{}", mesh.vertices.len());
+        // for vertex in &mesh.vertices {
+        //     println!("{:?}", vertex);
         // }
     }
 
-    for md in scene.metadata {
-        for i in 0..md.keys.len() {
-            println!("{}: {:?}", md.keys[i], md.values[i]);
-        }
-    }
+    // return Ok(());
 
-    return Ok(());
+    // let model = Model::new_from_assimp(scene.meshes);
+
+    // for animation in scene.animations {
+    //     for channel in animation.channels {
+    //         for position_key in channel.position_keys {
+    //             println!("{}: {:?}", position_key.time, position_key.value);
+    //         }
+    //     }
+    //     // for mesh_channel in animation.morph_mesh_channels {
+    //     //     for key in mesh_channel.keys {
+    //     //         println!("{}", key.time);
+    //     //         for value in key.weights {
+    //     //             println!("  {}", value);
+    //     //         }
+    //     //     }
+    //     // }
+    // }
 
     // create camera and camera information
     let mut camera = Camera {
@@ -79,13 +98,21 @@ fn main() -> std::io::Result<()> {
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw
+        .create_window(
+            SCR_WIDTH,
+            SCR_HEIGHT,
+            "LearnOpenGL",
+            glfw::WindowMode::Windowed,
+        )
         .expect("Failed to create GLFW window");
 
     window.make_current();
@@ -102,7 +129,9 @@ fn main() -> std::io::Result<()> {
 
     // Create network TcpStream
     let mut stream = TcpStream::connect("localhost:8080")?;
-    stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
     let (shader_program, models, cube_pos) = unsafe {
@@ -111,13 +140,11 @@ fn main() -> std::io::Result<()> {
         gl::Enable(gl::DEPTH_TEST);
 
         // create shader program using shader.rs
-        let shader_program = Shader::new(
-            "shaders/shader.vs",
-            "shaders/shader.fs",
-        );
+        let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
 
         // world space positions of our cubes
-        let cube_pos: [Vector3<f32>; 10] = [vec3(0.0, 0.0, 0.0),
+        let cube_pos: [Vector3<f32>; 10] = [
+            vec3(0.0, 0.0, 0.0),
             vec3(2.0, 5.0, -15.0),
             vec3(-1.5, -2.2, -2.5),
             vec3(-3.8, -2.0, -12.3),
@@ -126,12 +153,13 @@ fn main() -> std::io::Result<()> {
             vec3(1.3, -2.0, -2.5),
             vec3(1.5, 2.0, -2.5),
             vec3(1.5, 0.2, -1.5),
-            vec3(-1.3, 1.0, -1.5)
+            vec3(-1.3, 1.0, -1.5),
         ];
 
         // load models
         // -----------
-        let models = Model::new("resources/cube/cube.obj");
+        let models = Model::new_from_assimp(&scene.meshes, &scene.materials);
+        // let models = Model::new("resources/cube/cube.obj");
 
         (shader_program, models, cube_pos)
     };
@@ -148,7 +176,13 @@ fn main() -> std::io::Result<()> {
 
         // events
         // ------
-        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
+        process_events(
+            &events,
+            &mut first_mouse,
+            &mut last_x,
+            &mut last_y,
+            &mut camera,
+        );
 
         // process inputs
         // --------------
@@ -160,7 +194,8 @@ fn main() -> std::io::Result<()> {
         input_component.camera_front_z = camera.Front.z;
 
         // Send & receive client data
-        let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+        let j =
+            serde_json::to_string(&input_component).expect("Input component serialization error");
         let send_size = j.len() as u32 + 4;
         let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
         match stream.write(&send) {
@@ -202,9 +237,13 @@ fn main() -> std::io::Result<()> {
             match stream.peek(&mut read_buf) {
                 Ok(bytes_read) if bytes_read == s_size => {
                     // if this throws an error we deserve to crash tbh
-                    stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                    let message: &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                    let value: ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                    stream
+                        .read_exact(&mut read_buf)
+                        .expect("read_exact did not read the same amount of bytes as peek");
+                    let message: &str =
+                        str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                    let value: ClientECS = serde_json::from_str(message)
+                        .expect("Error converting string to ClientECS");
                     client_ecs = Some(value);
                 }
                 Ok(_) => {
@@ -235,7 +274,7 @@ fn main() -> std::io::Result<()> {
                     y = c_ecs.position_components[c_ecs.temp_entity].y;
                     z = c_ecs.position_components[c_ecs.temp_entity].z;
                 }
-                None => ()
+                None => (),
             }
             let model_pos = vec3(x, y, z);
 
@@ -248,7 +287,12 @@ fn main() -> std::io::Result<()> {
             shader_program.set_mat4(c_str!("view"), &view);
 
             // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32, 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(
+                Deg(camera.Zoom),
+                SCR_WIDTH as f32 / SCR_HEIGHT as f32,
+                0.1,
+                100.0,
+            );
             shader_program.set_mat4(c_str!("projection"), &projection);
 
             // camera coordinates calculation: u, v, w: points away from camera
@@ -265,7 +309,8 @@ fn main() -> std::io::Result<()> {
                 }
                 let angle = 20.0 * i as f32;
                 model = model * Matrix4::from_scale(0.5);
-                model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                model =
+                    model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
                 shader_program.set_mat4(c_str!("model"), &model);
 
                 models.draw(&shader_program);
@@ -282,11 +327,13 @@ fn main() -> std::io::Result<()> {
 
 /// Event processing function as introduced in 1.7.4 (Camera Class) and used in
 /// most later tutorials
-pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
-                      first_mouse: &mut bool,
-                      last_x: &mut f32,
-                      last_y: &mut f32,
-                      camera: &mut Camera) {
+pub fn process_events(
+    events: &Receiver<(f64, glfw::WindowEvent)>,
+    first_mouse: &mut bool,
+    last_x: &mut f32,
+    last_y: &mut f32,
+    camera: &mut Camera,
+) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
