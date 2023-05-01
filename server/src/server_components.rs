@@ -8,6 +8,8 @@ pub struct PhysicsComponent {
 }
 pub struct PlayerCameraComponent {
     pub camera_front: Vector3<f32>,
+    pub camera_up: Vector3<f32>,
+    pub camera_right: Vector3<f32>,
 }
 
 pub struct NetworkComponent {

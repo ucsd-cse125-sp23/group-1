@@ -6,7 +6,7 @@ pub mod shared_components;
 
 // server tick speed, in ms
 // stored as 64 bit int to avoid casting for comparison
-pub const TICK_SPEED: u64 = 50;
+pub const TICK_SPEED: u64 = 16;
 pub const MOVE_DELTA: f32 = 0.1;
 
 

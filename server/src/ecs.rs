@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -131,7 +131,10 @@ impl ECS {
                 }
             }
             // once all inputs have been aggregated for this player
-            self.player_camera_components[player].camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            let camera = &mut self.player_camera_components[player];
+            camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
+            camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
             self.player_input_components[player] = input_temp;
         }
     }
@@ -149,6 +152,9 @@ impl ECS {
         curr.a_pressed |= value.a_pressed;
         curr.s_pressed |= value.s_pressed;
         curr.d_pressed |= value.d_pressed;
+        curr.shift_pressed |= value.shift_pressed;
+        curr.ctrl_pressed |= value.ctrl_pressed;
+        curr.r_pressed |= value.r_pressed;
         curr.camera_front_x = value.camera_front_x;
         curr.camera_front_y = value.camera_front_y;
         curr.camera_front_z = value.camera_front_z;
@@ -178,8 +184,9 @@ impl ECS {
         ClientECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
+            model_components: self.model_components.clone(),
             players: self.players.clone(),
-            temp_entity: self.temp_entity,
+            renderables: self.renderables.clone(),
         }
     }
 
@@ -196,11 +203,13 @@ impl ECS {
         let player = self.name_components.insert(name);
         self.players.push(player);
         self.dynamics.push(player);
+        self.renderables.push(player);
+        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string() });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
-        self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0});
-        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, -1.0]});
-        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().build();
+        self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
+        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
@@ -219,7 +228,7 @@ impl ECS {
             let rigid_body: RigidBody;
             if dynamic {
                 self.dynamics.push(entity);
-                rigid_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+                rigid_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).can_sleep(false).build();
             } else {
                 rigid_body = RigidBodyBuilder::fixed().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
             }
@@ -260,8 +269,13 @@ impl ECS {
             let input = &self.player_input_components[player];
             if weapon.cooldown > 0 {
                 weapon.cooldown -= 1;
+                if weapon.reloading && weapon.cooldown == 0 {
+                    weapon.ammo = 6;
+                    weapon.reloading = false;
+                    println!("ammo: {}",weapon.ammo);
+                }
             }
-            if input.lmb_clicked && weapon.cooldown == 0 {
+            if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
                 println!("firing!");
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
@@ -291,6 +305,39 @@ impl ECS {
                 rigid_body.apply_impulse(-impulse, true);
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
+                weapon.ammo -= 1;
+                println!("ammo: {}",weapon.ammo);
+            } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < 6)) && weapon.cooldown == 0 {
+                println!("reloading...");
+                weapon.cooldown = 180;
+                weapon.reloading = true;
+            }
+        }
+    }
+
+    pub fn player_move(&mut self, rigid_body_set: &mut RigidBodySet) {
+        for &player in &self.players {
+            let input = &self.player_input_components[player];
+            let camera = &self.player_camera_components[player];
+            let impulse = 0.05;
+            let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            if input.w_pressed && !input.s_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_front, true);
+            }
+            if input.s_pressed && !input.w_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_front, true);
+            }
+            if input.a_pressed && !input.d_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_right, true);
+            }
+            if input.d_pressed && !input.a_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_right, true);
+            }
+            if input.shift_pressed && !input.ctrl_pressed {
+                rigid_body.apply_impulse(impulse * camera.camera_up, true);
+            }
+            if input.ctrl_pressed && !input.shift_pressed {
+                rigid_body.apply_impulse(-impulse * camera.camera_up, true);
             }
         }
     }

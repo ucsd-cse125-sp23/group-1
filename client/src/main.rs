@@ -4,6 +4,8 @@ mod camera;
 mod mesh;
 mod model;
 
+use std::collections::HashMap;
+
 // graphics
 extern crate glfw;
 extern crate gl;
@@ -71,7 +73,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, models, cube_pos) = unsafe {
+    let (shader_program, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -82,29 +84,18 @@ fn main() -> std::io::Result<()> {
             "shaders/shader.fs",
         );
 
-        // world space positions of our cubes
-        let cube_pos: [Vector3<f32>; 10] = [vec3(0.0, 0.0, 0.0),
-            vec3(2.0, 5.0, -15.0),
-            vec3(-1.5, -2.2, -2.5),
-            vec3(-3.8, -2.0, -12.3),
-            vec3(2.4, -0.4, -3.5),
-            vec3(-1.7, 3.0, -7.5),
-            vec3(1.3, -2.0, -2.5),
-            vec3(1.5, 2.0, -2.5),
-            vec3(1.5, 0.2, -1.5),
-            vec3(-1.3, 1.0, -1.5)
-        ];
-
-        // load models
+        // add all models to hashmap
         // -----------
-        let models = Model::new("resources/cube/cube.obj");
+        let mut models: HashMap<String,Model> = HashMap::new();
+        models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, models, cube_pos)
+        (shader_program, models)
     };
 
     // client ECS to be sent to server
     // let mut client_ecs = ClientECS::default();
     let mut client_ecs: Option<ClientECS> = None;
+    // let mut c_ecs = ClientECS::default();
 
     // render loop
     // -----------
@@ -165,6 +156,7 @@ fn main() -> std::io::Result<()> {
                     let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
                     let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                     client_ecs = Some(value);
+                    // c_ecs = value;
                 },
                 Ok(_) => {
                     break;
@@ -184,73 +176,48 @@ fn main() -> std::io::Result<()> {
             // activate shader
             shader_program.use_program();
 
-            // update player pos based on message from server
-            let mut x = 0.0;
-            let mut y = 0.0;
-            let mut z = 0.0;
-            // temp cube pos, remove later:
-            let mut cube_x = 0.0;
-            let mut cube_y = 0.0;
-            let mut cube_z = 0.0;
-            let mut cube_qx = 0.0;
-            let mut cube_qy = 0.0;
-            let mut cube_qz = 0.0;
-            let mut cube_qw = 1.0;
+            // NEEDS TO BE REWORKED FOR MENU STATE
+            // 
             match &client_ecs {
                 Some(c_ecs) => {
                     let player_key = c_ecs.players[client_id];
-                    x = c_ecs.position_components[player_key].x;
-                    y = c_ecs.position_components[player_key].y;
-                    z = c_ecs.position_components[player_key].z;
-                    cube_x = c_ecs.position_components[c_ecs.temp_entity].x;
-                    cube_y = c_ecs.position_components[c_ecs.temp_entity].y;
-                    cube_z = c_ecs.position_components[c_ecs.temp_entity].z;
-                    cube_qx = c_ecs.position_components[c_ecs.temp_entity].qx;
-                    cube_qy = c_ecs.position_components[c_ecs.temp_entity].qy;
-                    cube_qz = c_ecs.position_components[c_ecs.temp_entity].qz;
-                    cube_qw = c_ecs.position_components[c_ecs.temp_entity].qw;
+
+                    let player_pos = vec3(c_ecs.position_components[player_key].x,
+                        c_ecs.position_components[player_key].y,
+                        c_ecs.position_components[player_key].z);
+                    set_camera_pos(&mut camera, player_pos, &shader_program);
+
+                    for &renderable in &c_ecs.renderables {
+                        if renderable != player_key {
+                            // setup position matrix
+                            let model_x = c_ecs.position_components[renderable].x;
+                            let model_y = c_ecs.position_components[renderable].y;
+                            let model_z = c_ecs.position_components[renderable].z;
+                            let model_pos = vec3(model_x, model_y, model_z);
+                            let pos_mat = Matrix4::from_translation(model_pos);
+                        
+                            // setup rotation matrix
+                            let model_qx = c_ecs.position_components[renderable].qx;
+                            let model_qy = c_ecs.position_components[renderable].qy;
+                            let model_qz = c_ecs.position_components[renderable].qz;
+                            let model_qw = c_ecs.position_components[renderable].qw;
+                            let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
+                        
+                            // setup scale matrix (skip for now)
+                            let scale_mat = Matrix4::from_scale(1.0);
+                        
+                            let model = pos_mat * scale_mat * rot_mat;
+                            shader_program.set_mat4(c_str!("model"), &model);
+                            let model_name = &c_ecs.model_components[renderable].modelname;
+                            models[model_name].draw(&shader_program);
+                        }
+                    }
                 }
-                None => ()
-            }
-            let model_pos = vec3(cube_x,cube_y,cube_z);
-            camera.Position.x = x;
-            camera.Position.y = y;
-            camera.Position.z = z;
-
-            // create transformations and pass them to vertex shader
-            // let mut model_mat = Matrix4::from_angle_x(Deg(-45.));
-            // model_mat = Matrix4::from_translation(model_pos) * model_mat;
-            // shader_program.set_mat4(c_str!("model"), &model_mat);
-
-            let view = camera.GetViewMatrix();
-            shader_program.set_mat4(c_str!("view"), &view);
-
-            // let view = Matrix4::look_at(cam_pos, cam_look, cam_up);
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
-            shader_program.set_mat4(c_str!("projection"), &projection);
-
-            // camera coordinates calculation: u, v, w: points away from camera
-
-            // let cam_point = cam_look - cam_pos;
-
-            for (i, position) in cube_pos.iter().enumerate() {
-                // calculate the model matrix for each object and pass it to shader before drawing
-                let mut model;
-                // model = Matrix4::from_translation(*position);
-                if i == 0 {
-                    model = Matrix4::from_translation(model_pos);
-                    model = model * Matrix4::from_scale(0.5);
-                    model = model * Matrix4::from(Quaternion::new(cube_qw, cube_qx, cube_qy, cube_qz));
-                } else {
-                    model = Matrix4::from_translation(*position);
-                    let angle = 20.0 * i as f32;
-                    model = model * Matrix4::from_scale(0.5);
-                    model = model * Matrix4::from_axis_angle(vec3(1.0, 0.3, 0.5).normalize(), Deg(angle));
+                None => {
+                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
                 }
-                shader_program.set_mat4(c_str!("model"), &model);
-
-                models.draw(&shader_program);
             }
+            // note: the first iteration through the match{} above draws the model without view and projection setup
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -259,6 +226,20 @@ fn main() -> std::io::Result<()> {
         glfw.poll_events();
     }
     Ok(())
+}
+
+fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader) {
+    camera.Position.x = pos.x;
+    camera.Position.y = pos.y;
+    camera.Position.z = pos.z;
+
+    unsafe {
+        let view = camera.GetViewMatrix();
+        shader_program.set_mat4(c_str!("view"), &view);
+
+        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+        shader_program.set_mat4(c_str!("projection"), &projection);
+    }
 }
 
 /// Event processing function as introduced in 1.7.4 (Camera Class) and used in
@@ -312,6 +293,15 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     }
     if window.get_key(Key::D) == Action::Press {
         input_component.d_pressed = true;
+    }
+    if window.get_key(Key::LeftShift) == Action::Press {
+        input_component.shift_pressed = true;
+    }
+    if window.get_key(Key::LeftControl) == Action::Press {
+        input_component.ctrl_pressed = true;
+    }
+    if window.get_key(Key::R) == Action::Press {
+        input_component.r_pressed = true;
     }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;

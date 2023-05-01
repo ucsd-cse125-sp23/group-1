@@ -1,14 +1,10 @@
 // use nalgebra::*;
 use rapier3d::prelude::*;
-use std::{thread::sleep,time::Duration, time::Instant};
+use std::{time::Duration, time::Instant};
 use std::io::{self};
 use std::net::{TcpListener};
 use std::collections::HashMap;
 use config::Config;
-
-// temporary imports, remove when temp_entity is removed
-use server_components::PhysicsComponent;
-use slotmap::{Key};
 
 use shared::shared_components::*;
 mod ecs;
@@ -32,7 +28,7 @@ fn main() {
     let mut collider_set = ColliderSet::new();
 
     let gravity = vector![0.0, 0.0, 0.0];
-    let integration_parameters = IntegrationParameters::default();
+    let integration_parameters = IntegrationParameters { dt: (shared::TICK_SPEED as f32) / 1000.0, ..Default::default()};
     let mut physics_pipeline = PhysicsPipeline::new();
     let mut island_manager = IslandManager::new();
     let mut broad_phase = BroadPhase::new();
@@ -73,23 +69,8 @@ fn main() {
 
         ecs.receive_inputs();
 
-        // // for each player, update position
-        // // TODO: move relative to mouse orientation, switch to velocity?d
-        // for player in &ecs.players {
-        //     let input = & ecs.player_input_components[*player];
-        //     let mut position = &mut ecs.position_components[*player];
-        //     if input.s_pressed {
-        //         position.z += -shared::MOVE_DELTA;
-        //     } else if input.w_pressed {
-        //         position.z += shared::MOVE_DELTA;
-        //     } else if input.a_pressed {
-        //         position.x += -shared::MOVE_DELTA;
-        //     } else if input.d_pressed {
-        //         position.x += shared::MOVE_DELTA;
-        //     }
-        // }
-
         ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
+        ecs.player_move(&mut rigid_body_set);
 
         ecs.update_positions(&mut rigid_body_set);
 
@@ -104,11 +85,10 @@ fn main() {
             &mut impulse_joint_set,
             &mut multibody_joint_set,
             &mut ccd_solver,
-            None,
+            Some(&mut query_pipeline),
             &physics_hooks,
             &event_handler,
         );
-        query_pipeline.update(&rigid_body_set, &collider_set);
 
         ecs.update_clients();
 
@@ -119,9 +99,7 @@ fn main() {
         if tick_ms > shared::TICK_SPEED  {
             eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
         } else { 
-            sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
-            // tick seems to be twice as long as it should be?
-            // eprintln!("total: {}ms",Instant::now().duration_since(start).as_millis());
+            spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
         }
     }
 }
