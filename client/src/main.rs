@@ -11,6 +11,7 @@ use russimp::scene::{PostProcess, Scene};
 
 use std::ffi::CStr;
 use std::sync::mpsc::Receiver;
+use std::borrow::Borrow;
 
 use crate::camera::*;
 use crate::model::Model;
@@ -23,7 +24,9 @@ use std::net::TcpStream;
 use std::ops::Deref;
 use std::str;
 use russimp::sys::aiScene;
-use russimp::texture::TextureType;
+use russimp::texture::{DataContent, TextureType};
+use russimp::texture::DataContent::{Bytes, Texel};
+use russimp::texture::TextureType::Diffuse;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
@@ -33,17 +36,31 @@ fn main() -> std::io::Result<()> {
     // experimenting with russimp
     // TODO: probably remove them eventually
     let scene = Scene::from_file(
-        "resources/textured_cube.fbx",
+        "resources/asteroid.fbx",
         vec![PostProcess::Triangulate, PostProcess::JoinIdenticalVertices],
     )
     .unwrap();
+
+    // scene.meshes[0].bones[0].weights
+
+    // let texture = scene.materials[0].textures.get(&Diffuse).unwrap();
+    // let tmp = texture.borrow();
+    // println!("{}", tmp.data);
 
     for mesh in &scene.meshes {
         let mat_id = mesh.material_index as usize;
         println!("{}", scene.materials.len());
         println!("{:?}", &scene.materials[mat_id].textures);
         let texture = &scene.materials[mat_id].textures[&TextureType::Diffuse][0];
+        // let data_content = match &texture.data {
+        //     Some(dc) => dc,
+        //     None => panic!("no data")
+        // };
 
+        // match data_content {
+        //     Bytes(bytes) => println!("{:?}", bytes.len()),
+        //     Texel(_) => panic!("texels")
+        // };
         // for tex_coord in &mesh.texture_coords {
         //     match tex_coord {
         //         Some(tex) => {
@@ -158,7 +175,7 @@ fn main() -> std::io::Result<()> {
 
         // load models
         // -----------
-        let models = Model::new_from_assimp(&scene.meshes, &scene.materials);
+        let models = Model::new_from_assimp("resources/textured_cube.fbx");
         // let models = Model::new("resources/cube/cube.obj");
 
         (shader_program, models, cube_pos)
