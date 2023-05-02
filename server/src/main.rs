@@ -36,7 +36,7 @@ fn main() {
     ecs.temp_entity = ecs.dynamics[0];
 
     // connection state
-    let listener = TcpListener::bind("0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
+    let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
 
