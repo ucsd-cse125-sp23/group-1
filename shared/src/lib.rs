@@ -8,7 +8,8 @@ pub mod shared_components;
 // stored as 64 bit int to avoid casting for comparison
 pub const TICK_SPEED: u64 = 16;
 pub const MOVE_DELTA: f32 = 0.1;
-
+pub const PORT: u32 = 8080;
+pub const SERVER_ADDR: &str = "localhost";
 
 /** ===========================================================================
  * client settings

@@ -63,7 +63,7 @@ fn main() -> std::io::Result<()> {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     // Create network TcpStream
-    let mut stream = TcpStream::connect("localhost:8080")?;
+    let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
