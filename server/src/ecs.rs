@@ -135,10 +135,10 @@ impl ECS {
             // camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
             // camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
             // camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
-            let rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
-            camera.camera_front = rot * vector![0.0,0.0,-1.0];
-            camera.camera_right = rot * vector![1.0,0.0,0.0];
-            camera.camera_up = rot * vector![0.0,1.0,0.0];
+            camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
+            camera.camera_front = camera.rot * vector![0.0,0.0,-1.0];
+            camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
+            camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
         }
     }
@@ -213,7 +213,7 @@ impl ECS {
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
-        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
@@ -326,6 +326,7 @@ impl ECS {
             let camera = &self.player_camera_components[player];
             let impulse = 0.05;
             let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            rigid_body.set_rotation(camera.rot, true);
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
             }

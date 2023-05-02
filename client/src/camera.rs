@@ -32,9 +32,9 @@ const ZOOM: f32 = 45.0;
 pub struct Camera {
     // Camera Attributes
     pub Position: Point3,
-    // pub Front: Vector3,
-    // pub Up: Vector3,
-    // pub Right: Vector3,
+    pub Front: Vector3,
+    pub Up: Vector3,
+    pub Right: Vector3,
     // pub WorldUp: Vector3,
     // // Euler Angles
     // pub Yaw: f32,
@@ -50,9 +50,9 @@ impl Default for Camera {
     fn default() -> Camera {
         let mut camera = Camera {
             Position: Point3::new(0.0, 0.0, 0.0),
-            // Front: vec3(0.0, 0.0, -1.0),
-            // Up: Vector3::zero(), // initialized later
-            // Right: Vector3::zero(), // initialized later
+            Front: vec3(0.0, 0.0, -1.0),
+            Up: Vector3::zero(), // initialized later
+            Right: Vector3::zero(), // initialized later
             // WorldUp: Vector3::unit_y(),
             // Yaw: YAW,
             // Pitch: PITCH,
@@ -70,8 +70,8 @@ impl Default for Camera {
 impl Camera {
     /// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     pub fn GetViewMatrix(&self) -> Matrix4 {
-        // Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
-        Matrix4::from_translation(self.Position.to_vec()) * Matrix4::from(self.RotQuat)
+        Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
+        // Matrix4::from(self.RotQuat) * Matrix4::from_translation(self.Position.to_vec())
     }
 
     // /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -92,22 +92,34 @@ impl Camera {
     // }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-    pub fn ProcessMouseMovement(&mut self, mut xoffset: f32, mut yoffset: f32, constrainPitch: bool) {
+    pub fn ProcessMouseMovement(&mut self, mut xoffset: f32, mut yoffset: f32, roll: bool) {
         xoffset *= self.MouseSensitivity;
         yoffset *= self.MouseSensitivity;
-
-        let mut axis = Vector3{x:-yoffset,y:xoffset,z:0.0};
-        if axis.magnitude() != 0.0 {
-            axis = (self.RotQuat * axis).normalize();
-        
-            let angle = Deg(xoffset.abs() + yoffset.abs());
-            println!("axis: {:?}, angle: {:?}",axis,angle);
-
-            let rot = Quaternion::from_axis_angle(axis, angle).normalize();
-            println!("rot: {:?}",rot);
-            self.RotQuat = (self.RotQuat * rot).normalize(); 
-            println!("RotQuat: {:?}",self.RotQuat);
+        let rot: Quaternion;
+        let mut axis: Vector3;
+        let mag: f32;
+        if roll {
+            // let rot = Quaternion::from_axis_angle(self.Front, Deg(xoffset)).normalize();
+            // self.RotQuat = (rot * self.RotQuat).normalize(); 
+            axis = Vector3{x:yoffset,y:0.0,z:-xoffset};
+        } else {
+            axis = Vector3{x:yoffset,y:-xoffset,z:0.0};
         }
+        mag = axis.magnitude();
+        if mag != 0.0 {
+            axis = (self.RotQuat * axis).normalize();
+    
+            let angle = Deg(mag);
+            // println!("axis: {:?}, angle: {:?}",axis,angle);
+
+            rot = Quaternion::from_axis_angle(axis, angle).normalize();
+            // println!("rot: {:?}",rot);
+            self.RotQuat = (rot * self.RotQuat).normalize(); 
+            // println!("RotQuat: {:?}",self.RotQuat);
+        }
+        self.Front = (self.RotQuat * vec3(0.0,0.0,-1.0)).normalize();
+        self.Right = (self.RotQuat * vec3(1.0,0.0,0.0)).normalize();
+        self.Up = (self.RotQuat * vec3(0.0,1.0,0.0)).normalize();
 
         // self.Yaw += xoffset;
         // self.Pitch += yoffset;
@@ -155,15 +167,12 @@ impl Camera {
     // }
 
     fn initMatrix(&mut self) {
-        let mut front = Vector3 {
-            x: YAW.to_radians().cos() * PITCH.to_radians().cos(),
-            y: PITCH.to_radians().sin(),
-            z: YAW.to_radians().sin() * PITCH.to_radians().cos(),
-        };
-        front = front.normalize();
-        let right = front.cross(Vector3::unit_y()).normalize();
-        let up = right.cross(front).normalize();
+        let front = vec3(0.0,0.0,1.0);
+        let up = vec3(0.0,1.0,0.0);
         self.RotQuat = Quaternion::look_at( front, up).normalize();
-        println!("{:?}",self.RotQuat);
+        self.Front = (self.RotQuat * vec3(0.0,0.0,-1.0)).normalize();
+        self.Right = (self.RotQuat * vec3(1.0,0.0,0.0)).normalize();
+        self.Up = (self.RotQuat * vec3(0.0,1.0,0.0)).normalize();
+        // println!("{:?}",self.RotQuat);
     }
 }
