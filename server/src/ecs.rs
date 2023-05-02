@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -132,9 +132,13 @@ impl ECS {
             }
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
-            camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
-            camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
-            camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
+            // camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            // camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
+            // camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
+            let rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
+            camera.camera_front = rot * vector![0.0,0.0,-1.0];
+            camera.camera_right = rot * vector![1.0,0.0,0.0];
+            camera.camera_up = rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
         }
     }
@@ -155,9 +159,10 @@ impl ECS {
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
         curr.r_pressed |= value.r_pressed;
-        curr.camera_front_x = value.camera_front_x;
-        curr.camera_front_y = value.camera_front_y;
-        curr.camera_front_z = value.camera_front_z;
+        curr.camera_qx = value.camera_qx;
+        curr.camera_qy = value.camera_qy;
+        curr.camera_qz = value.camera_qz;
+        curr.camera_qw = value.camera_qw;
     }
 
     /**

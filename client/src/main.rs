@@ -152,9 +152,13 @@ fn main() -> std::io::Result<()> {
         process_inputs(&mut window, &mut input_component);
 
         // set camera front of input_component
-        input_component.camera_front_x = camera.Front.x;
-        input_component.camera_front_y = camera.Front.y;
-        input_component.camera_front_z = camera.Front.z;
+        // input_component.camera_front_x = camera.Front.x;
+        // input_component.camera_front_y = camera.Front.y;
+        // input_component.camera_front_z = camera.Front.z;
+        input_component.camera_qx = camera.RotQuat.v.x;
+        input_component.camera_qy = camera.RotQuat.v.y;
+        input_component.camera_qz = camera.RotQuat.v.z;
+        input_component.camera_qw = camera.RotQuat.s;
 
         // send client data
         let j = serde_json::to_string(&input_component).expect("Input component serialization error");
@@ -310,7 +314,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
                 }
 
                 let xoffset = xpos - *last_x;
-                let yoffset = *last_y - ypos; // reversed since y-coordinates go from bottom to top
+                let yoffset = ypos - *last_y;
 
                 *last_x = xpos;
                 *last_y = ypos;

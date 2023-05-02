@@ -3,12 +3,14 @@
 #![allow(dead_code)]
 
 use cgmath;
+use cgmath::Deg;
 use cgmath::vec3;
 use cgmath::prelude::*;
 
 type Point3 = cgmath::Point3<f32>;
 type Vector3 = cgmath::Vector3<f32>;
 type Matrix4 = cgmath::Matrix4<f32>;
+type Quaternion = cgmath::Quaternion<f32>;
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 #[derive(PartialEq, Clone, Copy)]
@@ -30,15 +32,16 @@ const ZOOM: f32 = 45.0;
 pub struct Camera {
     // Camera Attributes
     pub Position: Point3,
-    pub Front: Vector3,
-    pub Up: Vector3,
-    pub Right: Vector3,
-    pub WorldUp: Vector3,
-    // Euler Angles
-    pub Yaw: f32,
-    pub Pitch: f32,
+    // pub Front: Vector3,
+    // pub Up: Vector3,
+    // pub Right: Vector3,
+    // pub WorldUp: Vector3,
+    // // Euler Angles
+    // pub Yaw: f32,
+    // pub Pitch: f32,
     // Camera options
-    pub MovementSpeed: f32,
+    // pub MovementSpeed: f32,
+    pub RotQuat: Quaternion,
     pub MouseSensitivity: f32,
     pub Zoom: f32,
 }
@@ -47,17 +50,19 @@ impl Default for Camera {
     fn default() -> Camera {
         let mut camera = Camera {
             Position: Point3::new(0.0, 0.0, 0.0),
-            Front: vec3(0.0, 0.0, -1.0),
-            Up: Vector3::zero(), // initialized later
-            Right: Vector3::zero(), // initialized later
-            WorldUp: Vector3::unit_y(),
-            Yaw: YAW,
-            Pitch: PITCH,
-            MovementSpeed: SPEED,
+            // Front: vec3(0.0, 0.0, -1.0),
+            // Up: Vector3::zero(), // initialized later
+            // Right: Vector3::zero(), // initialized later
+            // WorldUp: Vector3::unit_y(),
+            // Yaw: YAW,
+            // Pitch: PITCH,
+            // MovementSpeed: SPEED,
+            RotQuat: Quaternion::new(1.0,0.0,0.0,0.0), // initialized later
             MouseSensitivity: SENSITIVTY,
             Zoom: ZOOM,
         };
-        camera.updateCameraVectors();
+        // camera.updateCameraVectors();
+        camera.initMatrix();
         camera
     }
 }
@@ -65,46 +70,60 @@ impl Default for Camera {
 impl Camera {
     /// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     pub fn GetViewMatrix(&self) -> Matrix4 {
-        Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
+        // Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
+        Matrix4::from_translation(self.Position.to_vec()) * Matrix4::from(self.RotQuat)
     }
 
-    /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    pub fn ProcessKeyboard(&mut self, direction: Camera_Movement, deltaTime: f32) {
-        let velocity = self.MovementSpeed * deltaTime;
-        if direction == FORWARD {
-            self.Position += self.Front * velocity;
-        }
-        if direction == BACKWARD {
-            self.Position += -(self.Front * velocity);
-        }
-        if direction == LEFT {
-            self.Position += -(self.Right * velocity);
-        }
-        if direction == RIGHT {
-            self.Position += self.Right * velocity;
-        }
-    }
+    // /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
+    // pub fn ProcessKeyboard(&mut self, direction: Camera_Movement, deltaTime: f32) {
+    //     let velocity = self.MovementSpeed * deltaTime;
+    //     if direction == FORWARD {
+    //         self.Position += self.Front * velocity;
+    //     }
+    //     if direction == BACKWARD {
+    //         self.Position += -(self.Front * velocity);
+    //     }
+    //     if direction == LEFT {
+    //         self.Position += -(self.Right * velocity);
+    //     }
+    //     if direction == RIGHT {
+    //         self.Position += self.Right * velocity;
+    //     }
+    // }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
     pub fn ProcessMouseMovement(&mut self, mut xoffset: f32, mut yoffset: f32, constrainPitch: bool) {
         xoffset *= self.MouseSensitivity;
         yoffset *= self.MouseSensitivity;
 
-        self.Yaw += xoffset;
-        self.Pitch += yoffset;
+        let mut axis = Vector3{x:-yoffset,y:xoffset,z:0.0};
+        if axis.magnitude() != 0.0 {
+            axis = (self.RotQuat * axis).normalize();
+        
+            let angle = Deg(xoffset.abs() + yoffset.abs());
+            println!("axis: {:?}, angle: {:?}",axis,angle);
 
-        // Make sure that when pitch is out of bounds, screen doesn't get flipped
-        if constrainPitch {
-            if self.Pitch > 89.0 {
-                self.Pitch = 89.0;
-            }
-            if self.Pitch < -89.0 {
-                self.Pitch = -89.0;
-            }
+            let rot = Quaternion::from_axis_angle(axis, angle).normalize();
+            println!("rot: {:?}",rot);
+            self.RotQuat = (self.RotQuat * rot).normalize(); 
+            println!("RotQuat: {:?}",self.RotQuat);
         }
 
-        // Update Front, Right and Up Vectors using the updated Eular angles
-        self.updateCameraVectors();
+        // self.Yaw += xoffset;
+        // self.Pitch += yoffset;
+
+        // // Make sure that when pitch is out of bounds, screen doesn't get flipped
+        // if constrainPitch {
+        //     if self.Pitch > 89.0 {
+        //         self.Pitch = 89.0;
+        //     }
+        //     if self.Pitch < -89.0 {
+        //         self.Pitch = -89.0;
+        //     }
+        // }
+
+        // // Update Front, Right and Up Vectors using the updated Eular angles
+        // self.updateCameraVectors();
     }
 
     // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
@@ -120,18 +139,31 @@ impl Camera {
         }
     }
 
-    /// Calculates the front vector from the Camera's (updated) Eular Angles
-    fn updateCameraVectors(&mut self) {
-        // Calculate the new Front vector
-        let front = Vector3 {
-            x: self.Yaw.to_radians().cos() * self.Pitch.to_radians().cos(),
-            y: self.Pitch.to_radians().sin(),
-            z: self.Yaw.to_radians().sin() * self.Pitch.to_radians().cos(),
+    // /// Calculates the front vector from the Camera's (updated) Eular Angles
+    // fn updateCameraVectors(&mut self) {
+    //     // Calculate the new Front vector
+    //     let front = Vector3 {
+    //         x: self.Yaw.to_radians().cos() * self.Pitch.to_radians().cos(),
+    //         y: self.Pitch.to_radians().sin(),
+    //         z: self.Yaw.to_radians().sin() * self.Pitch.to_radians().cos(),
+    //     };
+    //     self.Front = front.normalize();
+    //     // Also re-calculate the Right and Up vector
+    //     // TODO: Since there's no up direction in our game, we might not want to use WorldUp
+    //     self.Right = self.Front.cross(self.WorldUp).normalize(); // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+    //     self.Up = self.Right.cross(self.Front).normalize();
+    // }
+
+    fn initMatrix(&mut self) {
+        let mut front = Vector3 {
+            x: YAW.to_radians().cos() * PITCH.to_radians().cos(),
+            y: PITCH.to_radians().sin(),
+            z: YAW.to_radians().sin() * PITCH.to_radians().cos(),
         };
-        self.Front = front.normalize();
-        // Also re-calculate the Right and Up vector
-        // TODO: Since there's no up direction in our game, we might not want to use WorldUp
-        self.Right = self.Front.cross(self.WorldUp).normalize(); // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-        self.Up = self.Right.cross(self.Front).normalize();
+        front = front.normalize();
+        let right = front.cross(Vector3::unit_y()).normalize();
+        let up = right.cross(front).normalize();
+        self.RotQuat = Quaternion::look_at( front, up).normalize();
+        println!("{:?}",self.RotQuat);
     }
 }
