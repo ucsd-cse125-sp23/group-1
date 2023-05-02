@@ -114,10 +114,13 @@ fn main() -> std::io::Result<()> {
         gl::GenBuffers(1, &mut vbo);
         
         // define crosshair vertices (TEMPORARY)
-        let vertices: [f32; 9] = [
-        -0.05,  -0.05, 0.0,
-         0.05,  -0.05, 0.0,
-         0.0,    0.05, 0.0
+        // coords are relative to screen size -- currently 640x480
+        // TODO: re-implement with textured quad
+        let vertices: [f32; 8] = [
+        -0.0375, -0.0,
+         0.0375, -0.0,
+         0.0,   0.05,
+         0.0,  -0.05,
         ];
 
         // 1. bind Vertex Array Object
@@ -131,7 +134,7 @@ fn main() -> std::io::Result<()> {
             gl::STATIC_DRAW
         );
         // 3. set vertex attribute pointers
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, (3 * size_of::<f32>()) as i32, 0 as *mut c_void);
+        gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
         gl::EnableVertexAttribArray(0);
     }
     // RENDER LOOP
@@ -259,7 +262,7 @@ fn main() -> std::io::Result<()> {
             // DRAW HUD
             hud_shader.use_program();
             gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawArrays(gl::LINES, 0, 4);
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
