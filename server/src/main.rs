@@ -3,27 +3,15 @@ use rapier3d::prelude::*;
 use std::{time::Duration, time::Instant};
 use std::io::{self};
 use std::net::{TcpListener};
-use std::collections::HashMap;
-use config::Config;
+use std::thread;
+use std::sync::mpsc::{Sender, Receiver, channel};
+use polling::{Event, Poller};
 
-use shared::shared_components::*;
 mod ecs;
 mod init_world;
 mod server_components;
 
-fn load_settings() {
-    let settings = Config::builder()
-        .add_source(config::File::with_name("../shared/Settings.toml"))
-        .build()
-        .unwrap();
-    let settings_map = settings
-        .try_deserialize::<HashMap<String, String>>()
-        .unwrap();
-}
-
-fn main() {
-    // LOAD SETTINGS
-    
+fn main() { 
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
@@ -48,20 +36,42 @@ fn main() {
     ecs.temp_entity = ecs.dynamics[0];
 
     // connection state
-    let listener = TcpListener::bind("localhost:8080").expect("Error binding address");
-    loop {
-        println!("Waiting for client...");
-        ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
-        println!("Start game? (y/n)");
+    let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
+    println!("[SERVER]: Waiting for at least one client...");
+    ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
+
+    let (tx, rx):(Sender<bool>, Receiver<bool>) = channel();
+    // break upon pressing any key to start game
+    thread::spawn(move || {
+        println!("[SERVER]: Press any key to start game");
         let mut s = String::new();
         io::stdin().read_line(&mut s).unwrap();
-        s = s.trim().to_string();
-        match s.as_str() {
-            "y" => break,
-            _ => (),
-        }
+        // TODO: ready condition?
+        tx.send(true).unwrap();
+    });
+    // meanwhile, poll for clients until game begins
+    listener.set_nonblocking(true).unwrap();
+    let key = 0;
+    let poller = Poller::new().unwrap();
+    poller.add(&listener, Event::readable(key)).unwrap();
+    let mut events: Vec<Event> = Vec::new();
+    loop {
+        // break if game is starting
+        match rx.try_recv() {
+            Ok(_) => break,
+            Err(_) => {
+                events.clear();
+                // timeout set to server tick speed
+                poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
+                // connect anyone who wants to connect
+                for _ in &events {
+                    ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
+                    poller.modify(&listener, Event::readable(key)).unwrap();
+                }
+            },
+        };
     }
-
+    println!("[SERVER]: Starting game");
     loop {
 
         // BEGIN SERVER TICK

@@ -14,7 +14,8 @@ use self::glfw::{Context, Key, MouseButton, Action};
 use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
 
 use std::sync::mpsc::Receiver;
-use std::ffi::CStr;
+use std::ffi::{CStr, c_void};
+use core::{mem::{size_of, size_of_val}};
 
 use crate::shader::Shader;
 use crate::camera::*;
@@ -62,7 +63,7 @@ fn main() -> std::io::Result<()> {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     // Create network TcpStream
-    let mut stream = TcpStream::connect("localhost:8080")?;
+    let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -73,7 +74,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, models) = unsafe {
+    let (shader_program, hud_shader, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -84,20 +85,59 @@ fn main() -> std::io::Result<()> {
             "shaders/shader.fs",
         );
 
+        // create HUD shader
+        let hud_shader = Shader::new(
+            "shaders/hud.vs",
+            "shaders/hud.fs",
+        );
+
+        // actually allow transparency
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+        gl::Enable(gl::BLEND);
+
         // add all models to hashmap
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, models)
+        (shader_program, hud_shader, models)
     };
 
     // client ECS to be sent to server
-    // let mut client_ecs = ClientECS::default();
     let mut client_ecs: Option<ClientECS> = None;
-    // let mut c_ecs = ClientECS::default();
 
-    // render loop
+    // set up HUD renderer
+    let mut vao = 0;
+    let mut vbo = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao as *mut u32);
+        gl::GenBuffers(1, &mut vbo);
+        
+        // define crosshair vertices (TEMPORARY)
+        // coords are relative to screen size -- currently 640x480
+        // TODO: re-implement with textured quad
+        let vertices: [f32; 8] = [
+        -0.0375, -0.0,
+         0.0375, -0.0,
+         0.0,   0.05,
+         0.0,  -0.05,
+        ];
+
+        // 1. bind Vertex Array Object
+        gl::BindVertexArray(vao);
+        // 2. copy array into a buffer
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            size_of_val(&vertices) as isize,
+            vertices.as_ptr().cast(),
+            gl::STATIC_DRAW
+        );
+        // 3. set vertex attribute pointers
+        gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
+        gl::EnableVertexAttribArray(0);
+    }
+    // RENDER LOOP
     // -----------
     while !window.should_close() {
         // create player input component
@@ -116,7 +156,7 @@ fn main() -> std::io::Result<()> {
         input_component.camera_front_y = camera.Front.y;
         input_component.camera_front_z = camera.Front.z;
 
-        // Send & receive client data
+        // send client data
         let j = serde_json::to_string(&input_component).expect("Input component serialization error");
         let send_size = j.len() as u32 + 4;
         let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
@@ -126,6 +166,7 @@ fn main() -> std::io::Result<()> {
             Err(e) => eprintln!("Error sending input: {:?}", e),
         };
 
+        // receive all incoming server data
         loop {
             let mut size_buf = [0 as u8; 4];
             let size:u32;
@@ -177,7 +218,6 @@ fn main() -> std::io::Result<()> {
             shader_program.use_program();
 
             // NEEDS TO BE REWORKED FOR MENU STATE
-            // 
             match &client_ecs {
                 Some(c_ecs) => {
                     let player_key = c_ecs.players[client_id];
@@ -218,6 +258,11 @@ fn main() -> std::io::Result<()> {
                 }
             }
             // note: the first iteration through the match{} above draws the model without view and projection setup
+
+            // DRAW HUD
+            hud_shader.use_program();
+            gl::BindVertexArray(vao);
+            gl::DrawArrays(gl::LINES, 0, 4);
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

@@ -13,5 +13,5 @@ nalgebra = "0.32.2"
 slotmap = { version = "1.0.6", features = ["serde"] }
 shared = { path = "../shared" }
 spin_sleep = "1.1.1"
-
+polling = "2.8.0"
 config = "0.13.1"
