@@ -3,27 +3,12 @@ use rapier3d::prelude::*;
 use std::{time::Duration, time::Instant};
 use std::io::{self};
 use std::net::{TcpListener};
-use std::collections::HashMap;
-use config::Config;
 
-use shared::shared_components::*;
 mod ecs;
 mod init_world;
 mod server_components;
 
-fn load_settings() {
-    let settings = Config::builder()
-        .add_source(config::File::with_name("../shared/Settings.toml"))
-        .build()
-        .unwrap();
-    let settings_map = settings
-        .try_deserialize::<HashMap<String, String>>()
-        .unwrap();
-}
-
-fn main() {
-    // LOAD SETTINGS
-    
+fn main() { 
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
@@ -50,9 +35,9 @@ fn main() {
     // connection state
     let listener = TcpListener::bind("localhost:8080").expect("Error binding address");
     loop {
-        println!("Waiting for client...");
+        println!("[SERVER]: Waiting for client...");
         ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
-        println!("Start game? (y/n)");
+        println!("[SERVER]: Start game? (y/n)");
         let mut s = String::new();
         io::stdin().read_line(&mut s).unwrap();
         s = s.trim().to_string();
