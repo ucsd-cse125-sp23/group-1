@@ -106,8 +106,34 @@ fn main() -> std::io::Result<()> {
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
-    // set up HUD renderer (TODO: move init code here)
+    // set up HUD renderer
+    let mut vao = 0;
+    let mut vbo = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao as *mut u32);
+        gl::GenBuffers(1, &mut vbo);
+        
+        // define crosshair vertices (TEMPORARY)
+        let vertices: [f32; 9] = [
+        -0.05,  -0.05, 0.0,
+         0.05,  -0.05, 0.0,
+         0.0,    0.05, 0.0
+        ];
 
+        // 1. bind Vertex Array Object
+        gl::BindVertexArray(vao);
+        // 2. copy array into a buffer
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            size_of_val(&vertices) as isize,
+            vertices.as_ptr().cast(),
+            gl::STATIC_DRAW
+        );
+        // 3. set vertex attribute pointers
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, (3 * size_of::<f32>()) as i32, 0 as *mut c_void);
+        gl::EnableVertexAttribArray(0);
+    }
     // RENDER LOOP
     // -----------
     while !window.should_close() {
@@ -231,36 +257,6 @@ fn main() -> std::io::Result<()> {
             // note: the first iteration through the match{} above draws the model without view and projection setup
 
             // DRAW HUD
-            // TODO: move outside render loop
-            let mut vao = 0;
-            gl::GenVertexArrays(1, &mut vao as *mut u32);
-            
-            let mut vbo = 0;
-            gl::GenBuffers(1, &mut vbo);
-            
-            // define crosshair vertices (TEMPORARY)
-            let vertices: [f32; 9] = [
-            -0.05,  -0.05, 0.0,
-             0.05,  -0.05, 0.0,
-             0.0,    0.05, 0.0
-            ];
-
-            // 1. bind Vertex Array Object
-            gl::BindVertexArray(vao);
-            // 2. copy array into a buffer
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-            gl::BufferData(
-                gl::ARRAY_BUFFER,
-                size_of_val(&vertices) as isize,
-                vertices.as_ptr().cast(),
-                gl::STATIC_DRAW
-            );
-            // 3. set vertex attribute pointers
-            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, (3 * size_of::<f32>()) as i32, 0 as *mut c_void);
-            gl::EnableVertexAttribArray(0);
-            // TODO: move above out of render loop
-
-            // 4. Draw object
             hud_shader.use_program();
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
