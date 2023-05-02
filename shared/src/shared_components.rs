@@ -6,14 +6,15 @@ type Entity = DefaultKey;
 
 #[derive(Serialize, Deserialize)]
 pub struct PlayerInputComponent {
-    // does this make sense to be a component?
-    // we can't apply it to the ecs directly as we may receive multiple in the same tick
     pub lmb_clicked: bool,
     pub rmb_clicked: bool,
     pub w_pressed: bool,
     pub a_pressed: bool,
     pub s_pressed: bool,
     pub d_pressed: bool,
+    pub r_pressed: bool,
+    pub shift_pressed: bool,
+    pub ctrl_pressed: bool,
     pub camera_front_x: f32,
     pub camera_front_y: f32,
     pub camera_front_z: f32,
@@ -28,6 +29,9 @@ impl PlayerInputComponent {
             a_pressed: false,
             s_pressed: false,
             d_pressed: false,
+            shift_pressed: false,
+            ctrl_pressed: false,
+            r_pressed: false,
             camera_front_x: 0.0,
             camera_front_y: 0.0,
             camera_front_z: -1.0,
@@ -41,8 +45,9 @@ impl PlayerInputComponent {
 pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub players: Vec<Entity>,
-    pub temp_entity: Entity,
+    pub renderables: Vec<Entity>,
 }
 
 impl ClientECS {
@@ -50,8 +55,9 @@ impl ClientECS {
         ClientECS{
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
+            model_components: SecondaryMap::new(),
             players: vec![],
-            temp_entity: DefaultKey::default(),
+            renderables: vec![],
         }
     }
 }
@@ -63,8 +69,6 @@ pub struct PositionComponent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    // need rotation in unit quaternion format, unsure how to send as raw data
-    // could be easier with unified linear algebra library? nalgebra works with serde (optional feature in Cargo.toml)
     pub qx: f32,
     pub qy: f32,
     pub qz: f32,
@@ -86,6 +90,13 @@ impl PositionComponent {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct ModelComponent {
+    pub modelname: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
     pub cooldown: i16,
+    pub ammo: u8,
+    pub reloading: bool,
 }
