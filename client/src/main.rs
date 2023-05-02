@@ -7,11 +7,9 @@ mod shader;
 // graphics
 use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Vector3};
 use glfw::{Action, Context, Key};
-use russimp::scene::{PostProcess, Scene};
 
 use std::ffi::CStr;
 use std::sync::mpsc::Receiver;
-use std::borrow::Borrow;
 
 use crate::camera::*;
 use crate::model::Model;
@@ -21,87 +19,13 @@ use crate::shader::Shader;
 use shared::shared_components::*;
 use std::io::{self, Read, Write};
 use std::net::TcpStream;
-use std::ops::Deref;
 use std::str;
-use russimp::sys::aiScene;
-use russimp::texture::{DataContent, TextureType};
-use russimp::texture::DataContent::{Bytes, Texel};
-use russimp::texture::TextureType::Diffuse;
 
 // graphics settings
 const SCR_WIDTH: u32 = 800;
 const SCR_HEIGHT: u32 = 600;
 
 fn main() -> std::io::Result<()> {
-    // experimenting with russimp
-    // TODO: probably remove them eventually
-    let scene = Scene::from_file(
-        "resources/asteroid.fbx",
-        vec![PostProcess::Triangulate, PostProcess::JoinIdenticalVertices],
-    )
-    .unwrap();
-
-    // scene.meshes[0].bones[0].weights
-
-    // let texture = scene.materials[0].textures.get(&Diffuse).unwrap();
-    // let tmp = texture.borrow();
-    // println!("{}", tmp.data);
-
-    for mesh in &scene.meshes {
-        let mat_id = mesh.material_index as usize;
-        println!("{}", scene.materials.len());
-        println!("{:?}", &scene.materials[mat_id].textures);
-        let texture = &scene.materials[mat_id].textures[&TextureType::Diffuse][0];
-        // let data_content = match &texture.data {
-        //     Some(dc) => dc,
-        //     None => panic!("no data")
-        // };
-
-        // match data_content {
-        //     Bytes(bytes) => println!("{:?}", bytes.len()),
-        //     Texel(_) => panic!("texels")
-        // };
-        // for tex_coord in &mesh.texture_coords {
-        //     match tex_coord {
-        //         Some(tex) => {
-        //             println!("{}", tex.len());
-        //             println!("{:?}", tex);
-        //         },
-        //         None => println!("{:?}", tex_coord)
-        //     }
-        // }
-        // for face in &mesh.faces {
-        //     println!("{:?}", face.0);
-        // }
-        // for bone in &mesh.bones {
-        //     println!("{:?}", bone.weights);
-        // }
-        // println!("{}", mesh.vertices.len());
-        // for vertex in &mesh.vertices {
-        //     println!("{:?}", vertex);
-        // }
-    }
-
-    // return Ok(());
-
-    // let model = Model::new_from_assimp(scene.meshes);
-
-    // for animation in scene.animations {
-    //     for channel in animation.channels {
-    //         for position_key in channel.position_keys {
-    //             println!("{}: {:?}", position_key.time, position_key.value);
-    //         }
-    //     }
-    //     // for mesh_channel in animation.morph_mesh_channels {
-    //     //     for key in mesh_channel.keys {
-    //     //         println!("{}", key.time);
-    //     //         for value in key.weights {
-    //     //             println!("  {}", value);
-    //     //         }
-    //     //     }
-    //     // }
-    // }
-
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),

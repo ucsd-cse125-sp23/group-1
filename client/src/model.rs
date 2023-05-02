@@ -9,8 +9,6 @@ use image;
 use image::DynamicImage::*;
 use image::GenericImage;
 use russimp::scene::{PostProcess, Scene};
-use russimp::sys::aiTextureType_aiTextureType_DIFFUSE;
-use russimp::texture::DataContent::{Bytes, Texel};
 use russimp::texture::TextureType;
 use russimp::{material, mesh, texture};
 use tobj;
@@ -95,7 +93,7 @@ impl Model {
             let material = &materials[material_id];
 
             // 1. diffuse map
-            if !material.textures[&TextureType::Diffuse].is_empty() {
+            if material.textures.contains_key(&TextureType::Diffuse) {
                 let texture = self.load_material_texture_from_assimp(
                     &material.textures[&TextureType::Diffuse],
                     "texture_diffuse",
@@ -103,7 +101,7 @@ impl Model {
                 textures.push(texture);
             }
             // 2. specular map
-            if !material.textures[&TextureType::Specular].is_empty() {
+            if material.textures.contains_key(&TextureType::Specular) {
                 let texture = self.load_material_texture_from_assimp(
                     &material.textures[&TextureType::Specular],
                     "texture_specular",
@@ -111,7 +109,7 @@ impl Model {
                 textures.push(texture);
             }
             // 3. normal map
-            if !material.textures[&TextureType::Normals].is_empty() {
+            if material.textures.contains_key(&TextureType::Normals) {
                 let texture = self.load_material_texture_from_assimp(
                     &material.textures[&TextureType::Normals],
                     "texture_normal",
@@ -238,10 +236,6 @@ impl Model {
 
 unsafe fn texture_from_file(path: &str, directory: &str) -> u32 {
     let filename = format!("{}/{}", directory, path);
-    // let filename = path;
-
-    println!("{}", directory);
-    println!("{}", filename);
 
     let mut texture_id = 0;
     gl::GenTextures(1, &mut texture_id);
@@ -257,8 +251,6 @@ unsafe fn texture_from_file(path: &str, directory: &str) -> u32 {
 
     let data = img.raw_pixels();
 
-    println!("texture file pixel len: {:?}", data.len());
-
     gl::BindTexture(gl::TEXTURE_2D, texture_id);
     gl::TexImage2D(
         gl::TEXTURE_2D,
@@ -266,50 +258,6 @@ unsafe fn texture_from_file(path: &str, directory: &str) -> u32 {
         format as i32,
         img.width() as i32,
         img.height() as i32,
-        0,
-        format,
-        gl::UNSIGNED_BYTE,
-        &data[0] as *const u8 as *const c_void,
-    );
-    gl::GenerateMipmap(gl::TEXTURE_2D);
-
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
-    gl::TexParameteri(
-        gl::TEXTURE_2D,
-        gl::TEXTURE_MIN_FILTER,
-        gl::LINEAR_MIPMAP_LINEAR as i32,
-    );
-    gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
-
-    texture_id
-}
-
-unsafe fn texture_from_texture(texture: &texture::Texture) -> u32 {
-    let data_content = match &texture.data {
-        Some(data) => data,
-        _ => panic!("no data"),
-    };
-
-    let data = match data_content {
-        Texel(_) => panic!("can't read texels at the moment"),
-        Bytes(bytes) => bytes,
-    };
-
-    println!("texture bytes len: {:?}", data.len());
-
-    let mut texture_id = 0;
-    gl::GenTextures(1, &mut texture_id);
-
-    let format = gl::RGBA;
-
-    gl::BindTexture(gl::TEXTURE_2D, texture_id);
-    gl::TexImage2D(
-        gl::TEXTURE_2D,
-        0,
-        format as i32,
-        texture.width as i32,
-        texture.height as i32,
         0,
         format,
         gl::UNSIGNED_BYTE,
