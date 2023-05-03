@@ -15,3 +15,7 @@ pub struct PlayerCameraComponent {
 pub struct NetworkComponent {
     pub stream: TcpStream,
 }
+
+pub struct HealthComponent {
+    pub alive: bool,
+}

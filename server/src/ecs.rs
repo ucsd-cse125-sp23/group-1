@@ -22,6 +22,7 @@ pub struct ECS {
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
+    pub health_components: SecondaryMap<Entity, HealthComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
     pub players: Vec<Entity>,
@@ -41,6 +42,7 @@ impl ECS {
             model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
+            health_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
@@ -70,6 +72,7 @@ impl ECS {
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
+                self.health_components.insert(player, HealthComponent { alive:true });
                 println!("Name: {}", name);
             },
             Err(e) => {
@@ -84,6 +87,12 @@ impl ECS {
      */
     pub fn receive_inputs(&mut self) {
         for &player in &self.players {
+            // do not receive inputs from dead players
+            let health = & self.health_components[player].alive;
+            if !health {
+                continue;
+            }
+
             let mut input_temp = PlayerInputComponent::default();
             let mut stream = & self.network_components[player].stream;
             // need a protocol, get number of bytes in message then read_exact
@@ -289,8 +298,15 @@ impl ECS {
                     Some((target_collider_handle, toi)) => {
                         let target_collider = collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                        
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
+
+                        // if target is a player, update its health component --> dead
+                        if self.players.contains(&target) && self.health_components[target].alive{
+                            self.health_components[target].alive = false;
+                        }
+                        
                         let hit_point = ray.point_at(toi);
                         let target_body = rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
