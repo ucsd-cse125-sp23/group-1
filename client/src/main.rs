@@ -99,7 +99,7 @@ fn main() -> std::io::Result<()> {
 
         // load models
         // -----------
-        let models = Model::new_from_assimp("resources/textured_cube.fbx");
+        let models = Model::new_from_assimp("resources/tests/textured_cube.fbx");
         // let models = Model::new("resources/cube/cube.obj");
 
         (shader_program, models, cube_pos)
