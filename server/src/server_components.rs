@@ -18,4 +18,5 @@ pub struct NetworkComponent {
 
 pub struct HealthComponent {
     pub alive: bool,
+    pub health: u8,
 }

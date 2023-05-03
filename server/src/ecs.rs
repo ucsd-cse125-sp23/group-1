@@ -72,7 +72,7 @@ impl ECS {
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
-                self.health_components.insert(player, HealthComponent { alive:true });
+                self.health_components.insert(player, HealthComponent { alive:true, health:1 });
                 println!("Name: {}", name);
             },
             Err(e) => {
@@ -302,9 +302,15 @@ impl ECS {
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
 
-                        // if target is a player, update its health component --> dead
-                        if self.players.contains(&target) && self.health_components[target].alive{
-                            self.health_components[target].alive = false;
+                        // if target is a player, update its health component
+                        if self.players.contains(&target) && self.health_components[target].alive {
+                            self.health_components[target].health -= 1;
+                            
+                            if self.health_components[target].health == 0 {
+                                // handle player death
+                                self.health_components[target].alive = false;
+                                self.player_input_components[target] = PlayerInputComponent::default();
+                            }
                         }
                         
                         let hit_point = ray.point_at(toi);
