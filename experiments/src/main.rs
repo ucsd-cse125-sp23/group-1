@@ -4,6 +4,7 @@ mod bounceball;
 mod bounceballzerog;
 mod recoil;
 mod recoilgradual;
+mod rope_joints3;
 
 fn main() {
     let builders: Vec<(_, fn(&mut Testbed))> = vec![
@@ -11,6 +12,7 @@ fn main() {
         ("Bounce ball zero-G", bounceballzerog::init_world),
         ("Recoil", recoil::init_world),
         ("Recoil gradual", recoilgradual::init_world),
+        ("Rope joints", rope_joints3::init_world)
     ];
 
     let testbed = TestbedApp::from_builders(0, builders);
