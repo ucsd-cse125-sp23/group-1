@@ -94,23 +94,7 @@ fn main() -> std::io::Result<()> {
         );
 
         // textures for skybox
-        let faces = [
-            "resources/skybox/space/right.png",
-            "resources/skybox/space/left.png",
-            "resources/skybox/space/top.png",
-            "resources/skybox/space/bottom.png",
-            "resources/skybox/space/front.png",
-            "resources/skybox/space/back.png"
-        ];
-        let faces = [
-            "resources/skybox/test/right.jpg",
-            "resources/skybox/test/left.jpg",
-            "resources/skybox/test/top.jpg",
-            "resources/skybox/test/bottom.jpg",
-            "resources/skybox/test/front.jpg",
-            "resources/skybox/test/back.jpg"
-        ];
-        let skybox = Skybox::new(&faces);
+        let skybox = Skybox::new("resources/skybox/space", ".png");
 
         // actually allow transparency
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);

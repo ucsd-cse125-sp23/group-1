@@ -13,7 +13,7 @@ pub struct Skybox {
 }
 
 impl Skybox {
-    pub unsafe fn new(faces: &[&str]) -> Skybox {
+    pub unsafe fn new(path: &str, format: &str) -> Skybox {
         let mut skybox = Skybox {
             shader_program: Shader { id: 0 },
             vao: 0,
@@ -84,7 +84,7 @@ impl Skybox {
         gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, stride, ptr::null());
 
         skybox.vao = skybox_vao;
-        skybox.texture_id = load_cubemap(faces);
+        skybox.texture_id = load_cubemap(path, format);
 
         // shader configuration
         // --------------------
@@ -123,7 +123,23 @@ impl Skybox {
 /// +Z (front)
 /// -Z (back)
 /// -------------------------------------------------------
-unsafe fn load_cubemap(faces: &[&str]) -> u32 {
+unsafe fn load_cubemap(path: &str, format: &str) -> u32 {
+    let faces = [
+        format!("{}/{}{}", path, "right", format),
+        format!("{}/{}{}", path, "left", format),
+        format!("{}/{}{}", path, "top", format),
+        format!("{}/{}{}", path, "bottom", format),
+        format!("{}/{}{}", path, "front", format),
+        format!("{}/{}{}", path, "back", format),
+    ];
+
+    let mut color_format = gl::RGB;
+    if format == ".png" {
+        color_format = gl::RGBA;
+    } else if format == ".jpg" {
+        color_format = gl::RGB;
+    }
+
     let mut texture_id = 0;
     gl::GenTextures(1, &mut texture_id);
     gl::BindTexture(gl::TEXTURE_CUBE_MAP, texture_id);
@@ -139,7 +155,7 @@ unsafe fn load_cubemap(faces: &[&str]) -> u32 {
             img.width() as i32,
             img.height() as i32,
             0,
-            gl::RGB,
+            color_format,
             gl::UNSIGNED_BYTE,
             &data[0] as *const u8 as *const c_void,
         );
