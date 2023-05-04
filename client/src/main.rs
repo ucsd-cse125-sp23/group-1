@@ -3,6 +3,7 @@ mod macros;
 mod camera;
 mod mesh;
 mod model;
+mod skybox;
 
 use std::collections::HashMap;
 
@@ -11,7 +12,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -20,9 +21,10 @@ use core::{mem::{size_of, size_of_val}};
 use crate::shader::Shader;
 use crate::camera::*;
 use crate::model::Model;
+use crate::skybox::Skybox;
 
 // network
-use std::io::{Read, Write, self, Cursor};
+use std::io::{Read, Write, self};
 use std::net::{TcpStream};
 use std::str;
 use shared::shared_components::*;
@@ -74,7 +76,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, models) = unsafe {
+    let (shader_program, hud_shader, skybox, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -91,6 +93,25 @@ fn main() -> std::io::Result<()> {
             "shaders/hud.fs",
         );
 
+        // textures for skybox
+        let faces = [
+            "resources/skybox/space/right.png",
+            "resources/skybox/space/left.png",
+            "resources/skybox/space/top.png",
+            "resources/skybox/space/bottom.png",
+            "resources/skybox/space/front.png",
+            "resources/skybox/space/back.png"
+        ];
+        let faces = [
+            "resources/skybox/test/right.jpg",
+            "resources/skybox/test/left.jpg",
+            "resources/skybox/test/top.jpg",
+            "resources/skybox/test/bottom.jpg",
+            "resources/skybox/test/front.jpg",
+            "resources/skybox/test/back.jpg"
+        ];
+        let skybox = Skybox::new(&faces);
+
         // actually allow transparency
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
@@ -100,7 +121,7 @@ fn main() -> std::io::Result<()> {
         let mut models: HashMap<String,Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, hud_shader, models)
+        (shader_program, hud_shader, skybox, models)
     };
 
     // client ECS to be sent to server
@@ -254,10 +275,14 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 None => {
-                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
+                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program);
                 }
             }
             // note: the first iteration through the match{} above draws the model without view and projection setup
+
+            // draw skybox
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+            skybox.draw(camera.GetViewMatrix(), projection);
 
             // DRAW HUD
             hud_shader.use_program();
