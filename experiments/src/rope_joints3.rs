@@ -103,9 +103,11 @@ pub fn init_world(testbed: &mut Testbed) {
         //     ropejoint.data.set_limits(JointAxis::Z, [1.0,1.0]);
         // }
         let char = physics_state.bodies.get_mut(character_handle).unwrap();
-        let char_point = OPoint::from(*char.translation());
+        let char_t = *char.translation();
+        let char_point = OPoint::from(char_t);
         let child = physics_state.bodies.get_mut(child_handle).unwrap();
-        let child_point = OPoint::from(*child.translation());
+        let child_t = *child.translation();
+        let child_point = OPoint::from(child_t);
         let dist = distance(&char_point,&child_point);
         println!("{dist}");
         let new_lim = dist / 3.0_f32.sqrt();
@@ -119,6 +121,13 @@ pub fn init_world(testbed: &mut Testbed) {
         ropejoint.data.set_limits(JointAxis::X, [lim,lim]);
         ropejoint.data.set_limits(JointAxis::Y, [lim,lim]);
         ropejoint.data.set_limits(JointAxis::Z, [lim,lim]);
+
+        if now.elapsed().unwrap().as_secs() >= 2 {
+            let char = physics_state.bodies.get_mut(character_handle).unwrap();
+            char.apply_impulse((child_t-char_t).normalize() * 0.00001, true);
+            let child = physics_state.bodies.get_mut(child_handle).unwrap();
+            child.apply_impulse((char_t-child_t).normalize() * 0.00001, true);
+        }
     });
 
     /*
