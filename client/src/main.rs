@@ -143,18 +143,24 @@ fn main() -> std::io::Result<()> {
         // create player input component
         let mut input_component = PlayerInputComponent::default();
 
-        // events
-        // ------
-        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
+        let mut roll = false;
 
         // process inputs
         // --------------
-        process_inputs(&mut window, &mut input_component);
+        process_inputs(&mut window, &mut input_component, &mut roll);
+
+        // events
+        // ------
+        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera, roll);
 
         // set camera front of input_component
-        input_component.camera_front_x = camera.Front.x;
-        input_component.camera_front_y = camera.Front.y;
-        input_component.camera_front_z = camera.Front.z;
+        // input_component.camera_front_x = camera.Front.x;
+        // input_component.camera_front_y = camera.Front.y;
+        // input_component.camera_front_z = camera.Front.z;
+        input_component.camera_qx = camera.RotQuat.v.x;
+        input_component.camera_qy = camera.RotQuat.v.y;
+        input_component.camera_qz = camera.RotQuat.v.z;
+        input_component.camera_qw = camera.RotQuat.s;
 
         // send client data
         let j = serde_json::to_string(&input_component).expect("Input component serialization error");
@@ -293,7 +299,8 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
                       first_mouse: &mut bool,
                       last_x: &mut f32,
                       last_y: &mut f32,
-                      camera: &mut Camera) {
+                      camera: &mut Camera,
+                      roll: bool) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -315,7 +322,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
                 *last_x = xpos;
                 *last_y = ypos;
 
-                camera.ProcessMouseMovement(xoffset, yoffset, true);
+                camera.ProcessMouseMovement(xoffset, yoffset, roll);
             }
             glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
                 camera.ProcessMouseScroll(yoffset as f32);
@@ -326,7 +333,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent) {
+fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent, roll: &mut bool) {
     if window.get_key(Key::W) == Action::Press {
         input_component.w_pressed = true;
     }
@@ -347,6 +354,9 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     }
     if window.get_key(Key::R) == Action::Press {
         input_component.r_pressed = true;
+    }
+    if window.get_key(Key::Space) == Action::Press {
+        *roll = true;
     }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;

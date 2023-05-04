@@ -15,9 +15,10 @@ pub struct PlayerInputComponent {
     pub r_pressed: bool,
     pub shift_pressed: bool,
     pub ctrl_pressed: bool,
-    pub camera_front_x: f32,
-    pub camera_front_y: f32,
-    pub camera_front_z: f32,
+    pub camera_qx: f32,
+    pub camera_qy: f32,
+    pub camera_qz: f32,
+    pub camera_qw: f32,
 }
 
 impl PlayerInputComponent {
@@ -32,9 +33,10 @@ impl PlayerInputComponent {
             shift_pressed: false,
             ctrl_pressed: false,
             r_pressed: false,
-            camera_front_x: 0.0,
-            camera_front_y: 0.0,
-            camera_front_z: -1.0,
+            camera_qx: 0.0,
+            camera_qy: 0.0,
+            camera_qz: 0.0,
+            camera_qw: 1.0,
         }
     }
 }
