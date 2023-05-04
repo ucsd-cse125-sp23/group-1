@@ -1,7 +1,8 @@
 use std::ffi::{CStr, CString};
 use std::{fs, ptr, str};
 use gl::types::*;
-use cgmath::{Matrix4, Matrix};
+use cgmath::{Matrix4, Matrix, Vector3};
+use cgmath::prelude::*;
 
 pub struct Shader {
     pub id: u32,
@@ -58,6 +59,14 @@ impl Shader {
     // utility uniform functions
     pub unsafe fn set_mat4(&self, name: &CStr, mat: &Matrix4<f32>) {
         gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
+    }
+    /// ------------------------------------------------------------------------
+    pub unsafe fn setVector3(&self, name: &CStr, value: &Vector3<f32>) {
+        gl::Uniform3fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, value.as_ptr());
+    }
+    /// ------------------------------------------------------------------------
+    pub unsafe fn setVec3(&self, name: &CStr, x: f32, y: f32, z: f32) {
+        gl::Uniform3f(gl::GetUniformLocation(self.id, name.as_ptr()), x, y, z);
     }
 
     // utility function for checking shader compilation/linking errors

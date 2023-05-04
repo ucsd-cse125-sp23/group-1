@@ -73,7 +73,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, models) = unsafe {
+    let (shader_program, models, light_program) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -84,12 +84,17 @@ fn main() -> std::io::Result<()> {
             "shaders/shader.fs",
         );
 
+        let light_program = Shader::new(
+            "shaders/light.vs",
+            "shaders/light.fs",
+        );
+
         // add all models to hashmap
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, models)
+        (shader_program, models, light_program)
     };
 
     // client ECS to be sent to server
@@ -174,7 +179,18 @@ fn main() -> std::io::Result<()> {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             // activate shader
-            shader_program.use_program();
+            // shader_program.use_program();
+            // light_program.use_program();
+
+            // let shader = &light_program;
+            let shader = &light_program;
+            shader.use_program();
+
+            let light_pos = vec3(10., 10., 10.);
+            let light_color = vec3(1., 1., 1.);
+
+            shader.setVector3(c_str!("lightPos"), &light_pos);
+            shader.setVector3(c_str!("lightColor"), &light_color);
 
             // NEEDS TO BE REWORKED FOR MENU STATE
             // 
@@ -185,7 +201,7 @@ fn main() -> std::io::Result<()> {
                     let player_pos = vec3(c_ecs.position_components[player_key].x,
                         c_ecs.position_components[player_key].y,
                         c_ecs.position_components[player_key].z);
-                    set_camera_pos(&mut camera, player_pos, &shader_program);
+                    set_camera_pos(&mut camera, player_pos, &shader);
 
                     for &renderable in &c_ecs.renderables {
                         if renderable != player_key {
@@ -207,14 +223,14 @@ fn main() -> std::io::Result<()> {
                             let scale_mat = Matrix4::from_scale(1.0);
                         
                             let model = pos_mat * scale_mat * rot_mat;
-                            shader_program.set_mat4(c_str!("model"), &model);
+                            shader.set_mat4(c_str!("model"), &model);
                             let model_name = &c_ecs.model_components[renderable].modelname;
-                            models[model_name].draw(&shader_program);
+                            models[model_name].draw(&shader);
                         }
                     }
                 }
                 None => {
-                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
+                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader)
                 }
             }
             // note: the first iteration through the match{} above draws the model without view and projection setup
