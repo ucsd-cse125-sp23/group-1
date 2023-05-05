@@ -72,7 +72,7 @@ impl ECS {
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
-                self.health_components.insert(player, HealthComponent { alive:true, health:1 });
+                self.health_components.insert(player, HealthComponent::default());
                 println!("Name: {}", name);
             },
             Err(e) => {

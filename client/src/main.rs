@@ -106,6 +106,9 @@ fn main() -> std::io::Result<()> {
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
+    // health component initialized
+    let mut client_health = HealthComponent::default();
+
     // set up HUD renderer
     let mut vao = 0;
     let mut vbo = 0;
@@ -137,6 +140,7 @@ fn main() -> std::io::Result<()> {
         gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
         gl::EnableVertexAttribArray(0);
     }
+
     // RENDER LOOP
     // -----------
     while !window.should_close() {
@@ -197,7 +201,6 @@ fn main() -> std::io::Result<()> {
                     let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
                     let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                     client_ecs = Some(value);
-                    // c_ecs = value;
                 },
                 Ok(_) => {
                     break;
@@ -221,6 +224,15 @@ fn main() -> std::io::Result<()> {
             match &client_ecs {
                 Some(c_ecs) => {
                     let player_key = c_ecs.players[client_id];
+
+                    // handle changes in client health
+                    if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
+                        client_health.health = c_ecs.health_components[player_key].health;
+                        println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
+                    } else if c_ecs.health_components[player_key].alive != client_health.alive {
+                        client_health.alive = c_ecs.health_components[player_key].alive;
+                        println!("Player {} is no longer alive x_x", client_id);
+                    }
 
                     let player_pos = vec3(c_ecs.position_components[player_key].x,
                         c_ecs.position_components[player_key].y,

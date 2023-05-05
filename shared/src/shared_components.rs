@@ -106,3 +106,12 @@ pub struct HealthComponent {
     pub alive: bool,
     pub health: u8,
 }
+
+impl HealthComponent {
+    pub fn default() -> HealthComponent{
+        HealthComponent {
+            alive : true,
+            health : 1,
+        }
+    }
+}
