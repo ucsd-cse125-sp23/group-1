@@ -370,6 +370,9 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;
     }
+    if window.get_mouse_button(MouseButton::Button2) == Action::Press {
+        input_component.rmb_clicked = true;
+    }
 
     // TODO: add additional quit hotkey?
 
