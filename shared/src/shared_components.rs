@@ -46,6 +46,7 @@ pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
+    pub health_components: SecondaryMap<Entity, HealthComponent>,
     pub players: Vec<Entity>,
     pub renderables: Vec<Entity>,
 }
@@ -56,13 +57,12 @@ impl ClientECS {
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
+            health_components: SecondaryMap::new(),
             players: vec![],
             renderables: vec![],
         }
     }
 }
-
-
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PositionComponent {
@@ -99,4 +99,10 @@ pub struct PlayerWeaponComponent {
     pub cooldown: i16,
     pub ammo: u8,
     pub reloading: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct HealthComponent {
+    pub alive: bool,
+    pub health: u8,
 }

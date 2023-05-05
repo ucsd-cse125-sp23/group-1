@@ -194,6 +194,7 @@ impl ECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
             model_components: self.model_components.clone(),
+            health_components: self.health_components.clone(),
             players: self.players.clone(),
             renderables: self.renderables.clone(),
         }
