@@ -18,8 +18,8 @@ pub struct NetworkComponent {
 }
 
 pub struct PlayerLassoPhysComponent {
-    pub attached_handle: RigidBodyHandle,
-    pub attach_point_local: OPoint<f32,Const<3>>,
+    pub anchor_handle: RigidBodyHandle,
+    pub anchor_point_local: OPoint<f32,Const<3>>,
     pub joint_handle: ImpulseJointHandle,
     pub limit: f32,
 }

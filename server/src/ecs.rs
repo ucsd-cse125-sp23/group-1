@@ -330,9 +330,9 @@ impl ECS {
                 let lasso_phys = &mut self.player_lasso_phys_components[player];
                 if input.rmb_clicked {
                     let position = &self.position_components[player];
-                    let attached = rigid_body_set.get_mut(lasso_phys.attached_handle).unwrap();
-                    let attach_point = attached.position() * lasso_phys.attach_point_local;
-                    let dist = distance(&point![position.x, position.y, position.z],&attach_point);
+                    let anchor = rigid_body_set.get_mut(lasso_phys.anchor_handle).unwrap();
+                    let anchor_point = anchor.position() * lasso_phys.anchor_point_local;
+                    let dist = distance(&point![position.x, position.y, position.z],&anchor_point);
                     let new_limit = dist / 3.0_f32.sqrt() + slack;
                     let ropejoint = impulse_joint_set.get_mut(lasso_phys.joint_handle).unwrap();
                     if new_limit < lasso_phys.limit {
@@ -343,11 +343,12 @@ impl ECS {
                     ropejoint.data.set_limits(JointAxis::Y, [lim,lim]);
                     ropejoint.data.set_limits(JointAxis::Z, [lim,lim]);
 
-                    let attached = rigid_body_set.get_mut(self.player_lasso_phys_components[player].attached_handle).unwrap();
-                    let attached_t = attached.translation().clone();
-                    attached.apply_impulse((vector![position.x, position.y, position.z]-attached_t).normalize() * 0.2, true);
+                    let anchor = rigid_body_set.get_mut(self.player_lasso_phys_components[player].anchor_handle).unwrap();
+                    let anchor_t = anchor.translation().clone();
+                    // TODO: calculate impulse based on mass of objects
+                    anchor.apply_impulse((vector![position.x, position.y, position.z]-anchor_t).normalize() * 0.2, true);
                     let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
-                    rigid_body.apply_impulse((attached_t-vector![position.x, position.y, position.z]).normalize() * 0.2, true);
+                    rigid_body.apply_impulse((anchor_t-vector![position.x, position.y, position.z]).normalize() * 0.2, true);
                 } else {
                     println!("releasing lasso");
                     impulse_joint_set.remove(lasso_phys.joint_handle,true);
@@ -377,7 +378,7 @@ impl ECS {
                         let hit_point_local = target_body.position().inverse() * hit_point;
                         let joint = RopeJointBuilder::new().local_anchor2(hit_point_local).limits([limit,limit]).build();
                         let joint_handle = impulse_joint_set.insert(*player_handle, *target_handle, joint, true);
-                        self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { attached_handle:*target_handle, attach_point_local: hit_point_local, joint_handle, limit });
+                        self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { anchor_handle:*target_handle, anchor_point_local: hit_point_local, joint_handle, limit });
                     },
                     None => {
                         println!("Miss");
