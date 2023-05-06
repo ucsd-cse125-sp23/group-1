@@ -324,30 +324,34 @@ impl ECS {
 
     pub fn player_lasso(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, impulse_joint_set: &mut ImpulseJointSet, query_pipeline: & QueryPipeline) {
         for &player in &self.players {
+            let slack = 0.01;
             let input = &self.player_input_components[player];
             if self.player_lasso_phys_components.contains_key(player) {
-                let position = &self.position_components[player];
                 let lasso_phys = &mut self.player_lasso_phys_components[player];
-                let attached = rigid_body_set.get_mut(lasso_phys.attached_handle).unwrap();
-                let attach_point = attached.position() * lasso_phys.attach_point_local;
-                let dist = distance(&point![position.x, position.y, position.z],&attach_point);
-                let new_limit = dist / 3.0_f32.sqrt() + 0.1;
-                if new_limit < lasso_phys.limit {
-                    lasso_phys.limit = new_limit;
-                }
-                let lim = lasso_phys.limit;
-                let ropejoint = impulse_joint_set.get_mut(lasso_phys.joint_handle).unwrap();
-                ropejoint.data.set_limits(JointAxis::X, [lim,lim]);
-                ropejoint.data.set_limits(JointAxis::Y, [lim,lim]);
-                ropejoint.data.set_limits(JointAxis::Z, [lim,lim]);
                 if input.rmb_clicked {
+                    let position = &self.position_components[player];
+                    let attached = rigid_body_set.get_mut(lasso_phys.attached_handle).unwrap();
+                    let attach_point = attached.position() * lasso_phys.attach_point_local;
+                    let dist = distance(&point![position.x, position.y, position.z],&attach_point);
+                    let new_limit = dist / 3.0_f32.sqrt() + slack;
+                    let ropejoint = impulse_joint_set.get_mut(lasso_phys.joint_handle).unwrap();
+                    if new_limit < lasso_phys.limit {
+                        lasso_phys.limit = new_limit;
+                    }
+                    let lim = lasso_phys.limit;
+                    ropejoint.data.set_limits(JointAxis::X, [lim,lim]);
+                    ropejoint.data.set_limits(JointAxis::Y, [lim,lim]);
+                    ropejoint.data.set_limits(JointAxis::Z, [lim,lim]);
+
                     let attached = rigid_body_set.get_mut(self.player_lasso_phys_components[player].attached_handle).unwrap();
                     let attached_t = attached.translation().clone();
                     attached.apply_impulse((vector![position.x, position.y, position.z]-attached_t).normalize() * 0.2, true);
                     let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
                     rigid_body.apply_impulse((attached_t-vector![position.x, position.y, position.z]).normalize() * 0.2, true);
                 } else {
-                    
+                    println!("releasing lasso");
+                    impulse_joint_set.remove(lasso_phys.joint_handle,true);
+                    self.player_lasso_phys_components.remove(player);
                 }
             } else if input.rmb_clicked {
                 println!("throwing lasso");
@@ -367,7 +371,7 @@ impl ECS {
                         println!("Hit target {}",target_name);
                         let hit_point = ray.point_at(toi);
                         let dist = distance(&point![position.x, position.y, position.z],&hit_point);
-                        let limit = dist / 3.0_f32.sqrt() + 0.1;
+                        let limit = dist / 3.0_f32.sqrt() + slack;
                         let target_handle = &self.physics_components[target].handle;
                         let target_body = rigid_body_set.get_mut(*target_handle).unwrap();
                         let hit_point_local = target_body.position().inverse() * hit_point;
