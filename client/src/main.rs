@@ -56,6 +56,7 @@ fn main() -> std::io::Result<()> {
     window.set_framebuffer_size_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_scroll_polling(true);
+    window.set_aspect_ratio(shared::SCR_WIDTH, shared::SCR_HEIGHT);
 
     // tell GLFW to capture our mouse
     window.set_cursor_mode(glfw::CursorMode::Disabled);
