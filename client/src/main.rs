@@ -174,7 +174,12 @@ fn main() -> std::io::Result<()> {
         match stream.write(&send) {
             Ok(_) => (),
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-            Err(e) => eprintln!("Error sending input: {:?}", e),
+            Err(e) => {
+                eprintln!("Error sending input: {:?}", e);
+
+                // handle lost connection
+                panic!("lost server connection!");
+            }
         };
 
         // receive all incoming server data
@@ -195,8 +200,9 @@ fn main() -> std::io::Result<()> {
                 }
                 Err(e) => {
                     eprintln!("Failed to read message size from server: {}",e);
-                    // TODO: handle lost client
-                    break;
+
+                    // handle lost connection
+                    panic!("lost server connection!");
                 }
             }
             let s_size = size.try_into().unwrap();
@@ -215,6 +221,9 @@ fn main() -> std::io::Result<()> {
                 },
                 Err(e) => {
                     eprintln!("Failed to read message from server: {}",e);
+
+                    // handle lost connection
+                    panic!("lost server connection!");
                 },
             }
         }
