@@ -49,6 +49,7 @@ pub struct ClientECS {
     pub health_components: SecondaryMap<Entity, HealthComponent>,
     pub players: Vec<Entity>,
     pub renderables: Vec<Entity>,
+    pub game_ended: bool,
 }
 
 impl ClientECS {
@@ -60,6 +61,7 @@ impl ClientECS {
             health_components: SecondaryMap::new(),
             players: vec![],
             renderables: vec![],
+            game_ended: false,
         }
     }
 }

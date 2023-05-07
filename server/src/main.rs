@@ -32,10 +32,7 @@ fn main() {
 
     init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
 
-    // temp cube object
-    ecs.temp_entity = ecs.dynamics[0];
-
-    // connection state
+    // connection state -- 0.0.0.0 listens to all interfaces on given port
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
@@ -43,7 +40,7 @@ fn main() {
     let (tx, rx):(Sender<bool>, Receiver<bool>) = channel();
     // break upon pressing any key to start game
     thread::spawn(move || {
-        println!("[SERVER]: Press any key to start game");
+        println!("[SERVER]: Press ENTER to start game");
         let mut s = String::new();
         io::stdin().read_line(&mut s).unwrap();
         // TODO: ready condition?

@@ -29,7 +29,8 @@ pub struct ECS {
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
 
-    pub temp_entity: Entity,
+    pub active_players: u8,
+    pub game_ended: bool,
 }
 
 impl ECS {
@@ -47,7 +48,8 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
-            temp_entity: DefaultKey::default(),
+            active_players: 0,
+            game_ended: false,
         }
     }
 
@@ -73,6 +75,7 @@ impl ECS {
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
                 self.health_components.insert(player, HealthComponent::default());
+                self.active_players += 1;
                 println!("Name: {}", name);
             },
             Err(e) => {
@@ -173,6 +176,11 @@ impl ECS {
      * Using TCP streams associated with each player, send updated + serialized client ECS
      */
     pub fn update_clients(&mut self) {
+        // game ends if there's 1 active player left
+        if self.active_players == 1 {
+            self.game_ended = true;
+        }
+
         let client_ecs = self.client_ecs();
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
@@ -197,6 +205,7 @@ impl ECS {
             health_components: self.health_components.clone(),
             players: self.players.clone(),
             renderables: self.renderables.clone(),
+            game_ended: self.game_ended,
         }
     }
 
@@ -310,6 +319,7 @@ impl ECS {
                             if self.health_components[target].health == 0 {
                                 // handle player death
                                 self.health_components[target].alive = false;
+                                self.active_players -= 1;
                                 self.player_input_components[target] = PlayerInputComponent::default();
                             }
                         }

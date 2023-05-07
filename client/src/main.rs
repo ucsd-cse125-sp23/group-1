@@ -25,6 +25,7 @@ use crate::model::Model;
 use std::io::{Read, Write, self, Cursor};
 use std::net::{TcpStream};
 use std::str;
+use std::process;
 use shared::shared_components::*;
 
 fn main() -> std::io::Result<()> {
@@ -54,6 +55,7 @@ fn main() -> std::io::Result<()> {
     window.set_framebuffer_size_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_scroll_polling(true);
+    window.set_close_polling(true);
 
     // tell GLFW to capture our mouse
     window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -140,10 +142,21 @@ fn main() -> std::io::Result<()> {
         gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
         gl::EnableVertexAttribArray(0);
     }
+    
+    /*
+    connect
 
-    // RENDER LOOP
+    while true
+        while in lobby screen (TBD)     (menu state)
+        wait for server to start game
+        while game not ended            (game state)
+            send input
+            receive ecs
+            render frame
+     */
+    // WINDOW LOOP
     // -----------
-    while !window.should_close() {
+   loop {
         // create player input component
         let mut input_component = PlayerInputComponent::default();
 
@@ -160,15 +173,17 @@ fn main() -> std::io::Result<()> {
         input_component.camera_front_y = camera.Front.y;
         input_component.camera_front_z = camera.Front.z;
 
-        // send client data
-        let j = serde_json::to_string(&input_component).expect("Input component serialization error");
-        let send_size = j.len() as u32 + 4;
-        let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
-        match stream.write(&send) {
-            Ok(_) => (),
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-            Err(e) => eprintln!("Error sending input: {:?}", e),
-        };
+        // send client data if player is still alive
+        if client_health.alive {
+            let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+            let send_size = j.len() as u32 + 4;
+            let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
+            match stream.write(&send) {
+                Ok(_) => (),
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                Err(e) => eprintln!("Error sending input: {:?}", e),
+            };
+        } // TODO: support spectator movement
 
         // receive all incoming server data
         loop {
@@ -264,6 +279,16 @@ fn main() -> std::io::Result<()> {
                             models[model_name].draw(&shader_program);
                         }
                     }
+
+                    // game has ended
+                    if c_ecs.game_ended {
+                        for (i, player) in c_ecs.players.iter().enumerate() {
+                            if c_ecs.health_components[*player].alive {
+                                println!("The winner is player {}!", i);
+                            }
+                        }
+                        break;
+                    }
                 }
                 None => {
                     set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
@@ -282,6 +307,7 @@ fn main() -> std::io::Result<()> {
         window.swap_buffers();
         glfw.poll_events();
     }
+
     Ok(())
 }
 
@@ -331,6 +357,10 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
             }
             glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
                 camera.ProcessMouseScroll(yoffset as f32);
+            }
+            // Exit with code 0 upon window close
+            glfw::WindowEvent::Close => {
+                process::exit(0);
             }
             _ => {}
         }
