@@ -14,5 +14,6 @@ pub struct PlayerCameraComponent {
 }
 
 pub struct NetworkComponent {
+    pub connected: bool,
     pub stream: TcpStream,
 }

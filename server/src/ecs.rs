@@ -27,6 +27,7 @@ pub struct ECS {
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
+    pub lost_players: u8,
 
     pub temp_entity: Entity,
 }
@@ -45,6 +46,8 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
+            lost_players: 0,
+
             temp_entity: DefaultKey::default(),
         }
     }
@@ -69,7 +72,7 @@ impl ECS {
                 curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
-                self.network_components.insert(player, NetworkComponent { stream:curr_stream });
+                self.network_components.insert(player, NetworkComponent { connected: true, stream:curr_stream });
                 println!("Name: {}", name);
             },
             Err(e) => {
@@ -84,15 +87,17 @@ impl ECS {
      */
     pub fn receive_inputs(&mut self) {
         for &player in &self.players {
+            let mut connected = true;
+
             let mut input_temp = PlayerInputComponent::default();
             let mut stream = & self.network_components[player].stream;
             // need a protocol, get number of bytes in message then read_exact
 
             // read messages from client with header length
             // 4 byte size field
-            loop {
+            while self.network_components[player].connected && connected {
                 let mut size_buf = [0 as u8; 4];
-                let size:u32;
+                let mut size:u32 = 0;
                 match stream.peek(&mut size_buf) {
                     Ok(4) => {
                         // it's tradition, dammit!
@@ -107,8 +112,7 @@ impl ECS {
                     }
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        // TODO: handle lost client
-                        panic!("Lost client connection");
+                        connected = false;
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -127,9 +131,17 @@ impl ECS {
                     },
                     Err(e) => {
                         eprintln!("Failed to read message for client {}: {}",self.name_components[player],e);
+                        connected = false;
                     },
                 }
             }
+
+            // handle lost client
+            if !connected {
+                self.network_components[player].connected = false;
+                self.lost_players += 1;
+            }
+
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
             // camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
@@ -140,6 +152,10 @@ impl ECS {
             camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
             camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
+        }
+
+        if self.lost_players == self.players.len() as u8 {
+            panic!("all players have lost connection.");
         }
     }
 
@@ -173,11 +189,13 @@ impl ECS {
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
-            match self.network_components[player].stream.write(&message) {
-                Ok(_) => (),
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+            if self.network_components[player].connected {
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                match self.network_components[player].stream.write(&message) {
+                    Ok(_) => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+                }
             }
         }
     }
