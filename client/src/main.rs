@@ -30,15 +30,6 @@ use std::str;
 use shared::shared_components::*;
 
 fn main() -> std::io::Result<()> {
-    // create camera and camera information
-    let mut camera = Camera {
-        Position: Point3::new(0.0, 0.0, 3.0),
-        ..Camera::default()
-    };
-    let mut first_mouse = true;
-    let mut last_x: f32 = shared::SCR_WIDTH as f32 / 2.0;
-    let mut last_y: f32 = shared::SCR_HEIGHT as f32 / 2.0;
-
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -49,13 +40,26 @@ fn main() -> std::io::Result<()> {
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(shared::SCR_WIDTH, shared::SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window");
+    let mut width = 0;
+    let mut height = 0;
+    let (mut window, events) = glfw
+        .with_primary_monitor(|glfw, m| {
+            width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32;
+            height = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).1 as u32;
+            glfw.create_window(
+                width * 2,
+                height * 2,
+                shared::WINDOW_TITLE,
+                glfw::WindowMode::Windowed,
+            )
+        })
+        .expect("Failed to create GLFW window.");
 
     window.make_current();
     window.set_framebuffer_size_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_scroll_polling(true);
+    window.set_aspect_ratio(width, height);
 
     // tell GLFW to capture our mouse
     window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -63,6 +67,15 @@ fn main() -> std::io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+    // create camera and camera information
+    let mut camera = Camera {
+        Position: Point3::new(0.0, 0.0, 3.0),
+        ..Camera::default()
+    };
+    let mut first_mouse = true;
+    let mut last_x: f32 = width as f32 / 2.0;
+    let mut last_y: f32 = height as f32 / 2.0;
 
     // Create network TcpStream
     let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
@@ -236,7 +249,7 @@ fn main() -> std::io::Result<()> {
                     let player_pos = vec3(c_ecs.position_components[player_key].x,
                         c_ecs.position_components[player_key].y,
                         c_ecs.position_components[player_key].z);
-                    set_camera_pos(&mut camera, player_pos, &shader_program);
+                    set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
                     for &renderable in &c_ecs.renderables {
                         if renderable != player_key {
@@ -265,13 +278,13 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 None => {
-                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program);
+                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height);
                 }
             }
             // note: the first iteration through the match{} above draws the model without view and projection setup
 
             // draw skybox
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
             skybox.draw(camera.GetViewMatrix(), projection);
 
             // DRAW HUD
@@ -288,7 +301,7 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader) {
+fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader, width: u32, height: u32) {
     camera.Position.x = pos.x;
     camera.Position.y = pos.y;
     camera.Position.z = pos.z;
@@ -297,7 +310,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
 
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }
