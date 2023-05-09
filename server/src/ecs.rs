@@ -152,6 +152,23 @@ impl ECS {
     }
 
     /**
+     * Tell all the players, the game has started
+     */
+    pub fn send_ready_message(&mut self, start_game: bool){
+        let lobby_ecs = self.lobby_ecs(start_game);
+        let j = serde_json::to_string(&lobby_ecs).expect("Lobby ECS serialization error");
+        let size = j.len() as u32 + 4;
+        for &player in &self.players {
+            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+            match self.network_components[player].stream.write(&message) {
+                Ok(_) => (),
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+            }
+        }
+    }
+
+    /**
      * Given a new player input component, updates the current component
      *
      * @param curr: player input component to be updated
@@ -206,6 +223,17 @@ impl ECS {
             players: self.players.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
+        }
+    }
+
+    /**
+     * Creates lobby ECS before starting the game
+     */
+    pub fn lobby_ecs(&self, start_game: bool) -> LobbyECS {
+        LobbyECS {
+            name_components: self.name_components.clone(),
+            players: self.players.clone(),
+            start_game: start_game,
         }
     }
 

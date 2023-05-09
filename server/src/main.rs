@@ -55,7 +55,10 @@ fn main() {
     loop {
         // break if game is starting
         match rx.try_recv() {
-            Ok(_) => break,
+            Ok(_) => {
+                ecs.send_ready_message(true);
+                break;
+            },
             Err(_) => {
                 events.clear();
                 // timeout set to server tick speed
@@ -68,6 +71,7 @@ fn main() {
             },
         };
     }
+
     println!("[SERVER]: Starting game");
     loop {
 

@@ -148,167 +148,230 @@ fn main() -> std::io::Result<()> {
 
     while true
         while in lobby screen (TBD)     (menu state)
+            process inputs
+            ...
+            poll inputs
         wait for server to start game
+            process inputs
+            ...
+            poll inputs
         while game not ended            (game state)
+            process inputs
             send input
             receive ecs
             render frame
+            poll inputs
      */
+    let mut input_component:PlayerInputComponent;
+    let mut size_buf = [0 as u8; 4];
     // WINDOW LOOP
     // -----------
-   loop {
-        // create player input component
-        let mut input_component = PlayerInputComponent::default();
+    loop {
+        // MENU LOOP
+        stream.set_nonblocking(true).unwrap();
+        let mut in_lobby = true;
+        while in_lobby {
+            input_component = PlayerInputComponent::default();
+            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
+            process_inputs(&mut window, &mut input_component);
 
-        // events
-        // ------
-        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
+            // TODO: send ready or unready message to server (later feature)
 
-        // process inputs
-        // --------------
-        process_inputs(&mut window, &mut input_component);
-
-        // set camera front of input_component
-        input_component.camera_front_x = camera.Front.x;
-        input_component.camera_front_y = camera.Front.y;
-        input_component.camera_front_z = camera.Front.z;
-
-        // send client data if player is still alive
-        if client_health.alive {
-            let j = serde_json::to_string(&input_component).expect("Input component serialization error");
-            let send_size = j.len() as u32 + 4;
-            let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
-            match stream.write(&send) {
-                Ok(_) => (),
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => eprintln!("Error sending input: {:?}", e),
-            };
-        } // TODO: support spectator movement
-
-        // receive all incoming server data
-        loop {
-            let mut size_buf = [0 as u8; 4];
-            let size:u32;
-            match stream.peek(&mut size_buf) {
-                Ok(4) => {
-                    // big-endian for networks. it's tradition, dammit!
-                    size = u32::from_be_bytes(size_buf);
-                },
-                Ok(_) => {
-                    // incomplete size field, wait for next tick
-                    break;
-                },
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("Failed to read message size from server: {}",e);
-                    // TODO: handle lost client
-                    break;
-                }
+            // TODO: render frame
+            unsafe {
+                gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             }
-            let s_size = size.try_into().unwrap();
-            let mut read_buf = vec![0 as u8; s_size];
-            match stream.peek(&mut read_buf) {
-                Ok(bytes_read) if bytes_read == s_size => {
-                    // if this throws an error we deserve to crash tbh
-                    stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                    let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                    let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
-                    client_ecs = Some(value);
-                },
-                Ok(_) => {
-                    break;
-                },
-                Err(e) => {
-                    eprintln!("Failed to read message from server: {}",e);
-                },
+
+            // poll server for ready message
+            let received = read_data(&mut stream);
+            let lobby_ecs : LobbyECS = serde_json::from_str(received.as_str()).expect("Error converting string to LobbyECS");
+            if lobby_ecs.start_game {
+                in_lobby = false;
             }
+            
+            // poll events
+            window.swap_buffers();
+            glfw.poll_events();
         }
 
-        // render
-        // ------
-        unsafe {
-            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        // GAME LOOP
+        // runs until server sends game_ended = true
+        loop {
+            input_component = PlayerInputComponent::default();
 
-            // activate shader
-            shader_program.use_program();
+            // events
+            // ------
+            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
 
-            // NEEDS TO BE REWORKED FOR MENU STATE
-            match &client_ecs {
-                Some(c_ecs) => {
-                    let player_key = c_ecs.players[client_id];
+            // process inputs
+            // --------------
+            process_inputs(&mut window, &mut input_component);
 
-                    // handle changes in client health
-                    if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
-                        client_health.health = c_ecs.health_components[player_key].health;
-                        println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
-                    } else if c_ecs.health_components[player_key].alive != client_health.alive {
-                        client_health.alive = c_ecs.health_components[player_key].alive;
-                        println!("Player {} is no longer alive x_x", client_id);
+            // set camera front of input_component
+            input_component.camera_front_x = camera.Front.x;
+            input_component.camera_front_y = camera.Front.y;
+            input_component.camera_front_z = camera.Front.z;
+
+            // send client data if player is still alive
+            if client_health.alive {
+                let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+                let send_size = j.len() as u32 + 4;
+                let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
+                match stream.write(&send) {
+                    Ok(_) => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(e) => eprintln!("Error sending input: {:?}", e),
+                };
+            } // TODO: support spectator movement
+
+            // receive all incoming server data
+            loop {
+                let size:u32;
+                match stream.peek(&mut size_buf) {
+                    Ok(4) => {
+                        // big-endian for networks. it's tradition, dammit!
+                        size = u32::from_be_bytes(size_buf);
+                    },
+                    Ok(_) => {
+                        // incomplete size field, wait for next tick
+                        break;
+                    },
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                        break;
                     }
-
-                    let player_pos = vec3(c_ecs.position_components[player_key].x,
-                        c_ecs.position_components[player_key].y,
-                        c_ecs.position_components[player_key].z);
-                    set_camera_pos(&mut camera, player_pos, &shader_program);
-
-                    for &renderable in &c_ecs.renderables {
-                        if renderable != player_key {
-                            // setup position matrix
-                            let model_x = c_ecs.position_components[renderable].x;
-                            let model_y = c_ecs.position_components[renderable].y;
-                            let model_z = c_ecs.position_components[renderable].z;
-                            let model_pos = vec3(model_x, model_y, model_z);
-                            let pos_mat = Matrix4::from_translation(model_pos);
-                        
-                            // setup rotation matrix
-                            let model_qx = c_ecs.position_components[renderable].qx;
-                            let model_qy = c_ecs.position_components[renderable].qy;
-                            let model_qz = c_ecs.position_components[renderable].qz;
-                            let model_qw = c_ecs.position_components[renderable].qw;
-                            let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
-                        
-                            // setup scale matrix (skip for now)
-                            let scale_mat = Matrix4::from_scale(1.0);
-                        
-                            let model = pos_mat * scale_mat * rot_mat;
-                            shader_program.set_mat4(c_str!("model"), &model);
-                            let model_name = &c_ecs.model_components[renderable].modelname;
-                            models[model_name].draw(&shader_program);
-                        }
-                    }
-
-                    // game has ended
-                    if c_ecs.game_ended {
-                        for (i, player) in c_ecs.players.iter().enumerate() {
-                            if c_ecs.health_components[*player].alive {
-                                println!("The winner is player {}!", i);
-                            }
-                        }
+                    Err(e) => {
+                        eprintln!("Failed to read message size from server: {}",e);
+                        // TODO: handle lost client
                         break;
                     }
                 }
-                None => {
-                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
+                let s_size = size.try_into().unwrap();
+                let mut read_buf = vec![0 as u8; s_size];
+                match stream.peek(&mut read_buf) {
+                    Ok(bytes_read) if bytes_read == s_size => {
+                        // if this throws an error we deserve to crash tbh
+                        stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
+                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                        client_ecs = Some(value);
+                    },
+                    Ok(_) => {
+                        break;
+                    },
+                    Err(e) => {
+                        eprintln!("Failed to read message from server: {}",e);
+                    },
                 }
             }
-            // note: the first iteration through the match{} above draws the model without view and projection setup
 
-            // DRAW HUD
-            hud_shader.use_program();
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::LINES, 0, 4);
+            // render
+            // ------
+            unsafe {
+                gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+                gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+                // activate shader
+                shader_program.use_program();
+
+                // NEEDS TO BE REWORKED FOR MENU STATE
+                match &client_ecs {
+                    Some(c_ecs) => {
+                        let player_key = c_ecs.players[client_id];
+
+                        // handle changes in client health
+                        if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
+                            client_health.health = c_ecs.health_components[player_key].health;
+                            println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
+                        } else if c_ecs.health_components[player_key].alive != client_health.alive {
+                            client_health.alive = c_ecs.health_components[player_key].alive;
+                            println!("Player {} is no longer alive x_x", client_id);
+                        }
+
+                        let player_pos = vec3(c_ecs.position_components[player_key].x,
+                            c_ecs.position_components[player_key].y,
+                            c_ecs.position_components[player_key].z);
+                        set_camera_pos(&mut camera, player_pos, &shader_program);
+
+                        for &renderable in &c_ecs.renderables {
+                            if renderable != player_key {
+                                // setup position matrix
+                                let model_x = c_ecs.position_components[renderable].x;
+                                let model_y = c_ecs.position_components[renderable].y;
+                                let model_z = c_ecs.position_components[renderable].z;
+                                let model_pos = vec3(model_x, model_y, model_z);
+                                let pos_mat = Matrix4::from_translation(model_pos);
+                            
+                                // setup rotation matrix
+                                let model_qx = c_ecs.position_components[renderable].qx;
+                                let model_qy = c_ecs.position_components[renderable].qy;
+                                let model_qz = c_ecs.position_components[renderable].qz;
+                                let model_qw = c_ecs.position_components[renderable].qw;
+                                let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
+                            
+                                // setup scale matrix (skip for now)
+                                let scale_mat = Matrix4::from_scale(1.0);
+                            
+                                let model = pos_mat * scale_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model"), &model);
+                                let model_name = &c_ecs.model_components[renderable].modelname;
+                                models[model_name].draw(&shader_program);
+                            }
+                        }
+
+                        // game has ended
+                        if c_ecs.game_ended {
+                            for (i, player) in c_ecs.players.iter().enumerate() {
+                                if c_ecs.health_components[*player].alive {
+                                    println!("The winner is player {}!", i);
+                                }
+                            }
+                            // break to go to the next state
+                            break;
+                        }
+                    }
+                    None => {
+                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
+                    }
+                }
+                // note: the first iteration through the match{} above draws the model without view and projection setup
+
+                // DRAW HUD
+                hud_shader.use_program();
+                gl::BindVertexArray(vao);
+                gl::DrawArrays(gl::LINES, 0, 4);
+            }
+
+            // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+            // -------------------------------------------------------------------------------
+            window.swap_buffers();
+            glfw.poll_events();
         }
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        window.swap_buffers();
-        glfw.poll_events();
+        
     }
 
     Ok(())
+}
+
+fn poll_size(stream: &TcpStream) -> i32 {
+    let mut size_buf = [0 as u8; 4];
+    match stream.peek(&mut size_buf) {
+        Ok(4) => {
+            // big-endian for networks. it's tradition, dammit!
+            return i32::from_be_bytes(size_buf);
+        },
+        Ok(_) => {
+            // incomplete size field, wait for next tick
+            return 0;
+        },
+        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+            return 0;
+        }
+        Err(e) => {
+            eprintln!("Failed to read message size from server: {}",e);
+            // TODO: handle lost client
+            return -1;
+        }
+    }
 }
 
 fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader) {
