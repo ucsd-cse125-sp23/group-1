@@ -43,6 +43,9 @@ fn main() {
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
         let mut ready_players = 0;
+
+        // TODO: reset player everything
+        
         // LOBBY LOOP
         loop {
             events.clear();

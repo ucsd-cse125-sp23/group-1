@@ -58,9 +58,6 @@ fn main() -> std::io::Result<()> {
     window.set_scroll_polling(true);
     window.set_close_polling(true);
 
-    // tell GLFW to not capture our mouse
-    window.set_cursor_mode(glfw::CursorMode::Normal);
-
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
@@ -144,16 +141,18 @@ fn main() -> std::io::Result<()> {
         gl::EnableVertexAttribArray(0);
     }
  
-    let mut input_component:PlayerInputComponent;
-    let mut size_buf = [0 as u8; 4];
-    let mut ready_sent = false; // prevents sending ready message twice
+    
     // WINDOW LOOP
     // -----------
     loop {
-        // MENU LOOP
         stream.set_nonblocking(true).unwrap();
+        let mut input_component:PlayerInputComponent;
+        let mut size_buf = [0 as u8; 4];
+        let mut ready_sent = false; // prevents sending ready message twice
         let mut in_lobby = true;
+        window.set_cursor_mode(glfw::CursorMode::Normal);
         println!("Press ENTER when ready to start game");
+        // MENU LOOP
         while in_lobby {
             // poll enter key (ready button once GUI implemented)
             if !ready_sent && window.get_key(Key::Enter) == Action::Press {
