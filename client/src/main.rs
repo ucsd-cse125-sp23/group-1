@@ -13,7 +13,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, SquareMatrix};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -122,6 +122,8 @@ fn main() -> std::io::Result<()> {
         rect.shader.id = sprite_shader.id;
 
         let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
+        let projection = camera.GetViewMatrix();
+        let projection = Matrix4::identity();
         sprite_shader.set_mat4(c_str!("projection"), &projection);
 
         rect
@@ -164,10 +166,6 @@ fn main() -> std::io::Result<()> {
     // RENDER LOOP
     // -----------
     while !window.should_close() {
-        unsafe {
-            rect.draw(vec2(200.0, 200.0), vec2(300.0, 400.0), 45.0, vec3(0.0, 1.0, 0.0));
-        }
-
         // create player input component
         let mut input_component = PlayerInputComponent::default();
 
@@ -301,6 +299,8 @@ fn main() -> std::io::Result<()> {
             hud_shader.use_program();
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
+
+            rect.draw(vec2(200.0, 200.0), vec2(300.0, 400.0), 45.0, vec3(0.0, 1.0, 0.0));
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

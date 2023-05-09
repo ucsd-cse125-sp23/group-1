@@ -1,7 +1,7 @@
 use crate::shader::Shader;
-use gl::types::GLsizei;
+use gl::types::{GLfloat, GLsizei, GLsizeiptr};
 use std::ffi::{CStr, c_void};
-use std::mem;
+use std::{mem, ptr};
 use std::mem::{size_of, size_of_val};
 use cgmath::{Matrix4, Rad, SquareMatrix, vec3, Vector2, Vector3};
 
@@ -34,20 +34,20 @@ impl Sprite {
         gl::GenBuffers(1, &mut vbo);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        let size = size_of_val(&vertices) as isize;
+        let size = (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr;
         let data = &vertices[0] as *const f32 as *const c_void;
         gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
 
         gl::BindVertexArray(sprite.quad_vao);
-        gl::EnableVertexAttribArray(0);
         gl::VertexAttribPointer(
             0,
             4,
             gl::FLOAT,
             gl::FALSE,
-            (4 * size_of::<f32>()) as GLsizei,
-            0 as *const c_void,
+            4 * mem::size_of::<GLfloat>() as GLsizei,
+            ptr::null(),
         );
+        gl::EnableVertexAttribArray(0);
 
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
@@ -60,17 +60,18 @@ impl Sprite {
 
         let mut model = Matrix4::identity();
         model = Matrix4::from_translation(vec3(position.x, position.y, 0.0));
-
-        model = Matrix4::from_translation(vec3(0.5 * size.x, 0.5 * size.y, 0.0)) * model;
-        model = Matrix4::from_angle_z(Rad(rotate)) * model;
-        model = Matrix4::from_translation(vec3(-0.5 * size.x, -0.5 * size.y, 0.0)) * model;
-
-        model = Matrix4::from_nonuniform_scale(size.x, size.y, 1.0) * model;
+        //
+        // model = Matrix4::from_translation(vec3(0.5 * size.x, 0.5 * size.y, 0.0)) * model;
+        // model = Matrix4::from_angle_z(Rad(rotate)) * model;
+        // model = Matrix4::from_translation(vec3(-0.5 * size.x, -0.5 * size.y, 0.0)) * model;
+        //
+        // model = Matrix4::from_nonuniform_scale(size.x, size.y, 1.0) * model;
+        model = Matrix4::from_scale(10.0) * model;
 
         self.shader.set_mat4(c_str!("model"), &model);
         self.shader.set_vector3(c_str!("spriteColor"), &color);
 
-        gl::ActiveTexture(gl::TEXTURE0);
+        // gl::ActiveTexture(gl::TEXTURE0);
 
         gl::BindVertexArray(self.quad_vao);
         gl::DrawArrays(gl::TRIANGLES, 0, 6);
