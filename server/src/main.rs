@@ -31,9 +31,7 @@ fn main() {
     let mut ecs = ecs::ECS::new();
 
     init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
-
-    // temp cube object
-    ecs.temp_entity = ecs.dynamics[0];
+    init_world::init_player_spawns(&mut ecs);
 
     // connection state
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
