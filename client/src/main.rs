@@ -263,6 +263,19 @@ fn main() -> std::io::Result<()> {
                             models[model_name].draw(&shader_program);
                         }
                     }
+
+                    for &player in &c_ecs.players {
+                        if c_ecs.player_lasso_components.contains_key(player) {
+                            let player_x = c_ecs.position_components[player].x;
+                            let player_y = c_ecs.position_components[player].x;
+                            let player_z = c_ecs.position_components[player].y;
+                            let anchor_x = c_ecs.player_lasso_components[player].anchor_x;
+                            let anchor_y = c_ecs.player_lasso_components[player].anchor_y;
+                            let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
+
+                            // TODO: draw rope from player to anchor
+                        }
+                    }
                 }
                 None => {
                     set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program);

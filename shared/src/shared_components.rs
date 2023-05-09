@@ -48,6 +48,7 @@ pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
+    pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub players: Vec<Entity>,
     pub renderables: Vec<Entity>,
 }
@@ -58,6 +59,7 @@ impl ClientECS {
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
+            player_lasso_components: SecondaryMap::new(),
             players: vec![],
             renderables: vec![],
         }
@@ -101,4 +103,11 @@ pub struct PlayerWeaponComponent {
     pub cooldown: i16,
     pub ammo: u8,
     pub reloading: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PlayerLassoComponent {
+    pub anchor_x: f32,
+    pub anchor_y: f32,
+    pub anchor_z: f32
 }

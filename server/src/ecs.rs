@@ -17,13 +17,14 @@ pub struct ECS {
     pub player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
-    pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
+    pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
+    pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
 
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
@@ -39,11 +40,12 @@ impl ECS {
             player_input_components: SecondaryMap::new(),
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
-            player_lasso_phys_components: SecondaryMap::new(),
+            player_lasso_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
+            player_lasso_phys_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
@@ -192,6 +194,7 @@ impl ECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
             model_components: self.model_components.clone(),
+            player_lasso_components: self.player_lasso_components.clone(),
             players: self.players.clone(),
             renderables: self.renderables.clone(),
         }
@@ -332,6 +335,9 @@ impl ECS {
                     let position = &self.position_components[player];
                     let anchor = rigid_body_set.get_mut(lasso_phys.anchor_handle).unwrap();
                     let anchor_point = anchor.position() * lasso_phys.anchor_point_local;
+                    self.player_lasso_components[player].anchor_x = anchor_point.x;
+                    self.player_lasso_components[player].anchor_y = anchor_point.y;
+                    self.player_lasso_components[player].anchor_z = anchor_point.z;
                     let dist = distance(&point![position.x, position.y, position.z],&anchor_point);
                     let new_limit = dist / 3.0_f32.sqrt() + slack;
                     let ropejoint = impulse_joint_set.get_mut(lasso_phys.joint_handle).unwrap();
@@ -353,6 +359,7 @@ impl ECS {
                     println!("releasing lasso");
                     impulse_joint_set.remove(lasso_phys.joint_handle,true);
                     self.player_lasso_phys_components.remove(player);
+                    self.player_lasso_components.remove(player);
                 }
             } else if input.rmb_clicked {
                 println!("throwing lasso");
@@ -379,6 +386,7 @@ impl ECS {
                         let joint = RopeJointBuilder::new().local_anchor2(hit_point_local).limits([limit,limit]).build();
                         let joint_handle = impulse_joint_set.insert(*player_handle, *target_handle, joint, true);
                         self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { anchor_handle:*target_handle, anchor_point_local: hit_point_local, joint_handle, limit });
+                        self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: hit_point.x, anchor_y: hit_point.y, anchor_z: hit_point.z });
                     },
                     None => {
                         println!("Miss");
