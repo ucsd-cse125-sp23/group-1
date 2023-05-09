@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-use std::net::{TcpStream};
-use std::{str};
-use std::io::Read;
+use std::str;
+
 type Entity = DefaultKey;
 
 // client -> server component
@@ -76,6 +75,11 @@ pub struct LobbyECS {
     pub start_game: bool,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ReadyECS {
+    pub ready: bool,
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PositionComponent {
     pub x: f32,
@@ -126,29 +130,4 @@ impl HealthComponent {
             health : 1,
         }
     }
-}
-
-pub fn read_data(stream: &mut TcpStream) -> String {
-    let mut size_buf = [0 as u8; 4];
-    let mut size:u32 = 0;
-    match stream.peek(&mut size_buf) {
-        Ok(4) => {
-            size = u32::from_be_bytes(size_buf);
-        },
-        Ok(_) => {},
-        Err(_) => {}
-    }
-
-    let s_size = size.try_into().unwrap();
-    let mut read_buf = vec![0 as u8; s_size];
-    let mut message : &str = "";
-    match stream.peek(&mut read_buf) {
-        Ok(bytes_read) if bytes_read == s_size => {
-            stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-            message = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-        },
-        Ok(_) => {},
-        Err(_) => {},
-    }
-    return message.to_string();
 }

@@ -1,10 +1,7 @@
 // use nalgebra::*;
 use rapier3d::prelude::*;
 use std::{time::Duration, time::Instant};
-use std::io::{self};
 use std::net::{TcpListener};
-use std::thread;
-use std::sync::mpsc::{Sender, Receiver, channel};
 use polling::{Event, Poller};
 
 mod ecs;
@@ -37,39 +34,28 @@ fn main() {
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
 
-    let (tx, rx):(Sender<bool>, Receiver<bool>) = channel();
-    // break upon pressing any key to start game
-    thread::spawn(move || {
-        println!("[SERVER]: Press ENTER to start game");
-        let mut s = String::new();
-        io::stdin().read_line(&mut s).unwrap();
-        // TODO: ready condition?
-        tx.send(true).unwrap();
-    });
-    // meanwhile, poll for clients until game begins
+    // poll for clients until game begins
     listener.set_nonblocking(true).unwrap();
     let key = 0;
     let poller = Poller::new().unwrap();
     poller.add(&listener, Event::readable(key)).unwrap();
     let mut events: Vec<Event> = Vec::new();
+    let mut ready_players = 0;
     loop {
-        // break if game is starting
-        match rx.try_recv() {
-            Ok(_) => {
-                ecs.send_ready_message(true);
-                break;
-            },
-            Err(_) => {
-                events.clear();
-                // timeout set to server tick speed
-                poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
-                // connect anyone who wants to connect
-                for _ in &events {
-                    ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
-                    poller.modify(&listener, Event::readable(key)).unwrap();
-                }
-            },
-        };
+        events.clear();
+        // timeout set to server tick speed
+        poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
+        // connect anyone who wants to connect
+        for _ in &events {
+            ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
+            poller.modify(&listener, Event::readable(key)).unwrap();
+        }
+        // check each connection for ready updates
+        ready_players = ecs.check_ready_updates(ready_players);
+        if ready_players >= 2 && ready_players == (ecs.players.len() as u8) {
+            ecs.send_ready_message(true);
+            break;
+        }
     }
 
     println!("[SERVER]: Starting game");
@@ -107,7 +93,7 @@ fn main() {
         let end = Instant::now();
         let tick = end.duration_since(start);
         let tick_ms = tick.as_millis() as u64;
-        if tick_ms > shared::TICK_SPEED  {
+        if tick_ms > shared::TICK_SPEED {
             eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
         } else { 
             spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);

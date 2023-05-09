@@ -22,11 +22,12 @@ use crate::camera::*;
 use crate::model::Model;
 
 // network
-use std::io::{Read, Write, self, Cursor};
+use std::io::{Read, self, Cursor};
 use std::net::{TcpStream};
 use std::str;
 use std::process;
 use shared::shared_components::*;
+use shared::shared_functions::*;
 
 fn main() -> std::io::Result<()> {
     // create camera and camera information
@@ -57,8 +58,8 @@ fn main() -> std::io::Result<()> {
     window.set_scroll_polling(true);
     window.set_close_polling(true);
 
-    // tell GLFW to capture our mouse
-    window.set_cursor_mode(glfw::CursorMode::Disabled);
+    // tell GLFW to not capture our mouse
+    window.set_cursor_mode(glfw::CursorMode::Normal);
 
     // gl: load all OpenGL function pointers
     // ---------------------------------------
@@ -142,61 +143,63 @@ fn main() -> std::io::Result<()> {
         gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
         gl::EnableVertexAttribArray(0);
     }
-    
-    /*
-    connect
-
-    while true
-        while in lobby screen (TBD)     (menu state)
-            process inputs
-            ...
-            poll inputs
-        wait for server to start game
-            process inputs
-            ...
-            poll inputs
-        while game not ended            (game state)
-            process inputs
-            send input
-            receive ecs
-            render frame
-            poll inputs
-     */
+ 
     let mut input_component:PlayerInputComponent;
     let mut size_buf = [0 as u8; 4];
+    let mut ready_sent = false;
     // WINDOW LOOP
     // -----------
     loop {
         // MENU LOOP
         stream.set_nonblocking(true).unwrap();
         let mut in_lobby = true;
+        println!("Press ENTER when ready to start game");
         while in_lobby {
-            input_component = PlayerInputComponent::default();
-            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
-            process_inputs(&mut window, &mut input_component);
-
-            // TODO: send ready or unready message to server (later feature)
-
-            // TODO: render frame
+            // poll enter key (ready button once GUI implemented)
+            if !ready_sent && window.get_key(Key::Enter) == Action::Press {
+                ready_sent = true;
+                // send ready JSON (hardcoded for now)
+                let ready_json = ReadyECS{ready:true};
+                write_data(&mut stream, serde_json::to_string(&ready_json).unwrap());
+                println!("Ready message sent!");
+            }
+            if window.get_key(Key::Escape) == Action::Press {
+                window.set_cursor_mode(glfw::CursorMode::Normal);
+            }
+            
+            // TODO: render lobby frame
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
             }
 
-            // poll server for ready message
+            // poll server for ready message or ready-player updates
             let received = read_data(&mut stream);
-            let lobby_ecs : LobbyECS = serde_json::from_str(received.as_str()).expect("Error converting string to LobbyECS");
-            if lobby_ecs.start_game {
-                in_lobby = false;
+            if received.len() > 0 {
+                let lobby_ecs : LobbyECS = serde_json::from_str(received.as_str()).expect("Error converting string to LobbyECS");
+                if lobby_ecs.start_game {
+                    println!("Game starting!");
+                    in_lobby = false;
+                }
             }
             
             // poll events
             window.swap_buffers();
             glfw.poll_events();
+            for (_, event) in glfw::flush_messages(&events) {
+                match event {
+                    // Exit with code 0 upon window close
+                    glfw::WindowEvent::Close => {
+                        process::exit(0);
+                    }
+                    _ => {}
+                }
+            }
         }
 
         // GAME LOOP
-        // runs until server sends game_ended = true
-        loop {
+        let mut in_game = true;
+        window.set_cursor_mode(glfw::CursorMode::Disabled);
+        while in_game {
             input_component = PlayerInputComponent::default();
 
             // events
@@ -215,13 +218,7 @@ fn main() -> std::io::Result<()> {
             // send client data if player is still alive
             if client_health.alive {
                 let j = serde_json::to_string(&input_component).expect("Input component serialization error");
-                let send_size = j.len() as u32 + 4;
-                let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
-                match stream.write(&send) {
-                    Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                    Err(e) => eprintln!("Error sending input: {:?}", e),
-                };
+                write_data(&mut stream, j);
             } // TODO: support spectator movement
 
             // receive all incoming server data
@@ -325,8 +322,7 @@ fn main() -> std::io::Result<()> {
                                     println!("The winner is player {}!", i);
                                 }
                             }
-                            // break to go to the next state
-                            break;
+                            in_game = false;
                         }
                     }
                     None => {
@@ -345,31 +341,6 @@ fn main() -> std::io::Result<()> {
             // -------------------------------------------------------------------------------
             window.swap_buffers();
             glfw.poll_events();
-        }
-        
-    }
-
-    Ok(())
-}
-
-fn poll_size(stream: &TcpStream) -> i32 {
-    let mut size_buf = [0 as u8; 4];
-    match stream.peek(&mut size_buf) {
-        Ok(4) => {
-            // big-endian for networks. it's tradition, dammit!
-            return i32::from_be_bytes(size_buf);
-        },
-        Ok(_) => {
-            // incomplete size field, wait for next tick
-            return 0;
-        },
-        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-            return 0;
-        }
-        Err(e) => {
-            eprintln!("Failed to read message size from server: {}",e);
-            // TODO: handle lost client
-            return -1;
         }
     }
 }

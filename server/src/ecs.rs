@@ -1,5 +1,6 @@
 use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
+use serde_json::Result;
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -76,6 +77,7 @@ impl ECS {
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
                 self.health_components.insert(player, HealthComponent::default());
                 self.active_players += 1;
+                self.send_ready_message(false);
                 println!("Name: {}", name);
             },
             Err(e) => {
@@ -131,8 +133,10 @@ impl ECS {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                         let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        let value : PlayerInputComponent = serde_json::from_str(message).expect("Error converting string to PlayerInputComponent");
-                        ECS::combine_input(&mut input_temp, value);
+                        match serde_json::from_str(message) {
+                            Ok(value) => ECS::combine_input(&mut input_temp, value),
+                            _ => continue, // skip client if there is malformed message
+                        }
                     },
                     Ok(_) => {
                         break;
@@ -402,4 +406,56 @@ impl ECS {
             }
         }
     }
+
+    pub fn check_ready_updates(&mut self, curr: u8) -> u8{
+        let mut ready_players = curr;
+        // check each connection for ready updates
+        for &player in &self.players {
+            let mut stream = &self.network_components[player].stream;
+            let mut size_buf = [0 as u8; 4];
+            match stream.peek(&mut size_buf) {
+                Ok(4) => {
+                    let read_size = u32::from_be_bytes(size_buf) as usize;
+                    let mut read_buf = vec![0 as u8; read_size];
+                    stream.read(&mut read_buf).unwrap();
+                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    println!("{}", raw_str);
+                    let ready: ReadyECS = serde_json::from_str(raw_str).unwrap();
+                    if ready.ready {
+                        ready_players += 1;
+                    } else {
+                        ready_players -= 1;
+                    }
+                },
+                _ => (),
+            };
+        }
+        return ready_players;
+    }
+
+    /*
+    for &p in &ecs.players {
+        let mut conn = &ecs.network_components[p].stream;
+        let mut size_buf = [0 as u8; 4];
+        match conn.peek(&mut size_buf) {
+            Ok(4) => {
+                let read_size = u32::from_be_bytes(size_buf) as usize;
+                let mut read_buf = vec![0 as u8; read_size];
+                conn.read(&mut read_buf).unwrap();
+                let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                let ready: ReadyECS = serde_json::from_str(raw_str);
+                if ready.ready {
+                    ready_players += 1;
+                } else {
+                    ready_players -= 1;
+                }
+                // start game if there are at least 2 players and all are ready
+                if ready_players >= 2 && ready_players == ecs.players.len() {
+                    break;
+                }
+            },
+            _ => (),
+        };
+    }
+    */
 }
