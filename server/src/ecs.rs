@@ -1,6 +1,5 @@
 use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
-use serde_json::Result;
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -52,6 +51,35 @@ impl ECS {
             active_players: 0,
             game_ended: false,
         }
+    }
+
+    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
+        self.physics_components.clear();
+        
+        for &player in &self.players {
+            self.player_input_components[player] = PlayerInputComponent::default();
+            self.position_components[player] = PositionComponent::default();
+            self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
+            self.player_camera_components[player] = PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+            self.health_components[player] = HealthComponent::default();
+
+            let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
+            let handle = rigid_body_set.insert(rigid_body);
+            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+            let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+            self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
+        }
+
+        self.active_players = self.players.len() as u8;
+        self.game_ended = true;
+
+        /*
+        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
+        let handle = rigid_body_set.insert(rigid_body);
+        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+        let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+        self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
+        */
     }
 
     /**
