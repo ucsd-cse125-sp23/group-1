@@ -36,67 +36,72 @@ fn main() {
 
     // poll for clients until game begins
     listener.set_nonblocking(true).unwrap();
-    let key = 0;
-    let poller = Poller::new().unwrap();
-    poller.add(&listener, Event::readable(key)).unwrap();
-    let mut events: Vec<Event> = Vec::new();
-    let mut ready_players = 0;
+    // MAIN SERVER LOOP
     loop {
-        events.clear();
-        // timeout set to server tick speed
-        poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
-        // connect anyone who wants to connect
-        for _ in &events {
-            ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
-            poller.modify(&listener, Event::readable(key)).unwrap();
+        let key = 0;
+        let poller = Poller::new().unwrap();
+        poller.add(&listener, Event::readable(key)).unwrap();
+        let mut events: Vec<Event> = Vec::new();
+        let mut ready_players = 0;
+        // LOBBY LOOP
+        loop {
+            events.clear();
+            // timeout set to server tick speed
+            poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
+            // connect anyone who wants to connect
+            for _ in &events {
+                ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
+                poller.modify(&listener, Event::readable(key)).unwrap();
+            }
+            // check each connection for ready updates
+            ready_players = ecs.check_ready_updates(ready_players);
+            if ready_players >= 2 && ready_players == (ecs.players.len() as u8) {
+                ecs.send_ready_message(true);
+                break;
+            }
         }
-        // check each connection for ready updates
-        ready_players = ecs.check_ready_updates(ready_players);
-        if ready_players >= 2 && ready_players == (ecs.players.len() as u8) {
-            ecs.send_ready_message(true);
-            break;
+        // GAME LOOP
+        println!("[SERVER]: Starting game");
+        while !ecs.game_ended {
+            // BEGIN SERVER TICK
+            let start = Instant::now();
+
+            ecs.receive_inputs();
+
+            ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
+            ecs.player_move(&mut rigid_body_set);
+
+            ecs.update_positions(&mut rigid_body_set);
+
+            physics_pipeline.step(
+                &gravity,
+                &integration_parameters,
+                &mut island_manager,
+                &mut broad_phase,
+                &mut narrow_phase,
+                &mut rigid_body_set,
+                &mut collider_set,
+                &mut impulse_joint_set,
+                &mut multibody_joint_set,
+                &mut ccd_solver,
+                Some(&mut query_pipeline),
+                &physics_hooks,
+                &event_handler,
+            );
+
+            ecs.update_clients();
+
+            // END SERVER TICK
+            let end = Instant::now();
+            // pad tick time by spin sleeping
+            let tick = end.duration_since(start);
+            let tick_ms = tick.as_millis() as u64;
+            if tick_ms > shared::TICK_SPEED {
+                eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
+            } else { 
+                spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
+            }
         }
-    }
-
-    println!("[SERVER]: Starting game");
-    loop {
-
-        // BEGIN SERVER TICK
-        let start = Instant::now();
-
-        ecs.receive_inputs();
-
-        ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
-        ecs.player_move(&mut rigid_body_set);
-
-        ecs.update_positions(&mut rigid_body_set);
-
-        physics_pipeline.step(
-            &gravity,
-            &integration_parameters,
-            &mut island_manager,
-            &mut broad_phase,
-            &mut narrow_phase,
-            &mut rigid_body_set,
-            &mut collider_set,
-            &mut impulse_joint_set,
-            &mut multibody_joint_set,
-            &mut ccd_solver,
-            Some(&mut query_pipeline),
-            &physics_hooks,
-            &event_handler,
-        );
-
-        ecs.update_clients();
-
-        // END SERVER TICK
-        let end = Instant::now();
-        let tick = end.duration_since(start);
-        let tick_ms = tick.as_millis() as u64;
-        if tick_ms > shared::TICK_SPEED {
-            eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
-        } else { 
-            spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
-        }
+        println!("[SERVER]: Game over.");
     }
 }

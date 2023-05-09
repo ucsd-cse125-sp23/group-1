@@ -146,7 +146,7 @@ fn main() -> std::io::Result<()> {
  
     let mut input_component:PlayerInputComponent;
     let mut size_buf = [0 as u8; 4];
-    let mut ready_sent = false;
+    let mut ready_sent = false; // prevents sending ready message twice
     // WINDOW LOOP
     // -----------
     loop {
@@ -175,10 +175,16 @@ fn main() -> std::io::Result<()> {
             // poll server for ready message or ready-player updates
             let received = read_data(&mut stream);
             if received.len() > 0 {
-                let lobby_ecs : LobbyECS = serde_json::from_str(received.as_str()).expect("Error converting string to LobbyECS");
-                if lobby_ecs.start_game {
-                    println!("Game starting!");
-                    in_lobby = false;
+                // ignore malformed input (probably leftover game state)
+                let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
+                match res {
+                    Ok(lobby_ecs) => {
+                        if lobby_ecs.start_game {
+                            println!("Game starting!");
+                            in_lobby = false;
+                        }
+                    }
+                    _ => ()
                 }
             }
             
