@@ -8,7 +8,7 @@ mod ecs;
 mod init_world;
 mod server_components;
 
-fn main() { 
+fn main() {
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
@@ -43,8 +43,6 @@ fn main() {
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
         let mut ready_players = 0;
-
-        // TODO: reset player everything
         
         // LOBBY LOOP
         loop {
@@ -106,5 +104,21 @@ fn main() {
             }
         }
         println!("[SERVER]: Game over.");
+
+        // reset the game
+        rigid_body_set = RigidBodySet::new();
+        collider_set = ColliderSet::new();
+
+        physics_pipeline = PhysicsPipeline::new();
+        island_manager = IslandManager::new();
+        broad_phase = BroadPhase::new();
+        narrow_phase = NarrowPhase::new();
+        impulse_joint_set = ImpulseJointSet::new();
+        multibody_joint_set = MultibodyJointSet::new();
+        ccd_solver = CCDSolver::new();
+        query_pipeline = QueryPipeline::new();
+
+        init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
+        ecs.reset(&mut rigid_body_set, &mut collider_set);
     }
 }

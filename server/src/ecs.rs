@@ -53,9 +53,7 @@ impl ECS {
         }
     }
 
-    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
-        self.physics_components.clear();
-        
+    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {        
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
             self.position_components[player] = PositionComponent::default();
@@ -67,19 +65,11 @@ impl ECS {
             let handle = rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
-            self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
+            self.physics_components[player] = PhysicsComponent{handle, collider_handle};
         }
 
         self.active_players = self.players.len() as u8;
-        self.game_ended = true;
-
-        /*
-        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
-        let handle = rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
-        let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
-        self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
-        */
+        self.game_ended = false;
     }
 
     /**

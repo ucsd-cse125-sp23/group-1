@@ -254,6 +254,7 @@ fn main() -> std::io::Result<()> {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                         let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        // TODO: handle this throwing an error. Occasionally crashes ^
                         let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                         client_ecs = Some(value);
                     },
@@ -284,9 +285,12 @@ fn main() -> std::io::Result<()> {
                         if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
                             client_health.health = c_ecs.health_components[player_key].health;
                             println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
-                        } else if c_ecs.health_components[player_key].alive != client_health.alive {
+                        } else if c_ecs.health_components[player_key].alive != client_health.alive && client_health.alive {
                             client_health.alive = c_ecs.health_components[player_key].alive;
                             println!("Player {} is no longer alive x_x", client_id);
+                        } else {
+                            client_health.alive = c_ecs.health_components[player_key].alive;
+                            client_health.health = c_ecs.health_components[player_key].health;
                         }
 
                         let player_pos = vec3(c_ecs.position_components[player_key].x,
