@@ -107,7 +107,7 @@ fn main() -> std::io::Result<()> {
     let mut client_ecs: Option<ClientECS> = None;
 
     // health component initialized
-    let mut client_health = HealthComponent::default();
+    let mut client_health = PlayerHealthComponent::default();
 
     // set up HUD renderer
     let mut vao = 0;

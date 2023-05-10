@@ -6,7 +6,8 @@ use std::io::{Read, Write, self};
 use std::net::{TcpListener};
 
 use shared::shared_components::*;
-use crate::server_components::*;
+use crate::{server_components::*, init_world};
+
 
 type Entity = DefaultKey;
 
@@ -22,7 +23,7 @@ pub struct ECS {
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
-    pub health_components: SecondaryMap<Entity, HealthComponent>,
+    pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
     pub players: Vec<Entity>,
@@ -43,7 +44,7 @@ impl ECS {
             model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
-            health_components: SecondaryMap::new(),
+            player_health_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
@@ -53,19 +54,31 @@ impl ECS {
         }
     }
 
-    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {        
+    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
+        // clear ECS of everything but players
+        self.name_components.retain(|key, _| self.players.contains(&key));
+        self.position_components.retain(|key, _| self.players.contains(&key));
+        self.model_components.retain(|key, _| self.players.contains(&key));
+        self.physics_components.retain(|key, _| self.players.contains(&key));
+        self.dynamics.clear();
+        self.renderables.clear();
+        
+        init_world::init_world(self, rigid_body_set, collider_set);
+
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
             self.position_components[player] = PositionComponent::default();
             self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
             self.player_camera_components[player] = PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
-            self.health_components[player] = HealthComponent::default();
+            self.player_health_components[player] = PlayerHealthComponent::default();
 
             let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
             let handle = rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
+            self.dynamics.push(player);
+            self.renderables.push(player);
         }
 
         self.active_players = self.players.len() as u8;
@@ -93,7 +106,7 @@ impl ECS {
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
                 self.network_components.insert(player, NetworkComponent { stream:curr_stream });
-                self.health_components.insert(player, HealthComponent::default());
+                self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
                 self.send_ready_message(false);
                 println!("Name: {}", name);
@@ -111,7 +124,7 @@ impl ECS {
     pub fn receive_inputs(&mut self) {
         for &player in &self.players {
             // do not receive inputs from dead players
-            let health = & self.health_components[player].alive;
+            let health = & self.player_health_components[player].alive;
             if !health {
                 continue;
             }
@@ -241,7 +254,7 @@ impl ECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
             model_components: self.model_components.clone(),
-            health_components: self.health_components.clone(),
+            health_components: self.player_health_components.clone(),
             players: self.players.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
@@ -363,12 +376,12 @@ impl ECS {
                         println!("Hit target {}",target_name);
 
                         // if target is a player, update its health component
-                        if self.players.contains(&target) && self.health_components[target].alive {
-                            self.health_components[target].health -= 1;
+                        if self.players.contains(&target) && self.player_health_components[target].alive {
+                            self.player_health_components[target].health -= 1;
                             
-                            if self.health_components[target].health == 0 {
+                            if self.player_health_components[target].health == 0 {
                                 // handle player death
-                                self.health_components[target].alive = false;
+                                self.player_health_components[target].alive = false;
                                 self.active_players -= 1;
                                 self.player_input_components[target] = PlayerInputComponent::default();
                             }
@@ -455,30 +468,4 @@ impl ECS {
         }
         return ready_players;
     }
-
-    /*
-    for &p in &ecs.players {
-        let mut conn = &ecs.network_components[p].stream;
-        let mut size_buf = [0 as u8; 4];
-        match conn.peek(&mut size_buf) {
-            Ok(4) => {
-                let read_size = u32::from_be_bytes(size_buf) as usize;
-                let mut read_buf = vec![0 as u8; read_size];
-                conn.read(&mut read_buf).unwrap();
-                let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                let ready: ReadyECS = serde_json::from_str(raw_str);
-                if ready.ready {
-                    ready_players += 1;
-                } else {
-                    ready_players -= 1;
-                }
-                // start game if there are at least 2 players and all are ready
-                if ready_players >= 2 && ready_players == ecs.players.len() {
-                    break;
-                }
-            },
-            _ => (),
-        };
-    }
-    */
 }

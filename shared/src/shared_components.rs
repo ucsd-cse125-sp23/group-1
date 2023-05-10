@@ -48,7 +48,7 @@ pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
-    pub health_components: SecondaryMap<Entity, HealthComponent>,
+    pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub players: Vec<Entity>,
     pub renderables: Vec<Entity>,
     pub game_ended: bool,
@@ -118,14 +118,14 @@ pub struct PlayerWeaponComponent {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct HealthComponent {
+pub struct PlayerHealthComponent {
     pub alive: bool,
     pub health: u8,
 }
 
-impl HealthComponent {
-    pub fn default() -> HealthComponent{
-        HealthComponent {
+impl PlayerHealthComponent {
+    pub fn default() -> PlayerHealthComponent{
+        PlayerHealthComponent {
             alive : true,
             health : 1,
         }
