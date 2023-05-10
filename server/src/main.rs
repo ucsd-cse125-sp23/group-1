@@ -118,7 +118,6 @@ fn main() {
         ccd_solver = CCDSolver::new();
         query_pipeline = QueryPipeline::new();
 
-        init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
         ecs.reset(&mut rigid_body_set, &mut collider_set);
     }
 }
