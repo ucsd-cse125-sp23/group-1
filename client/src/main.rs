@@ -24,7 +24,7 @@ use crate::model::Model;
 use crate::skybox::Skybox;
 
 // network
-use std::io::{Read, Write, Cursor, self};
+use std::io::{Read, self};
 use std::net::{TcpStream};
 use std::str;
 use std::process;
@@ -320,7 +320,7 @@ fn main() -> std::io::Result<()> {
                         let player_pos = vec3(c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
                             c_ecs.position_components[player_key].z);
-                        set_camera_pos(&mut camera, player_pos, &shader_program);
+                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
                         for &renderable in &c_ecs.renderables {
                             if renderable != player_key {
@@ -359,7 +359,7 @@ fn main() -> std::io::Result<()> {
                         }
                     }
                     None => {
-                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
+                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height);
                     }
                 }
             // note: the first iteration through the match{} above draws the model without view and projection setup

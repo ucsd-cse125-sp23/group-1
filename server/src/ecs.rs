@@ -8,7 +8,6 @@ use std::net::{TcpListener};
 use shared::shared_components::*;
 use crate::{server_components::*, init_world};
 
-
 type Entity = DefaultKey;
 
 pub struct ECS {
@@ -29,7 +28,6 @@ pub struct ECS {
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
-    pub lost_players: u8,
 
     pub active_players: u8,
     pub game_ended: bool,
@@ -70,7 +68,7 @@ impl ECS {
             self.player_input_components[player] = PlayerInputComponent::default();
             self.position_components[player] = PositionComponent::default();
             self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-            self.player_camera_components[player] = PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+            self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(), camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
 
             let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
@@ -138,53 +136,43 @@ impl ECS {
 
             // read messages from client with header length
             // 4 byte size field
-            while self.network_components[player].connected && connected {
-                let mut size_buf = [0 as u8; 4];
-                let mut size:u32 = 0;
-                match stream.peek(&mut size_buf) {
-                    Ok(4) => {
-                        // it's tradition, dammit!
-                        size = u32::from_be_bytes(size_buf);
-                    },
-                    Ok(_) => {
-                        // is this necessary? nonblocking might already handle this. worth testing
-                        break;
-                    },
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        break;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        connected = false;
-                    }
+            let mut size_buf = [0 as u8; 4];
+            let mut size:u32 = 0;
+            match stream.peek(&mut size_buf) {
+                Ok(4) => {
+                    // it's tradition, dammit!
+                    size = u32::from_be_bytes(size_buf);
+                },
+                Ok(_) => {
+                    // is this necessary? nonblocking might already handle this. worth testing
+                    break;
+                },
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    break;
                 }
-                let s_size = size.try_into().unwrap();
-                let mut read_buf = vec![0 as u8; s_size];
-                // might be able to just read instead of peeking, requires testing
-                match stream.peek(&mut read_buf) {
-                    Ok(bytes_read) if bytes_read == s_size => {
-                        // if this throws an error we deserve to crash tbh
-                        stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        match serde_json::from_str(message) {
-                            Ok(value) => ECS::combine_input(&mut input_temp, value),
-                            _ => continue, // skip client if there is malformed message
-                        }
-                    },
-                    Ok(_) => {
-                        break;
-                    },
-                    Err(e) => {
-                        eprintln!("Failed to read message for client {}: {}",self.name_components[player],e);
-                        connected = false;
-                    },
+                Err(e) => {
+                    eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
                 }
             }
-
-            // handle lost client
-            if !connected {
-                self.network_components[player].connected = false;
-                self.lost_players += 1;
+            let s_size = size.try_into().unwrap();
+            let mut read_buf = vec![0 as u8; s_size];
+            // might be able to just read instead of peeking, requires testing
+            match stream.peek(&mut read_buf) {
+                Ok(bytes_read) if bytes_read == s_size => {
+                    // if this throws an error we deserve to crash tbh
+                    stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
+                    let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                    match serde_json::from_str(message) {
+                        Ok(value) => ECS::combine_input(&mut input_temp, value),
+                        _ => continue, // skip client if there is malformed message
+                    }
+                },
+                Ok(_) => {
+                    break;
+                },
+                Err(e) => {
+                    eprintln!("Failed to read message for client {}: {}",self.name_components[player],e);
+                },
             }
 
             // once all inputs have been aggregated for this player
@@ -197,10 +185,6 @@ impl ECS {
             camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
             camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
-        }
-
-        if self.lost_players == self.players.len() as u8 {
-            panic!("all players have lost connection.");
         }
     }
 
@@ -256,13 +240,11 @@ impl ECS {
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            if self.network_components[player].connected {
-                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
-                match self.network_components[player].stream.write(&message) {
-                    Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                    Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
-                }
+            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+            match self.network_components[player].stream.write(&message) {
+                Ok(_) => (),
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
             }
         }
     }
