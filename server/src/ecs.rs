@@ -454,7 +454,6 @@ impl ECS {
                     let mut read_buf = vec![0 as u8; read_size];
                     stream.read(&mut read_buf).unwrap();
                     let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    println!("{}", raw_str);
                     let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
                     match ready_res {
                         Ok(ecs) => {
