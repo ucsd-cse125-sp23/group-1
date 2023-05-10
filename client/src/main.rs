@@ -180,6 +180,7 @@ fn main() -> std::io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
+                            client_ecs = None;
                             in_lobby = false;
                         }
                     }

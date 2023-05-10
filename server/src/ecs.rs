@@ -83,6 +83,8 @@ impl ECS {
 
         self.active_players = self.players.len() as u8;
         self.game_ended = false;
+
+        println!("Name components size: {:?}", self.name_components.len());
     }
 
     /**
