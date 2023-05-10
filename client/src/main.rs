@@ -3,6 +3,7 @@ mod macros;
 mod camera;
 mod mesh;
 mod model;
+mod skybox;
 
 use std::collections::HashMap;
 
@@ -11,7 +12,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -20,9 +21,10 @@ use core::{mem::{size_of, size_of_val}};
 use crate::shader::Shader;
 use crate::camera::*;
 use crate::model::Model;
+use crate::skybox::Skybox;
 
 // network
-use std::io::{Read, self, Cursor};
+use std::io::{Read, Write, Cursor, self};
 use std::net::{TcpStream};
 use std::str;
 use std::process;
@@ -30,15 +32,6 @@ use shared::shared_components::*;
 use shared::shared_functions::*;
 
 fn main() -> std::io::Result<()> {
-    // create camera and camera information
-    let mut camera = Camera {
-        Position: Point3::new(0.0, 0.0, 3.0),
-        ..Camera::default()
-    };
-    let mut first_mouse = true;
-    let mut last_x: f32 = shared::SCR_WIDTH as f32 / 2.0;
-    let mut last_y: f32 = shared::SCR_HEIGHT as f32 / 2.0;
-
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -49,18 +42,40 @@ fn main() -> std::io::Result<()> {
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(shared::SCR_WIDTH, shared::SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window");
+    let mut width = 0;
+    let mut height = 0;
+    let (mut window, events) = glfw
+        .with_primary_monitor(|glfw, m| {
+            width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32;
+            height = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).1 as u32;
+            glfw.create_window(
+                width * 2,
+                height * 2,
+                shared::WINDOW_TITLE,
+                glfw::WindowMode::Windowed,
+            )
+        })
+        .expect("Failed to create GLFW window.");
 
     window.make_current();
     window.set_framebuffer_size_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_scroll_polling(true);
     window.set_close_polling(true);
+    window.set_aspect_ratio(width, height);
 
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+    // create camera and camera information
+    let mut camera = Camera {
+        Position: Point3::new(0.0, 0.0, 3.0),
+        ..Camera::default()
+    };
+    let mut first_mouse = true;
+    let mut last_x: f32 = width as f32 / 2.0;
+    let mut last_y: f32 = height as f32 / 2.0;
 
     // Create network TcpStream
     let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
@@ -74,7 +89,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, models) = unsafe {
+    let (shader_program, hud_shader, skybox, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -91,6 +106,9 @@ fn main() -> std::io::Result<()> {
             "shaders/hud.fs",
         );
 
+        // textures for skybox
+        let skybox = Skybox::new("resources/skybox/space", ".png");
+
         // actually allow transparency
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
@@ -100,7 +118,7 @@ fn main() -> std::io::Result<()> {
         let mut models: HashMap<String,Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, hud_shader, models)
+        (shader_program, hud_shader, skybox, models)
     };
 
     // client ECS to be sent to server
@@ -144,6 +162,7 @@ fn main() -> std::io::Result<()> {
     
     // WINDOW LOOP
     // -----------
+
     loop {
         stream.set_nonblocking(true).unwrap();
         let mut input_component:PlayerInputComponent;
@@ -208,18 +227,21 @@ fn main() -> std::io::Result<()> {
         while in_game {
             input_component = PlayerInputComponent::default();
 
-            // events
-            // ------
-            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera);
+            let mut roll = false;
 
             // process inputs
             // --------------
-            process_inputs(&mut window, &mut input_component);
+            process_inputs(&mut window, &mut input_component, &mut roll);
+
+            // events
+            // ------
+            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera, roll);
 
             // set camera front of input_component
-            input_component.camera_front_x = camera.Front.x;
-            input_component.camera_front_y = camera.Front.y;
-            input_component.camera_front_z = camera.Front.z;
+            input_component.camera_qx = camera.RotQuat.v.x;
+            input_component.camera_qy = camera.RotQuat.v.y;
+            input_component.camera_qz = camera.RotQuat.v.z;
+            input_component.camera_qw = camera.RotQuat.s;
 
             // send client data if player is still alive
             if client_health.alive {
@@ -267,6 +289,7 @@ fn main() -> std::io::Result<()> {
                     },
                 }
             }
+
 
             // render
             // ------
@@ -339,12 +362,14 @@ fn main() -> std::io::Result<()> {
                         set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program)
                     }
                 }
-                // note: the first iteration through the match{} above draws the model without view and projection setup
-
-                // DRAW HUD
-                hud_shader.use_program();
-                gl::BindVertexArray(vao);
-                gl::DrawArrays(gl::LINES, 0, 4);
+            // note: the first iteration through the match{} above draws the model without view and projection setup
+            // draw skybox
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
+            skybox.draw(camera.GetViewMatrix(), projection);
+            // DRAW HUD
+            hud_shader.use_program();
+            gl::BindVertexArray(vao);
+            gl::DrawArrays(gl::LINES, 0, 4);
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -355,7 +380,7 @@ fn main() -> std::io::Result<()> {
     }
 }
 
-fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader) {
+fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader, width: u32, height: u32) {
     camera.Position.x = pos.x;
     camera.Position.y = pos.y;
     camera.Position.z = pos.z;
@@ -364,7 +389,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
 
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }
@@ -375,7 +400,8 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
                       first_mouse: &mut bool,
                       last_x: &mut f32,
                       last_y: &mut f32,
-                      camera: &mut Camera) {
+                      camera: &mut Camera,
+                      roll: bool) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -397,7 +423,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
                 *last_x = xpos;
                 *last_y = ypos;
 
-                camera.ProcessMouseMovement(xoffset, yoffset, true);
+                camera.ProcessMouseMovement(xoffset, yoffset, roll);
             }
             glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
                 camera.ProcessMouseScroll(yoffset as f32);
@@ -412,7 +438,7 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent) {
+fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent, roll: &mut bool) {
     if window.get_key(Key::W) == Action::Press {
         input_component.w_pressed = true;
     }
@@ -433,6 +459,9 @@ fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputCo
     }
     if window.get_key(Key::R) == Action::Press {
         input_component.r_pressed = true;
+    }
+    if window.get_key(Key::Space) == Action::Press {
+        *roll = true;
     }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;

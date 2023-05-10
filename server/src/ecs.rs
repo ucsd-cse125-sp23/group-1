@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::{str};
 use std::io::{Read, Write, self};
@@ -29,6 +29,7 @@ pub struct ECS {
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
+    pub lost_players: u8,
 
     pub active_players: u8,
     pub game_ended: bool,
@@ -137,9 +138,9 @@ impl ECS {
 
             // read messages from client with header length
             // 4 byte size field
-            loop {
+            while self.network_components[player].connected && connected {
                 let mut size_buf = [0 as u8; 4];
-                let size:u32;
+                let mut size:u32 = 0;
                 match stream.peek(&mut size_buf) {
                     Ok(4) => {
                         // it's tradition, dammit!
@@ -154,8 +155,7 @@ impl ECS {
                     }
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        // TODO: handle lost client
-                        panic!("Lost client connection");
+                        connected = false;
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -176,15 +176,31 @@ impl ECS {
                     },
                     Err(e) => {
                         eprintln!("Failed to read message for client {}: {}",self.name_components[player],e);
+                        connected = false;
                     },
                 }
             }
+
+            // handle lost client
+            if !connected {
+                self.network_components[player].connected = false;
+                self.lost_players += 1;
+            }
+
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
-            camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
-            camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
-            camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
+            // camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
+            // camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
+            // camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
+            camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
+            camera.camera_front = camera.rot * vector![0.0,0.0,-1.0];
+            camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
+            camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
+        }
+
+        if self.lost_players == self.players.len() as u8 {
+            panic!("all players have lost connection.");
         }
     }
 
@@ -221,9 +237,10 @@ impl ECS {
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
         curr.r_pressed |= value.r_pressed;
-        curr.camera_front_x = value.camera_front_x;
-        curr.camera_front_y = value.camera_front_y;
-        curr.camera_front_z = value.camera_front_z;
+        curr.camera_qx = value.camera_qx;
+        curr.camera_qy = value.camera_qy;
+        curr.camera_qz = value.camera_qz;
+        curr.camera_qw = value.camera_qw;
     }
 
     /**
@@ -239,11 +256,13 @@ impl ECS {
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
-            match self.network_components[player].stream.write(&message) {
-                Ok(_) => (),
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+            if self.network_components[player].connected {
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                match self.network_components[player].stream.write(&message) {
+                    Ok(_) => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+                }
             }
         }
     }
@@ -292,7 +311,7 @@ impl ECS {
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
-        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
@@ -419,6 +438,7 @@ impl ECS {
             let camera = &self.player_camera_components[player];
             let impulse = 0.05;
             let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            rigid_body.set_rotation(camera.rot, true);
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
             }
