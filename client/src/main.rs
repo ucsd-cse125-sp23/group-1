@@ -117,8 +117,8 @@ fn main() -> std::io::Result<()> {
     };
 
     let rect = unsafe {
-        let mut rect = Sprite::new();
-        rect.shader.id = sprite_shader.id;
+        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
+        let mut rect = Sprite::new(projection, sprite_shader.id);
         // rect.set_texture("resources/skybox/space/cubemap.png");
         rect
     };
@@ -294,8 +294,10 @@ fn main() -> std::io::Result<()> {
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
 
-            let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
-            rect.draw(&projection,vec2(400.0, 300.0), vec2(300.0, 300.0), 0.0, vec4(0.0, 1.0, 0.0, 0.5));
+            // rect.draw_at_top_left(vec2(400.0, 300.0), vec2(300.0, 300.0));
+            let top_left = vec2(100.0, 100.0);
+            let bottom_right = vec2(400.0, 300.0);
+            rect.draw_from_corners(top_left, bottom_right);
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

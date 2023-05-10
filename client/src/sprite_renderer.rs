@@ -1,27 +1,41 @@
 use crate::shader::Shader;
 use gl::types::{GLfloat, GLsizei, GLsizeiptr};
-use std::ffi::{CStr, c_void};
-use std::{mem, ptr};
 use std::f32::consts::PI;
+use std::ffi::{c_void, CStr};
+use std::{mem, ptr};
 
-use std::path::Path;
-use cgmath::{Matrix4, Rad, vec3, Vector2, Vector3, Vector4};
+use cgmath::{vec3, Matrix4, Rad, Vector2, Vector3, Vector4, SquareMatrix, Zero, vec2, Array};
 use image::GenericImage;
+use std::path::Path;
+
+pub struct Texture {
+    pub id: u32,
+    pub size: Vector2<f32>,
+}
 
 pub struct Sprite {
+    pub projection: Matrix4<f32>,
+    pub rotation: f32,
+    pub color: Vector4<f32>,
     pub quad_vao: u32,
     pub shader: Shader,
     pub has_texture: bool,
-    pub texture_id: u32,
+    pub texture: Texture,
 }
 
 impl Sprite {
-    pub unsafe fn new() -> Sprite {
+    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32) -> Sprite {
         let mut sprite = Sprite {
+            projection,
+            rotation: 0.0,
+            color: Vector4::from_value(1.0),
             quad_vao: 0,
-            shader: Shader { id: 0 },
+            shader: Shader { id: shader_id },
             has_texture: false,
-            texture_id: 0,
+            texture: Texture {
+                id: 0,
+                size: Vector2::zero(),
+            }
         };
 
         let vertices: [f32; 24] = [
@@ -72,8 +86,8 @@ impl Sprite {
             format = gl::RGBA;
         }
 
-        gl::GenTextures(1, &mut self.texture_id);
-        gl::BindTexture(gl::TEXTURE_2D, self.texture_id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+        gl::GenTextures(1, &mut self.texture.id);
+        gl::BindTexture(gl::TEXTURE_2D, self.texture.id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
         // set the texture wrapping parameters
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); // set texture wrapping to gl::REPEAT (default wrapping method)
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -83,38 +97,56 @@ impl Sprite {
         // load image, create texture and generate mipmaps
         let img = image::open(&Path::new(path)).expect("Failed to load texture");
         let data = img.raw_pixels();
-        gl::TexImage2D(gl::TEXTURE_2D,
-                       0,
-                       format as i32,
-                       img.width() as i32,
-                       img.height() as i32,
-                       0,
-                       format,
-                       gl::UNSIGNED_BYTE,
-                       &data[0] as *const u8 as *const c_void);
+        gl::TexImage2D(
+            gl::TEXTURE_2D,
+            0,
+            format as i32,
+            img.width() as i32,
+            img.height() as i32,
+            0,
+            format,
+            gl::UNSIGNED_BYTE,
+            &data[0] as *const u8 as *const c_void,
+        );
         gl::GenerateMipmap(gl::TEXTURE_2D);
+
+        self.texture.size = vec2(img.width() as f32, img.height() as f32);
         self.has_texture = true;
     }
 
-    pub unsafe fn draw(&self, projection: &Matrix4<f32>, position: Vector2<f32>, size: Vector2<f32>, rotate: f32, color: Vector4<f32>) {
+    pub unsafe fn draw_from_corners(&self, top_left: Vector2<f32>, bottom_right: Vector2<f32>) {
+        let width = bottom_right.x - top_left.x;
+        let height = bottom_right.y - top_left.y;
+        self.draw_at_top_left(top_left, vec2(width, height));
+    }
+
+    pub fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>, color: Vector4<f32>) {
+        // TODO: complete function
+    }
+
+    pub unsafe fn draw_at_top_left(
+        &self,
+        position: Vector2<f32>,
+        size: Vector2<f32>,
+    ) {
         self.shader.use_program();
 
         let mut model = Matrix4::from_translation(vec3(position.x, position.y, 0.0));
 
         model = model * Matrix4::from_translation(vec3(0.5 * size.x, 0.5 * size.y, 0.0));
-        model = model * Matrix4::from_angle_z(Rad(rotate * (PI / 180.0)));
+        model = model * Matrix4::from_angle_z(Rad(self.rotation * (PI / 180.0)));
         model = model * Matrix4::from_translation(vec3(-0.5 * size.x, -0.5 * size.y, 0.0));
 
         model = model * Matrix4::from_nonuniform_scale(size.x, size.y, 1.0);
 
-        self.shader.set_mat4(c_str!("projection"), projection);
+        self.shader.set_mat4(c_str!("projection"), &self.projection);
         self.shader.set_mat4(c_str!("model"), &model);
         self.shader.set_bool(c_str!("hasTexture"), self.has_texture);
-        self.shader.set_vector4(c_str!("spriteColor"), &color);
+        self.shader.set_vector4(c_str!("spriteColor"), &self.color);
 
         if self.has_texture {
             gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, self.texture_id);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture.id);
         }
 
         gl::BindVertexArray(self.quad_vao);
