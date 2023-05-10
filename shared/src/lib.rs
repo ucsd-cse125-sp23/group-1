@@ -15,6 +15,8 @@ pub const SERVER_ADDR: &str = "localhost";
 /** ===========================================================================
  * client settings
 ============================================================================ */ 
+pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
 
 // graphics settings
-pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
+pub const SCR_WIDTH: u32 = 800;
+pub const SCR_HEIGHT: u32 = 600;
