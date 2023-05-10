@@ -13,7 +13,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, SquareMatrix};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, vec4};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -118,14 +118,8 @@ fn main() -> std::io::Result<()> {
 
     let rect = unsafe {
         let mut rect = Sprite::new();
-
         rect.shader.id = sprite_shader.id;
-
-        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
-        let projection = camera.GetViewMatrix();
-        let projection = Matrix4::identity();
-        sprite_shader.set_mat4(c_str!("projection"), &projection);
-
+        // rect.set_texture("resources/skybox/space/cubemap.png");
         rect
     };
 
@@ -267,17 +261,17 @@ fn main() -> std::io::Result<()> {
                             let model_z = c_ecs.position_components[renderable].z;
                             let model_pos = vec3(model_x, model_y, model_z);
                             let pos_mat = Matrix4::from_translation(model_pos);
-                        
+
                             // setup rotation matrix
                             let model_qx = c_ecs.position_components[renderable].qx;
                             let model_qy = c_ecs.position_components[renderable].qy;
                             let model_qz = c_ecs.position_components[renderable].qz;
                             let model_qw = c_ecs.position_components[renderable].qw;
                             let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
-                        
+
                             // setup scale matrix (skip for now)
                             let scale_mat = Matrix4::from_scale(1.0);
-                        
+
                             let model = pos_mat * scale_mat * rot_mat;
                             shader_program.set_mat4(c_str!("model"), &model);
                             let model_name = &c_ecs.model_components[renderable].modelname;
@@ -300,7 +294,8 @@ fn main() -> std::io::Result<()> {
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
 
-            rect.draw(vec2(200.0, 200.0), vec2(300.0, 400.0), 45.0, vec3(0.0, 1.0, 0.0));
+            let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
+            rect.draw(&projection,vec2(400.0, 300.0), vec2(300.0, 300.0), 0.0, vec4(0.0, 1.0, 0.0, 0.5));
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
