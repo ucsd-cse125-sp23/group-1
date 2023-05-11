@@ -3,17 +3,17 @@ use rapier3d::{dynamics::RigidBodySet, geometry::{ColliderSet,SharedShape}};
 use nalgebra::{Isometry3,Translation3,UnitQuaternion};
 
 pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, -5.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), -50.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(1.0,50.0,50.0), 1.0, 1.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(1.0,50.0,50.0), 1.0, 1.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, -50.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,1.0,50.0), 1.0, 1.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, 50.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,1.0,50.0), 1.0, 1.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(), 0.0, 0.0, -50.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,50.0,1.0), 1.0, 1.0);
-    ecs.spawn_prop(rigid_body_set, collider_set, "cube".to_string(), "cube".to_string(),0.0, 0.0, 50.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,50.0,1.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, -5.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 5.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, SharedShape::cuboid(1.0,1.0,1.0), 1.0, 0.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), -50.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(1.0,50.0,50.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 50.0, 0.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(1.0,50.0,50.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, -50.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,1.0,50.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, 50.0, 0.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,1.0,50.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(), 0.0, 0.0, -50.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,50.0,1.0), 1.0, 1.0);
+    ecs.spawn_prop(rigid_body_set, collider_set, "asteroid".to_string(), "asteroid".to_string(),0.0, 0.0, 50.0, 0.0, 0.0, 0.0, false, SharedShape::cuboid(50.0,50.0,1.0), 1.0, 1.0);
 }
 
 pub fn init_player_spawns(ecs: &mut ECS) {

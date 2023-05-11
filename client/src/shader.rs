@@ -30,15 +30,11 @@ impl Shader {
             gl::CompileShader(vertex);
             shader.check_compile_errors(vertex, "VERTEX");
 
-            print!("vertex compiled\n");
-
             // fragment shader
             let fragment = gl::CreateShader(gl::FRAGMENT_SHADER);
             gl::ShaderSource(fragment, 1, &f_shader_code.as_ptr(), ptr::null());
             gl::CompileShader(fragment);
             shader.check_compile_errors(fragment, "FRAGMENT");
-
-            print!("fragment compiled\n");
 
             // shader program
             let id = gl::CreateProgram();

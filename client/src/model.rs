@@ -71,19 +71,16 @@ impl Model {
                 if !material.diffuse_texture.is_empty() {
                     let texture = self.load_material_texture(&material.diffuse_texture, "texture_diffuse");
                     textures.push(texture);
-                    print!("loaded diffuse map\n");
                 }
                 // 2. specular map
                 if !material.specular_texture.is_empty() {
                     let texture = self.load_material_texture(&material.specular_texture, "texture_specular");
                     textures.push(texture);
-                    print!("loaded specular map\n");
                 }
                 // 3. normal map
                 if !material.normal_texture.is_empty() {
                     let texture = self.load_material_texture(&material.normal_texture, "texture_normal");
                     textures.push(texture);
-                    print!("loaded normal map\n");
                 }
                 // NOTE: no height maps
             }

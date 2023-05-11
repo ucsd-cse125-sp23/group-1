@@ -92,16 +92,10 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, skybox, models, light_program) = unsafe {
+    let (hud_shader, skybox, models, light_program) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
-
-        // create shader program using shader.rs
-        let shader_program = Shader::new(
-            "shaders/shader.vs",
-            "shaders/shader.fs",
-        );
 
         // create HUD shader
         let hud_shader = Shader::new(
@@ -124,10 +118,10 @@ fn main() -> std::io::Result<()> {
         // add all models to hashmap
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
-        models.insert("cube".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
-        // models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
-        (shader_program, hud_shader, skybox, models, light_program)
+        (hud_shader, skybox, models, light_program)
     };
 
     // client ECS to be sent to server
@@ -147,10 +141,10 @@ fn main() -> std::io::Result<()> {
         // coords are relative to screen size -- currently 640x480
         // TODO: re-implement with textured quad
         let vertices: [f32; 8] = [
-        -0.0375, -0.0,
-         0.0375, -0.0,
-         0.0,   0.05,
-         0.0,  -0.05,
+            -0.0375, -0.0,
+            0.0375, -0.0,
+            0.0,   0.05,
+            0.0,  -0.05,
         ];
 
         // 1. bind Vertex Array Object
@@ -309,6 +303,7 @@ fn main() -> std::io::Result<()> {
                 let shader = &light_program;
                 shader.use_program();
 
+                // TODO: lighting variables (this can imported from a json file?)
                 let light_pos = vec3(10., 10., 10.);
                 let light_ambience = vec3(0.2, 0.2, 0.2);
                 let light_diffuse = vec3(0.5, 0.5, 0.5);
