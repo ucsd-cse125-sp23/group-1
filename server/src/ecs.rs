@@ -67,6 +67,7 @@ impl ECS {
         self.renderables.clear();
 
         init_world(self, rigid_body_set, collider_set);
+        init_player_spawns(self);
 
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
@@ -75,7 +76,14 @@ impl ECS {
             self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
 
-            let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
+            // TODO: Handle more than 5 players without crashing
+
+            // if self.spawnpoints.is_empty() {
+            //     eprintln!("Ran out of player spawnpoints, reusing");
+            //     init_player_spawns(self);
+            // }
+            let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
