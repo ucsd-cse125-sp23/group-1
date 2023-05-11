@@ -1,9 +1,9 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Vector3};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
-use std::{str};
+use std::str;
 use std::io::{Read, Write, self};
-use std::net::{TcpListener};
+use std::net::TcpListener;
 
 use shared::shared_components::*;
 use crate::{server_components::*, init_world};
@@ -69,7 +69,7 @@ impl ECS {
             self.player_input_components[player] = PlayerInputComponent::default();
             self.position_components[player] = PositionComponent::default();
             self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-            self.player_camera_components[player] = PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+            self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
 
             let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
@@ -83,8 +83,6 @@ impl ECS {
 
         self.active_players = self.players.len() as u8;
         self.game_ended = false;
-
-        println!("Name components size: {:?}", self.name_components.len());
     }
 
     /**
@@ -181,9 +179,10 @@ impl ECS {
             }
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
-            camera.camera_front = vector![input_temp.camera_front_x, input_temp.camera_front_y, input_temp.camera_front_z].normalize();
-            camera.camera_right = camera.camera_front.cross(&Vector3::y()).normalize();
-            camera.camera_up = camera.camera_right.cross(&camera.camera_front).normalize();
+            camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
+            camera.camera_front = camera.rot * vector![0.0,0.0,-1.0];
+            camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
+            camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
         }
     }
@@ -221,9 +220,10 @@ impl ECS {
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
         curr.r_pressed |= value.r_pressed;
-        curr.camera_front_x = value.camera_front_x;
-        curr.camera_front_y = value.camera_front_y;
-        curr.camera_front_z = value.camera_front_z;
+        curr.camera_qx = value.camera_qx;
+        curr.camera_qy = value.camera_qy;
+        curr.camera_qz = value.camera_qz;
+        curr.camera_qw = value.camera_qw;
     }
 
     /**
@@ -292,7 +292,7 @@ impl ECS {
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
-        self.player_camera_components.insert(player, PlayerCameraComponent{camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
@@ -419,6 +419,7 @@ impl ECS {
             let camera = &self.player_camera_components[player];
             let impulse = 0.05;
             let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            rigid_body.set_rotation(camera.rot, true);
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
             }
@@ -452,7 +453,6 @@ impl ECS {
                     let mut read_buf = vec![0 as u8; read_size];
                     stream.read(&mut read_buf).unwrap();
                     let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    println!("{}", raw_str);
                     let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
                     match ready_res {
                         Ok(ecs) => {

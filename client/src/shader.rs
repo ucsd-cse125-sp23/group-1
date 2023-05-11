@@ -60,6 +60,11 @@ impl Shader {
         gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
     }
 
+    /// ------------------------------------------------------------------------
+    pub unsafe fn set_int(&self, name: &CStr, value: i32) {
+        gl::Uniform1i(gl::GetUniformLocation(self.id, name.as_ptr()), value);
+    }
+
     // utility function for checking shader compilation/linking errors
     unsafe fn check_compile_errors(&self, shader: u32, type_: &str) {
         let mut success = gl::FALSE as GLint;

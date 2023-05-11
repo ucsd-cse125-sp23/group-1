@@ -4,7 +4,7 @@ use std::io::{Read,Write,ErrorKind};
 
 pub fn read_data(stream: &mut TcpStream) -> String {
     let mut size_buf = [0 as u8; 4];
-    let mut size:u32 = 0;
+    let size:u32;
     match stream.peek(&mut size_buf) {
         Ok(4) => {
             size = u32::from_be_bytes(size_buf);
