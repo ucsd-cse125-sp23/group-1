@@ -66,7 +66,7 @@ impl ECS {
         self.dynamics.clear();
         self.renderables.clear();
 
-        init_world::init_world(self, rigid_body_set, collider_set);
+        init_world(self, rigid_body_set, collider_set);
 
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
