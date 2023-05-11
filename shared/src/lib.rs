@@ -1,4 +1,5 @@
 pub mod shared_components;
+pub mod shared_functions;
 
 /** ===========================================================================
  * server settings

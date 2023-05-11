@@ -59,6 +59,7 @@ impl Shader {
     pub unsafe fn set_mat4(&self, name: &CStr, mat: &Matrix4<f32>) {
         gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
     }
+
     /// ------------------------------------------------------------------------
     pub unsafe fn set_int(&self, name: &CStr, value: i32) {
         gl::Uniform1i(gl::GetUniformLocation(self.id, name.as_ptr()), value);
