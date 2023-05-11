@@ -4,9 +4,10 @@ use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
+use rand::{thread_rng,seq::IteratorRandom};
 
 use shared::shared_components::*;
-use crate::{server_components::*, init_world};
+use crate::{server_components::*, init_world::*};
 
 
 type Entity = DefaultKey;
@@ -30,6 +31,7 @@ pub struct ECS {
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
 
+    pub spawnpoints: Vec<Isometry3<f32>>,
     pub active_players: u8,
     pub game_ended: bool,
 }
@@ -51,6 +53,7 @@ impl ECS {
             renderables: vec![],
             active_players: 0,
             game_ended: false,
+            spawnpoints: vec![],
         }
     }
 
@@ -62,8 +65,9 @@ impl ECS {
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.dynamics.clear();
         self.renderables.clear();
-        
-        init_world::init_world(self, rigid_body_set, collider_set);
+
+        init_world(self, rigid_body_set, collider_set);
+        init_player_spawns(self);
 
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
@@ -72,7 +76,14 @@ impl ECS {
             self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
 
-            let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
+            // TODO: Handle more than 5 players without crashing
+
+            // if self.spawnpoints.is_empty() {
+            //     eprintln!("Ran out of player spawnpoints, reusing");
+            //     init_player_spawns(self);
+            // }
+            let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
@@ -130,6 +141,10 @@ impl ECS {
             }
 
             let mut input_temp = PlayerInputComponent::default();
+            input_temp.camera_qw = self.player_input_components[player].camera_qw;
+            input_temp.camera_qx = self.player_input_components[player].camera_qx;
+            input_temp.camera_qy = self.player_input_components[player].camera_qy;
+            input_temp.camera_qz = self.player_input_components[player].camera_qz;
             let mut stream = & self.network_components[player].stream;
             // need a protocol, get number of bytes in message then read_exact
 
@@ -293,7 +308,12 @@ impl ECS {
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
         self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
-        let rigid_body = RigidBodyBuilder::dynamic().translation(vector![0.0, 0.0, 2.0]).lock_rotations().can_sleep(false).build();
+        if self.spawnpoints.is_empty() {
+            eprintln!("Ran out of player spawnpoints, reusing");
+            init_player_spawns(self);
+        }
+        let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
@@ -373,14 +393,14 @@ impl ECS {
                     Some((target_collider_handle, toi)) => {
                         let target_collider = collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
-                        
+
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
 
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {
                             self.player_health_components[target].health -= 1;
-                            
+
                             if self.player_health_components[target].health == 0 {
                                 // handle player death
                                 self.player_health_components[target].alive = false;
@@ -388,7 +408,7 @@ impl ECS {
                                 self.player_input_components[target] = PlayerInputComponent::default();
                             }
                         }
-                        
+
                         let hit_point = ray.point_at(toi);
                         let target_body = rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
                         target_body.apply_impulse_at_point(impulse, hit_point, true);

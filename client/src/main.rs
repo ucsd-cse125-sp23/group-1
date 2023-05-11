@@ -393,7 +393,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
         
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
+        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 10000.0);
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }

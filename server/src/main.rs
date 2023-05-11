@@ -28,6 +28,7 @@ fn main() {
     let mut ecs = ecs::ECS::new();
 
     init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
+    init_world::init_player_spawns(&mut ecs);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
@@ -43,7 +44,7 @@ fn main() {
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
         let mut ready_players = 0;
-        
+
         // LOBBY LOOP
         loop {
             events.clear();
@@ -69,7 +70,7 @@ fn main() {
 
             ecs.receive_inputs();
 
-            ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline); 
+            ecs.player_fire(&mut rigid_body_set, &mut collider_set, &query_pipeline);
             ecs.player_move(&mut rigid_body_set);
 
             ecs.update_positions(&mut rigid_body_set);
@@ -99,7 +100,7 @@ fn main() {
             let tick_ms = tick.as_millis() as u64;
             if tick_ms > shared::TICK_SPEED {
                 eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
-            } else { 
+            } else {
                 spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
             }
         }
