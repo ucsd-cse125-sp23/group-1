@@ -11,7 +11,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace, EuclideanSpace};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::CStr;
@@ -184,12 +184,16 @@ fn main() -> std::io::Result<()> {
             shader.use_program();
 
             let light_pos = vec3(10., 10., 10.);
-            let light_ambience = vec3(0.0, 0.0, 1.0);
-            let light_diffuse = vec3(1.0, 0.0, 0.0);
+            let light_ambience = vec3(0.2, 0.2, 0.2);
+            let light_diffuse = vec3(0.5, 0.5, 0.5);
 
-            shader.setVector3(c_str!("pointLights[0].position"), &light_pos);
-            shader.setVector3(c_str!("pointLights[0].ambient"), &light_ambience);
-            shader.setVector3(c_str!("pointLights[0].diffuse"), &light_diffuse);
+            // shader.setVector3(c_str!("pointLights[0].position"), &light_pos);
+            // shader.setVector3(c_str!("pointLights[0].ambient"), &light_ambience);
+            // shader.setVector3(c_str!("pointLights[0].diffuse"), &light_diffuse);
+            
+            shader.setVector3(c_str!("lightPos"), &light_pos);
+            shader.setVector3(c_str!("lightAmb"), &light_ambience);
+            shader.setVector3(c_str!("lightDif"), &light_diffuse);
 
             // NEEDS TO BE REWORKED FOR MENU STATE
             // 
@@ -201,8 +205,12 @@ fn main() -> std::io::Result<()> {
                         c_ecs.position_components[player_key].y,
                         c_ecs.position_components[player_key].z);
 
+                    
+
                     // update view and projection matrix
                     set_camera_pos(&mut camera, player_pos, &shader);
+
+                    shader.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                     for &renderable in &c_ecs.renderables {
                         if renderable != player_key {
