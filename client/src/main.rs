@@ -120,6 +120,7 @@ fn main() -> std::io::Result<()> {
         let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
         let mut rect = Sprite::new(projection, sprite_shader.id);
         // rect.set_texture("resources/skybox/space/cubemap.png");
+        rect.set_color(vec4(1.0, 0.0, 1.0, 0.8));
         rect
     };
 
@@ -295,8 +296,8 @@ fn main() -> std::io::Result<()> {
             gl::DrawArrays(gl::LINES, 0, 4);
 
             // rect.draw_at_top_left(vec2(400.0, 300.0), vec2(300.0, 300.0));
-            let top_left = vec2(100.0, 100.0);
-            let bottom_right = vec2(400.0, 300.0);
+            let top_left = vec2(0.0, 0.0);
+            let bottom_right = vec2(800.0, 10.0);
             rect.draw_from_corners(top_left, bottom_right);
         }
 

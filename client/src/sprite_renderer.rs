@@ -114,6 +114,10 @@ impl Sprite {
         self.has_texture = true;
     }
 
+    pub fn set_color(&mut self, color: Vector4<f32>) {
+        self.color = color;
+    }
+
     pub unsafe fn draw_from_corners(&self, top_left: Vector2<f32>, bottom_right: Vector2<f32>) {
         let width = bottom_right.x - top_left.x;
         let height = bottom_right.y - top_left.y;
