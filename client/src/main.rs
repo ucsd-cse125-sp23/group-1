@@ -202,6 +202,7 @@ fn main() -> std::io::Result<()> {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
                             client_ecs = None;
+                            first_mouse = true;
                             in_lobby = false;
                         }
                     }
