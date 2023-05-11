@@ -92,7 +92,8 @@ fn main() -> std::io::Result<()> {
         // add all models to hashmap
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
-        models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("cube".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+        // models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
         (shader_program, models, light_program)
     };
@@ -179,18 +180,16 @@ fn main() -> std::io::Result<()> {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             // activate shader
-            // shader_program.use_program();
-            // light_program.use_program();
-
-            // let shader = &light_program;
             let shader = &light_program;
             shader.use_program();
 
             let light_pos = vec3(10., 10., 10.);
-            let light_color = vec3(1., 1., 1.);
+            let light_ambience = vec3(0.0, 0.0, 1.0);
+            let light_diffuse = vec3(1.0, 0.0, 0.0);
 
-            shader.setVector3(c_str!("lightPos"), &light_pos);
-            shader.setVector3(c_str!("lightColor"), &light_color);
+            shader.setVector3(c_str!("pointLights[0].position"), &light_pos);
+            shader.setVector3(c_str!("pointLights[0].ambient"), &light_ambience);
+            shader.setVector3(c_str!("pointLights[0].diffuse"), &light_diffuse);
 
             // NEEDS TO BE REWORKED FOR MENU STATE
             // 
@@ -201,6 +200,8 @@ fn main() -> std::io::Result<()> {
                     let player_pos = vec3(c_ecs.position_components[player_key].x,
                         c_ecs.position_components[player_key].y,
                         c_ecs.position_components[player_key].z);
+
+                    // update view and projection matrix
                     set_camera_pos(&mut camera, player_pos, &shader);
 
                     for &renderable in &c_ecs.renderables {
