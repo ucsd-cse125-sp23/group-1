@@ -12,7 +12,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, InnerSpace, EuclideanSpace};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -92,7 +92,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, skybox, models) = unsafe {
+    let (shader_program, hud_shader, skybox, models, light_program) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -116,12 +116,18 @@ fn main() -> std::io::Result<()> {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
 
+        let light_program = Shader::new(
+            "shaders/light.vs",
+            "shaders/light.fs",
+        );
+
         // add all models to hashmap
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
-        models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("cube".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+        // models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, hud_shader, skybox, models)
+        (shader_program, hud_shader, skybox, models, light_program)
     };
 
     // client ECS to be sent to server
@@ -300,7 +306,16 @@ fn main() -> std::io::Result<()> {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 // activate shader
-                shader_program.use_program();
+                let shader = &light_program;
+                shader.use_program();
+
+                let light_pos = vec3(10., 10., 10.);
+                let light_ambience = vec3(0.2, 0.2, 0.2);
+                let light_diffuse = vec3(0.5, 0.5, 0.5);
+
+                shader.setVector3(c_str!("lightPos"), &light_pos);
+                shader.setVector3(c_str!("lightAmb"), &light_ambience);
+                shader.setVector3(c_str!("lightDif"), &light_diffuse);
 
                 // NEEDS TO BE REWORKED FOR MENU STATE
                 match &client_ecs {
@@ -322,7 +337,8 @@ fn main() -> std::io::Result<()> {
                         let player_pos = vec3(c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
                             c_ecs.position_components[player_key].z);
-                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                        set_camera_pos(&mut camera, player_pos, &shader, width, height);
+                        shader.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                         for &renderable in &c_ecs.renderables {
                             if renderable != player_key {
@@ -344,9 +360,9 @@ fn main() -> std::io::Result<()> {
                                 let scale_mat = Matrix4::from_scale(1.0);
                             
                                 let model = pos_mat * scale_mat * rot_mat;
-                                shader_program.set_mat4(c_str!("model"), &model);
+                                shader.set_mat4(c_str!("model"), &model);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
-                                models[model_name].draw(&shader_program);
+                                models[model_name].draw(&shader);
                             }
                         }
 
@@ -361,7 +377,7 @@ fn main() -> std::io::Result<()> {
                         }
                     }
                     None => {
-                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height)
+                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader, width, height)
                     }
                 }
                 // note: the first iteration through the match{} above draws the model without view and projection setup
