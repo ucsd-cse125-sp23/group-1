@@ -116,7 +116,7 @@ impl ECS {
                 curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
-                self.network_components.insert(player, NetworkComponent { stream:curr_stream });
+                self.network_components.insert(player, NetworkComponent { connected: true, stream:curr_stream });
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
                 self.send_ready_message(false);
@@ -134,6 +134,8 @@ impl ECS {
      */
     pub fn receive_inputs(&mut self) {
         for &player in &self.players {
+            let mut connected = true;
+
             // do not receive inputs from dead players
             let health = & self.player_health_components[player].alive;
             if !health {
@@ -150,9 +152,9 @@ impl ECS {
 
             // read messages from client with header length
             // 4 byte size field
-            loop {
+            while self.network_components[player].connected && connected {
                 let mut size_buf = [0 as u8; 4];
-                let size:u32;
+                let mut size:u32 = 0;
                 match stream.peek(&mut size_buf) {
                     Ok(4) => {
                         // it's tradition, dammit!
@@ -167,8 +169,7 @@ impl ECS {
                     }
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        // TODO: handle lost client
-                        panic!("Lost client connection");
+                        connected = false;
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -189,9 +190,17 @@ impl ECS {
                     },
                     Err(e) => {
                         eprintln!("Failed to read message for client {}: {}",self.name_components[player],e);
+                        connected = false;
                     },
                 }
             }
+
+            // handle lost client
+            if !connected {
+                self.network_components[player].connected = false;
+                self.active_players -= 1;
+            }
+
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
             camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
@@ -246,7 +255,7 @@ impl ECS {
      */
     pub fn update_clients(&mut self) {
         // game ends if there's 1 active player left
-        if self.active_players == 1 {
+        if self.active_players <= 1 {
             self.game_ended = true;
         }
 
@@ -254,11 +263,13 @@ impl ECS {
         let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
-            match self.network_components[player].stream.write(&message) {
-                Ok(_) => (),
-                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+            if self.network_components[player].connected {
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                match self.network_components[player].stream.write(&message) {
+                    Ok(_) => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+                }
             }
         }
     }
