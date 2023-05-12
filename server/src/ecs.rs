@@ -198,6 +198,7 @@ impl ECS {
             // handle lost client
             if !connected {
                 self.network_components[player].connected = false;
+                // TODO: remove the player from ecs or add checks for connected in other parts of the code
                 self.active_players -= 1;
             }
 
