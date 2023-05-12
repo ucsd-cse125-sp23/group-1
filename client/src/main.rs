@@ -5,6 +5,7 @@ mod mesh;
 mod model;
 mod skybox;
 mod sprite_renderer;
+mod tracker;
 
 use std::collections::HashMap;
 
@@ -13,7 +14,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, vec4};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, vec4, Transform, EuclideanSpace, Rad, InnerSpace, Angle, Basis2, Rotation2, Rotation};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -31,6 +32,7 @@ use std::str;
 use shared::{SCR_HEIGHT, SCR_WIDTH};
 use shared::shared_components::*;
 use crate::sprite_renderer::Sprite;
+use crate::tracker::Tracker;
 
 fn main() -> std::io::Result<()> {
     // create camera and camera information
@@ -116,12 +118,13 @@ fn main() -> std::io::Result<()> {
         (shader_program, hud_shader, sprite_shader, skybox, models)
     };
 
-    let rect = unsafe {
+    let (rect, tracker) = unsafe {
         let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
         let mut rect = Sprite::new(projection, sprite_shader.id);
+        let tracker = Tracker::new(projection, sprite_shader.id);
         // rect.set_texture("resources/skybox/space/cubemap.png");
         rect.set_color(vec4(1.0, 0.0, 1.0, 0.8));
-        rect
+        (rect, tracker)
     };
 
     // client ECS to be sent to server
@@ -295,10 +298,31 @@ fn main() -> std::io::Result<()> {
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
 
+            let point = Point3::new(0.0,0.0,0.0);
+            let radius = 1.0;
+
+            let projection = camera.GetViewMatrix().transform_point(point).to_vec();
+            let angle: Rad<f32>;
+            if vec2(projection.x, projection.y).magnitude() >= radius {
+                angle = Angle::asin(radius / vec2(projection.x, projection.y).magnitude());
+            } else {
+                angle = Rad::<f32>::full_turn() / 4.0;
+            }
+            let v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+            let v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
+            let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0).transform_vector(vec3(v1.x,v1.y,projection.z));
+            let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0).transform_vector(vec3(v2.x,v2.y,projection.z));
+
+            // rect.draw_from_corners(vec2(0.0,0.0), vec2(800.0, 10.0));
+            let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
+            let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
             // rect.draw_at_top_left(vec2(400.0, 300.0), vec2(300.0, 300.0));
-            let top_left = vec2(0.0, 0.0);
-            let bottom_right = vec2(800.0, 10.0);
-            rect.draw_from_corners(top_left, bottom_right);
+            // let v1_norm = vec2(0.0, 1.0);
+            // let v2_norm = vec2(0.0, 1.0);
+            tracker.draw_from_vectors(v1_norm, v2_norm);
+            // let top_left = vec2(400.0, 0.0);
+            // let bottom_right = vec2(800.0, 10.0);
+            // rect.draw_from_corners(top_left, bottom_right);
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
