@@ -6,6 +6,7 @@ mod model;
 mod skybox;
 mod sprite_renderer;
 mod tracker;
+mod util;
 
 use std::collections::HashMap;
 
@@ -119,7 +120,7 @@ fn main() -> std::io::Result<()> {
     };
 
     let (rect, tracker) = unsafe {
-        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, SCR_HEIGHT as f32, 0.0, -1.0, 1.0);
+        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
         let mut rect = Sprite::new(projection, sprite_shader.id);
         let tracker = Tracker::new(projection, sprite_shader.id);
         // rect.set_texture("resources/skybox/space/cubemap.png");
