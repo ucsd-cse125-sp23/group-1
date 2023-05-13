@@ -303,7 +303,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string() });
+        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
@@ -323,12 +323,12 @@ impl ECS {
 
     pub fn spawn_prop(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, 
         name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, rot_x: f32, rot_y: f32, rot_z: f32, 
-        dynamic: bool, shape: SharedShape, density: f32, restitution: f32) {
+        dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
             let entity = self.name_components.insert(name);
             self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(rot_x,rot_y,rot_z);
             self.position_components.insert(entity, PositionComponent { x: (pos_x), y: (pos_y), z: (pos_z), qx: (rot.i), qy: (rot.j), qz: (rot.k), qw: (rot.w) });
-            self.model_components.insert(entity,ModelComponent { modelname });
+            self.model_components.insert(entity,ModelComponent { modelname, scale });
             let rigid_body: RigidBody;
             if dynamic {
                 self.dynamics.push(entity);

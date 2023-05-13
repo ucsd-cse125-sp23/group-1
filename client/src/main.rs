@@ -341,7 +341,7 @@ fn main() -> std::io::Result<()> {
                                 let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
                             
                                 // setup scale matrix (skip for now)
-                                let scale_mat = Matrix4::from_scale(1.0);
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
                             
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
