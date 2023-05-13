@@ -71,7 +71,6 @@ impl ECS {
 
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
-            self.position_components[player] = PositionComponent::default();
             self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
             self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
@@ -83,6 +82,15 @@ impl ECS {
             //     init_player_spawns(self);
             // }
             let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+            self.position_components[player] = PositionComponent{
+                x: player_pos.translation.x,
+                y: player_pos.translation.y,
+                z: player_pos.translation.z,
+                qx: player_pos.rotation.i,
+                qy: player_pos.rotation.j,
+                qz: player_pos.rotation.k,
+                qw: player_pos.rotation.w,
+            };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
@@ -284,6 +292,7 @@ impl ECS {
     pub fn lobby_ecs(&self, start_game: bool) -> LobbyECS {
         LobbyECS {
             name_components: self.name_components.clone(),
+            position_components: self.position_components.clone(),
             players: self.players.clone(),
             start_game: start_game,
         }
@@ -305,7 +314,6 @@ impl ECS {
         self.renderables.push(player);
         self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
-        self.position_components.insert(player, PositionComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
         self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         if self.spawnpoints.is_empty() {
@@ -313,6 +321,15 @@ impl ECS {
             init_player_spawns(self);
         }
         let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+        self.position_components.insert(player, PositionComponent{
+            x: player_pos.translation.x,
+            y: player_pos.translation.y,
+            z: player_pos.translation.z,
+            qx: player_pos.rotation.i,
+            qy: player_pos.rotation.j,
+            qz: player_pos.rotation.k,
+            qw: player_pos.rotation.w,
+        });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
         let handle = rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
@@ -322,11 +339,11 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, 
-        name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, rot_x: f32, rot_y: f32, rot_z: f32, 
+        name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, roll: f32, pitch: f32, yaw: f32, 
         dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
             let entity = self.name_components.insert(name);
             self.renderables.push(entity);
-            let rot = UnitQuaternion::from_euler_angles(rot_x,rot_y,rot_z);
+            let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
             self.position_components.insert(entity, PositionComponent { x: (pos_x), y: (pos_y), z: (pos_z), qx: (rot.i), qy: (rot.j), qz: (rot.k), qw: (rot.w) });
             self.model_components.insert(entity,ModelComponent { modelname, scale });
             let rigid_body: RigidBody;
