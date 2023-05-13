@@ -88,9 +88,4 @@ pub fn init_player_spawns(ecs: &mut ECS) {
         };
         ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(spawn.pos.0, spawn.pos.1, spawn.pos.2), rot));
     }
-    // ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, 0.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
-    // ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, 5.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
-    // ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, -5.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
-    // ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(5.0, 0.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
-    // ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(-5.0, 0.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
 }
