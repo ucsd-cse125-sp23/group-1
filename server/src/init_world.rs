@@ -59,6 +59,7 @@ pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set
 }
 
 pub fn init_player_spawns(ecs: &mut ECS) {
+    ecs.spawnpoints.clear();
     ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, 0.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
     ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, 5.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
     ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(0.0, -5.0, 3.0), UnitQuaternion::from_euler_angles(0.0,0.0,0.0)));
