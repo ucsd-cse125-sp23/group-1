@@ -75,8 +75,8 @@ pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set
     }
 }
 
-pub fn init_player_spawns(ecs: &mut ECS) {
-    ecs.spawnpoints.clear();
+pub fn init_player_spawns(spawnpoints: &mut Vec<Isometry3<f32>>) {
+    spawnpoints.clear();
     let j = fs::read_to_string("world/playerspawns.json").expect("Error reading file world/playerspawns.json");
     let spawns: Vec<SpawnPoint> = serde_json::from_str(&j).expect("Error deserializing world/playerspawns.json");
     for spawn in spawns {
@@ -86,6 +86,6 @@ pub fn init_player_spawns(ecs: &mut ECS) {
                 thread_rng().gen()
             },
         };
-        ecs.spawnpoints.push(Isometry3::from_parts(Translation3::new(spawn.pos.0, spawn.pos.1, spawn.pos.2), rot));
+        spawnpoints.push(Isometry3::from_parts(Translation3::new(spawn.pos.0, spawn.pos.1, spawn.pos.2), rot));
     }
 }

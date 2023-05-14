@@ -67,7 +67,7 @@ impl ECS {
         self.renderables.clear();
 
         init_world(self, rigid_body_set, collider_set);
-        init_player_spawns(self);
+        init_player_spawns(&mut self.spawnpoints);
 
         for &player in &self.players {
             self.player_input_components[player] = PlayerInputComponent::default();
@@ -75,12 +75,10 @@ impl ECS {
             self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
             self.player_health_components[player] = PlayerHealthComponent::default();
 
-            // TODO: Handle more than 5 players without crashing
-
-            // if self.spawnpoints.is_empty() {
-            //     eprintln!("Ran out of player spawnpoints, reusing");
-            //     init_player_spawns(self);
-            // }
+            if self.spawnpoints.is_empty() {
+                eprintln!("Ran out of player spawnpoints, reusing");
+                init_player_spawns(&mut self.spawnpoints);
+            }
             let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
             self.position_components[player] = PositionComponent{
                 x: player_pos.translation.x,
@@ -318,7 +316,7 @@ impl ECS {
         self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
         if self.spawnpoints.is_empty() {
             eprintln!("Ran out of player spawnpoints, reusing");
-            init_player_spawns(self);
+            init_player_spawns(&mut self.spawnpoints);
         }
         let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
         self.position_components.insert(player, PositionComponent{
