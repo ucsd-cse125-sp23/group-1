@@ -5,7 +5,7 @@ use std::f32::consts::PI;
 
 pub struct Tracker {
     line_width: f32,
-    rect: Sprite,
+    line: Sprite,
 }
 
 impl Tracker {
@@ -14,7 +14,7 @@ impl Tracker {
 
         let tracker = Tracker {
             line_width: 10.0,
-            rect,
+            line: rect,
         };
 
         tracker
@@ -43,114 +43,117 @@ impl Tracker {
         let angle1 = theta(v1);
         let angle2 = theta(v2);
 
+        // draw top edge
         {
             let ratio1 = (screen_size.y / 2.0) / v1.y;
             let ratio2 = (screen_size.y / 2.0) / v2.y;
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let v1_in_range = angle1 > top_right_angle && angle1 < top_left_angle;
-            let v2_in_range = angle2 > top_right_angle && angle2 < top_left_angle;
+            let (v1_x1, v1_x2, v2_x1, v2_x2) = find_points(
+                angle1,
+                angle2,
+                v1_intersection.x,
+                v2_intersection.x,
+                top_right_angle,
+                top_left_angle,
+                screen_size.x,
+                0.0,
+            );
 
-            let mut v1_x2 = screen_size.x;
-            let mut v2_x2 = 0.0;
-
-            let v1_closest_angle =
-                closest_angle_clockwise(angle1, top_left_angle, top_right_angle, angle2);
-            let v2_closest_angle =
-                closest_angle_counter_clockwise(angle2, top_right_angle, top_left_angle, angle1);
-
-            let v1_x1;
-            if v1_closest_angle == top_left_angle {
-                v1_x1 = 0.0;
-            } else if v1_in_range {
-                v1_x1 = v1_intersection.x;
-                if v2_closest_angle != top_left_angle {
-                    v2_x2 = v1_x1;
-                }
-            } else {
-                v1_x1 = 0.0;
-                if v1_closest_angle == angle2 {
-                    v1_x2 = 0.0;
-                }
-            }
-
-            let v2_x1;
-            if v2_closest_angle == top_right_angle {
-                v2_x1 = screen_size.x;
-            } else if v2_in_range {
-                v2_x1 = v2_intersection.x;
-                if v1_closest_angle != top_right_angle {
-                    v1_x2 = v2_x1;
-                }
-            } else {
-                v2_x1 = 0.0;
-                if v2_closest_angle == angle1 {
-                    v2_x2 = 0.0;
-                }
-            }
-
-            self.rect.draw_from_corners(
+            self.line.draw_from_corners(
                 vec2(v1_x1, screen_size.y),
                 vec2(v1_x2, screen_size.y - self.line_width),
             );
-            self.rect.draw_from_corners(
+            self.line.draw_from_corners(
                 vec2(v2_x2, screen_size.y),
                 vec2(v2_x1, screen_size.y - self.line_width),
             );
         }
 
+        // draw bottom edge
         {
             let ratio1 = -(screen_size.y / 2.0) / v1.y;
             let ratio2 = -(screen_size.y / 2.0) / v2.y;
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let v1_in_range = angle1 > bot_left_angle && angle1 < bot_right_angle;
-            let v2_in_range = angle2 > bot_left_angle && angle2 < bot_right_angle;
+            let (v1_x1, v1_x2, v2_x1, v2_x2) = find_points(
+                angle1,
+                angle2,
+                v1_intersection.x,
+                v2_intersection.x,
+                bot_left_angle,
+                bot_right_angle,
+                0.0,
+                screen_size.x,
+            );
 
-            let mut v1_x2 = 0.0;
-            let mut v2_x2 = screen_size.x;
+            self.line
+                .draw_from_corners(vec2(v1_x2, self.line_width), vec2(v1_x1, 0.0));
+            self.line
+                .draw_from_corners(vec2(v2_x1, self.line_width), vec2(v2_x2, 0.0));
+        }
 
-            let v1_closest_angle =
-                closest_angle_clockwise(angle1, bot_left_angle, bot_right_angle, angle2);
-            let v2_closest_angle =
-                closest_angle_counter_clockwise(angle2, bot_left_angle, bot_right_angle, angle1);
+        // draw left edge
+        {
+            let ratio1 = -(screen_size.x / 2.0) / v1.x;
+            let ratio2 = -(screen_size.x / 2.0) / v2.x;
+            let v1_intersection = screen_size / 2.0 + v1 * ratio1;
+            let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let v1_x1;
-            if v1_closest_angle == bot_right_angle {
-                v1_x1 = screen_size.x;
-            } else if v1_in_range {
-                v1_x1 = v1_intersection.x;
-                if v2_closest_angle != bot_right_angle {
-                    v2_x2 = v1_x1;
-                }
-            } else {
-                v1_x1 = 0.0;
-                if v1_closest_angle == angle2 {
-                    v1_x2 = 0.0;
-                }
-            }
+            let (v1_y1, v1_y2, v2_y1, v2_y2) = find_points(
+                angle1,
+                angle2,
+                v1_intersection.y,
+                v2_intersection.y,
+                top_left_angle,
+                bot_left_angle,
+                screen_size.y,
+                0.0,
+            );
 
-            let v2_x1;
-            if v2_closest_angle == top_right_angle {
-                v2_x1 = 0.0;
-            } else if v2_in_range {
-                v2_x1 = v2_intersection.x;
-                if v1_closest_angle != bot_left_angle {
-                    v1_x2 = v2_x1;
-                }
-            } else {
-                v2_x1 = 0.0;
-                if v2_closest_angle == angle1 {
-                    v2_x2 = 0.0;
-                }
-            }
+            self.line.draw_from_corners(
+                vec2(0.0, v1_y2),
+                vec2(self.line_width, v1_y1),
+            );
+            self.line.draw_from_corners(
+                vec2(0.0, v2_y1),
+                vec2(self.line_width, v2_y2),
+            );
+        }
 
-            self.rect
-                .draw_from_corners(vec2(v1_x1, self.line_width), vec2(v1_x2, 0.0));
-            self.rect
-                .draw_from_corners(vec2(v2_x2, self.line_width), vec2(v2_x1, 0.0));
+        // draw right edge
+        {
+            let ratio1 = (screen_size.x / 2.0) / v1.x;
+            let ratio2 = (screen_size.x / 2.0) / v2.x;
+            let v1_intersection = screen_size / 2.0 + v1 * ratio1;
+            let v2_intersection = screen_size / 2.0 + v2 * ratio2;
+
+            let angle1 = angle1 + PI;
+            let angle2 = angle2 + PI;
+            let bot_right_angle = bot_right_angle - PI;
+            let top_left_angle = top_left_angle + PI;
+
+            let (v1_y1, v1_y2, v2_y1, v2_y2) = find_points(
+                angle1,
+                angle2,
+                v1_intersection.y,
+                v2_intersection.y,
+                bot_right_angle,
+                top_left_angle,
+                0.0,
+                screen_size.y,
+            );
+
+            self.line.draw_from_corners(
+                vec2(screen_size.x - self.line_width, v1_y1),
+                vec2(screen_size.x, v1_y2),
+            );
+            self.line.draw_from_corners(
+                vec2(screen_size.x - self.line_width, v2_y2),
+                vec2(screen_size.x, v2_y1),
+            );
         }
     }
 }
