@@ -1,6 +1,6 @@
 use crate::sprite_renderer::Sprite;
 use crate::util::vec2_signed_angle;
-use cgmath::{vec2, InnerSpace, Matrix4, Vector2};
+use cgmath::{vec2, Matrix4, Vector2};
 use std::f32::consts::PI;
 
 pub struct Tracker {
@@ -130,10 +130,16 @@ impl Tracker {
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let angle1 = angle1 + PI;
-            let angle2 = angle2 + PI;
+            let mut angle1 = angle1 + PI;
+            if angle1 > 2.0 * PI {
+                angle1 -= 2.0 * PI;
+            }
+            let mut angle2 = angle2 + PI;
+            if angle2 > 2.0 * PI {
+                angle2 -= 2.0 * PI;
+            }
             let bot_right_angle = bot_right_angle - PI;
-            let top_left_angle = top_left_angle + PI;
+            let top_right_angle = top_right_angle + PI;
 
             let (v1_y1, v1_y2, v2_y1, v2_y2) = find_points(
                 angle1,
@@ -141,7 +147,7 @@ impl Tracker {
                 v1_intersection.y,
                 v2_intersection.y,
                 bot_right_angle,
-                top_left_angle,
+                top_right_angle,
                 0.0,
                 screen_size.y,
             );
@@ -236,12 +242,12 @@ fn closest_angle_clockwise(v1: f32, lower_range: f32, higher_range: f32, v2: f32
     if num3 <= 0.0 {
         num3 += 2.0 * PI;
     }
-    if num1 < num2 && num1 < num3 {
-        return lower_range;
+    return if num1 < num2 && num1 < num3 {
+        lower_range
     } else if num2 < num3 {
-        return higher_range;
+        higher_range
     } else {
-        return v2;
+        v2
     }
 }
 
@@ -258,11 +264,11 @@ fn closest_angle_counter_clockwise(v1: f32, lower_range: f32, higher_range: f32,
     if num3 < 0.0 {
         num3 += 2.0 * PI;
     }
-    if num1 > num2 && num1 > num3 {
-        return lower_range;
+    return if num1 > num2 && num1 > num3 {
+        lower_range
     } else if num2 > num3 {
-        return higher_range;
+        higher_range
     } else {
-        return v2;
+        v2
     }
 }
