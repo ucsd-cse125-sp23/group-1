@@ -15,7 +15,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec2, vec4, Transform, EuclideanSpace, Rad, InnerSpace, Angle, Basis2, Rotation2, Rotation};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -32,18 +32,17 @@ use std::net::{TcpStream};
 use std::str;
 use shared::{SCR_HEIGHT, SCR_WIDTH};
 use shared::shared_components::*;
-use crate::sprite_renderer::Sprite;
 use crate::tracker::Tracker;
 
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
         ..Camera::default()
     };
     let mut first_mouse = true;
-    let mut last_x: f32 = shared::SCR_WIDTH as f32 / 2.0;
-    let mut last_y: f32 = shared::SCR_HEIGHT as f32 / 2.0;
+    let mut last_x: f32 = SCR_WIDTH as f32 / 2.0;
+    let mut last_y: f32 = SCR_HEIGHT as f32 / 2.0;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -55,7 +54,7 @@ fn main() -> std::io::Result<()> {
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(shared::SCR_WIDTH, shared::SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw.create_window(SCR_WIDTH, SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
         .expect("Failed to create GLFW window");
 
     window.make_current();
@@ -119,13 +118,10 @@ fn main() -> std::io::Result<()> {
         (shader_program, hud_shader, sprite_shader, skybox, models)
     };
 
-    let (rect, tracker) = unsafe {
+    let mut tracker = unsafe {
         let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
-        let mut rect = Sprite::new(projection, sprite_shader.id);
-        let tracker = Tracker::new(projection, sprite_shader.id);
-        // rect.set_texture("resources/skybox/space/cubemap.png");
-        rect.set_color(vec4(1.0, 0.0, 1.0, 0.8));
-        (rect, tracker)
+        let tracker = Tracker::new(projection, sprite_shader.id, 1.0);
+        tracker
     };
 
     // client ECS to be sent to server
@@ -291,7 +287,7 @@ fn main() -> std::io::Result<()> {
             // note: the first iteration through the match{} above draws the model without view and projection setup
 
             // draw skybox
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
             skybox.draw(camera.GetViewMatrix(), projection);
 
             // DRAW HUD
@@ -299,36 +295,10 @@ fn main() -> std::io::Result<()> {
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
 
-            let point = Point3::new(0.0,0.0,0.0);
-            let radius = 1.0;
-
-            let projection = camera.GetViewMatrix().transform_point(point).to_vec();
-            let angle: Rad<f32>;
-            let v1;
-            let v2;
-            if vec2(projection.x, projection.y).magnitude() >= radius {
-                angle = Angle::asin(radius / vec2(projection.x, projection.y).magnitude());
-                v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
-                v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
-            } else {
-                angle = Rad::<f32>::turn_div_4();
-                v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
-                v2 = v1;
-            }
-
-            let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
-            let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
-
-            // rect.draw_from_corners(vec2(0.0,0.0), vec2(800.0, 10.0));
-            let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
-            let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
-            // rect.draw_at_top_left(vec2(400.0, 300.0), vec2(300.0, 300.0));
-            // let v1_norm = vec2(0.0, 1.0);
-            // let v2_norm = vec2(0.0, 1.0);
-            tracker.draw_from_vectors(v1_norm, v2_norm);
-            // let top_left = vec2(400.0, 0.0);
-            // let bottom_right = vec2(800.0, 10.0);
-            // rect.draw_from_corners(top_left, bottom_right);
+            // draw trackers on screen
+            // TODO: it's currently hard coded
+            tracker.draw_tracker(&camera, vec3(0.0, 0.0, 0.0), vec4(0.91797, 0.25, 0.2031, 1.0));
+            tracker.draw_tracker(&camera, vec3(100.0, 0.0, 0.0), vec4(0.2031, 0.7852, 0.91797, 1.0));
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -348,7 +318,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
 
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0);
+        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }

@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use std::ffi::{c_void, CStr};
 use std::{mem, ptr};
 
-use cgmath::{vec3, Matrix4, Rad, Vector2, Vector3, Vector4, SquareMatrix, Zero, vec2, Array};
+use cgmath::{vec3, Matrix4, Rad, Vector2, Vector4, Zero, vec2, Array};
 use image::GenericImage;
 use std::path::Path;
 

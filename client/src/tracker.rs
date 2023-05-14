@@ -1,20 +1,23 @@
 use crate::sprite_renderer::Sprite;
 use crate::util::vec2_signed_angle;
-use cgmath::{vec2, Matrix4, Vector2};
+use cgmath::{vec2, Matrix4, Vector2, Vector3, Point3, EuclideanSpace, Transform, Rad, InnerSpace, Angle, Basis2, Rotation2, Rotation, perspective, Deg, vec3, Vector4};
 use std::f32::consts::PI;
+use crate::camera::Camera;
 
 pub struct Tracker {
     line_width: f32,
     line: Sprite,
+    target_radius: f32,
 }
 
 impl Tracker {
-    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32) -> Tracker {
+    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32, target_radius: f32) -> Tracker {
         let rect = Sprite::new(projection, shader_id);
 
         let tracker = Tracker {
             line_width: 10.0,
             line: rect,
+            target_radius,
         };
 
         tracker
@@ -24,14 +27,41 @@ impl Tracker {
         self.line_width = width;
     }
 
+    pub unsafe fn draw_tracker(&mut self, camera: &Camera, position: Vector3<f32>, color: Vector4<f32>) {
+        let point = Point3::from_vec(position);
+
+        let projection = camera.GetViewMatrix().transform_point(point).to_vec();
+        let angle: Rad<f32>;
+        let v1;
+        let v2;
+        if vec2(projection.x, projection.y).magnitude() >= self.target_radius {
+            angle = Angle::asin(self.target_radius / vec2(projection.x, projection.y).magnitude());
+            v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+            v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
+        } else {
+            angle = Rad::<f32>::turn_div_4();
+            v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+            v2 = v1;
+        }
+
+        let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
+        let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
+
+        let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
+        let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
+
+        self.line.set_color(color);
+        self.draw_from_vectors(v1_norm, v2_norm);
+    }
+
     pub unsafe fn draw_from_vectors(&self, v1: Vector2<f32>, v2: Vector2<f32>) {
         let screen_size = vec2(800.0, 600.0);
 
         // corner positions
         let top_right_corner = screen_size / 2.0;
-        let top_left_corner = vec2(-screen_size.x / 2.0, screen_size.y / 2.0);
-        let bot_left_corner = vec2(-screen_size.x / 2.0, -screen_size.y / 2.0);
-        let bot_left_corner = vec2(screen_size.x / 2.0, -screen_size.y / 2.0);
+        // let top_left_corner = vec2(-screen_size.x / 2.0, screen_size.y / 2.0);
+        // let bot_left_corner = vec2(-screen_size.x / 2.0, -screen_size.y / 2.0);
+        // let bot_left_corner = vec2(screen_size.x / 2.0, -screen_size.y / 2.0);
 
         // corner angles
         let top_right_angle = theta(top_right_corner);
