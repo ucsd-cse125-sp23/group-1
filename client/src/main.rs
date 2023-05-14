@@ -304,15 +304,20 @@ fn main() -> std::io::Result<()> {
 
             let projection = camera.GetViewMatrix().transform_point(point).to_vec();
             let angle: Rad<f32>;
+            let v1;
+            let v2;
             if vec2(projection.x, projection.y).magnitude() >= radius {
                 angle = Angle::asin(radius / vec2(projection.x, projection.y).magnitude());
+                v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+                v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
             } else {
-                angle = Rad::<f32>::full_turn() / 4.0;
+                angle = Rad::<f32>::turn_div_4();
+                v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+                v2 = v1;
             }
-            let v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
-            let v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
-            let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0).transform_vector(vec3(v1.x,v1.y,projection.z));
-            let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 100.0).transform_vector(vec3(v2.x,v2.y,projection.z));
+
+            let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
+            let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
 
             // rect.draw_from_corners(vec2(0.0,0.0), vec2(800.0, 10.0));
             let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
