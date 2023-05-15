@@ -269,8 +269,7 @@ fn main() -> std::io::Result<()> {
                     }
                     Err(e) => {
                         eprintln!("Failed to read message size from server: {}",e);
-                        // TODO: handle lost client
-                        break;
+                        process::exit(1);
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -289,6 +288,7 @@ fn main() -> std::io::Result<()> {
                     },
                     Err(e) => {
                         eprintln!("Failed to read message from server: {}",e);
+                        process::exit(1);
                     },
                 }
             }

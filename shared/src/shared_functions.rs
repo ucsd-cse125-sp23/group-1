@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::str;
+use std::{process, str};
 use std::io::{Read,Write,ErrorKind};
 
 pub fn read_data(stream: &mut TcpStream) -> String {
@@ -21,21 +21,18 @@ pub fn read_data(stream: &mut TcpStream) -> String {
             message = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
         },
         Ok(_) => {},
-        Err(_) => {},
+        Err(_) => process::exit(1),
     }
     return message.to_string();
 }
 
-pub fn write_data(stream: &mut TcpStream, string: String) -> bool {
+pub fn write_data(stream: &mut TcpStream, string: String) {
     let size = string.len() as u32 + 4;
     let message = [u32::to_be_bytes(size).to_vec(), string.clone().into_bytes()].concat();
     match stream.write(&message) {
-        Ok(_) => return true,
-        Err(ref e) if e.kind() == ErrorKind::WouldBlock => return false,
-        Err(e) => {
-            println!("Error: {}", e);
-            return false;
-        }
+        Ok(_) => (),
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => (),
+        Err(_) => process::exit(1),
     }
 }
 

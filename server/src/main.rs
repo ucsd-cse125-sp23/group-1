@@ -57,7 +57,8 @@ fn main() {
             }
             // check each connection for ready updates
             ready_players = ecs.check_ready_updates(ready_players);
-            if ready_players >= 2 && ready_players == (ecs.players.len() as u8) {
+            // println!("ready players: {}, active players: {}, total players: {}", ready_players, ecs.active_players, ecs.players.len());
+            if ready_players >= 2 && ready_players == ecs.active_players {
                 ecs.send_ready_message(true);
                 break;
             }

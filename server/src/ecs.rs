@@ -65,16 +65,26 @@ impl ECS {
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.dynamics.clear();
         self.renderables.clear();
+        self.active_players = 0;
 
         init_world(self, rigid_body_set, collider_set);
         init_player_spawns(self);
 
         for &player in &self.players {
-            self.player_input_components[player] = PlayerInputComponent::default();
-            self.position_components[player] = PositionComponent::default();
-            self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-            self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
-            self.player_health_components[player] = PlayerHealthComponent::default();
+            if self.network_components[player].connected {
+                self.active_players += 1;
+                self.player_input_components[player] = PlayerInputComponent::default();
+                self.position_components[player] = PositionComponent::default();
+                self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
+                self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+                self.player_health_components[player] = PlayerHealthComponent::default();
+            } else {
+                self.player_input_components[player] = PlayerInputComponent::default();
+                self.position_components[player] = PositionComponent::default();
+                self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
+                self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+                self.player_health_components[player] = PlayerHealthComponent{alive: false, health: 0};
+            }
 
             // TODO: Handle more than 5 players without crashing
 
@@ -92,7 +102,6 @@ impl ECS {
             self.renderables.push(player);
         }
 
-        self.active_players = self.players.len() as u8;
         self.game_ended = false;
     }
 
@@ -148,10 +157,8 @@ impl ECS {
             input_temp.camera_qy = self.player_input_components[player].camera_qy;
             input_temp.camera_qz = self.player_input_components[player].camera_qz;
             let mut stream = & self.network_components[player].stream;
-            // need a protocol, get number of bytes in message then read_exact
 
-            // read messages from client with header length
-            // 4 byte size field
+            // read messages from client with header length: 4-byte size field
             while self.network_components[player].connected && connected {
                 let mut size_buf = [0 as u8; 4];
                 let mut size:u32 = 0;
@@ -198,13 +205,16 @@ impl ECS {
             // handle lost client
             if !connected {
                 self.network_components[player].connected = false;
-                // TODO: remove the player from ecs or add checks for connected in other parts of the code
                 self.active_players -= 1;
             }
 
             // once all inputs have been aggregated for this player
             let camera = &mut self.player_camera_components[player];
-            camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(input_temp.camera_qw, input_temp.camera_qx, input_temp.camera_qy, input_temp.camera_qz));
+            camera.rot = UnitQuaternion::from_quaternion(Quaternion::new(
+                input_temp.camera_qw,
+                input_temp.camera_qx,
+                input_temp.camera_qy,
+                input_temp.camera_qz));
             camera.camera_front = camera.rot * vector![0.0,0.0,-1.0];
             camera.camera_right = camera.rot * vector![1.0,0.0,0.0];
             camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
@@ -224,8 +234,32 @@ impl ECS {
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                Err(e) => eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+                Err(e) => {
+                    eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
+                    self.network_components[player].connected = false;
+                }
             }
+        }
+    }
+
+    /**
+     * Remove players from ECS
+     */
+    pub fn remove_players(&mut self, to_remove_players: Vec<Entity>){
+        for &player in &to_remove_players {
+            self.name_components.remove(player);
+            self.player_input_components.remove(player);
+            self.position_components.remove(player);
+            self.player_weapon_components.remove(player);
+            self.model_components.remove(player);
+            self.physics_components.remove(player);
+            self.network_components.remove(player);
+            self.player_health_components.remove(player);
+            self.player_camera_components.remove(player);
+
+            self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
+            self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
+            self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
         }
     }
 
@@ -269,7 +303,11 @@ impl ECS {
                 match self.network_components[player].stream.write(&message) {
                     Ok(_) => (),
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                    Err(e) => panic!("Error updating client \"{}\": {:?}", self.name_components[player], e),
+                    Err(e) => {
+                        eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
+                        self.network_components[player].connected = false;
+                        self.active_players -= 1;
+                    }
                 }
             }
         }
@@ -475,30 +513,39 @@ impl ECS {
 
     pub fn check_ready_updates(&mut self, curr: u8) -> u8{
         let mut ready_players = curr;
+        
         // check each connection for ready updates
         for &player in &self.players {
             let mut stream = &self.network_components[player].stream;
             let mut size_buf = [0 as u8; 4];
-            match stream.peek(&mut size_buf) {
-                Ok(4) => {
-                    let read_size = u32::from_be_bytes(size_buf) as usize;
-                    let mut read_buf = vec![0 as u8; read_size];
-                    stream.read(&mut read_buf).unwrap();
-                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
-                    match ready_res {
-                        Ok(ecs) => {
-                            if ecs.ready {
-                                ready_players += 1;
-                            } else {
-                                ready_players -= 1;
+            if self.network_components[player].connected {
+                match stream.peek(&mut size_buf) {
+                    Ok(4) => {
+                        let read_size = u32::from_be_bytes(size_buf) as usize;
+                        let mut read_buf = vec![0 as u8; read_size];
+                        stream.read(&mut read_buf).unwrap();
+                        let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                        let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                        match ready_res {
+                            Ok(ecs) => {
+                                if ecs.ready {
+                                    ready_players += 1;
+                                } else {
+                                    ready_players -= 1;
+                                }
                             }
+                            _ => ()
                         }
-                        _ => ()
+                    },
+                    Ok(_) => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(e) => {
+                        eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
+                        self.network_components[player].connected = false;
+                        self.active_players -= 1;
                     }
-                },
-                _ => (),
-            };
+                };
+            }
         }
         return ready_players;
     }
