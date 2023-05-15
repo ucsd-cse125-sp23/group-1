@@ -26,13 +26,12 @@ use crate::skybox::Skybox;
 
 // network
 use crate::sprite_renderer::Sprite;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
 use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
-use shared::{SCR_HEIGHT, SCR_WIDTH};
 
 fn main() -> io::Result<()> {
     // create camera and camera information
@@ -125,7 +124,7 @@ fn main() -> io::Result<()> {
     };
 
     let crosshair = unsafe {
-        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
+        let projection = cgmath::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
         let mut sprite = Sprite::new(projection, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
         sprite
@@ -208,11 +207,21 @@ fn main() -> io::Result<()> {
 
             // process inputs
             // --------------
-            process_inputs(&mut window, &mut input_component, &mut roll);
+            process_inputs(
+                &mut window,
+                &mut input_component,
+                &mut roll
+            );
 
             // events
             // ------
-            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera, roll);
+            process_events(
+                &events,
+                &mut first_mouse,
+                &mut last_x,
+                &mut last_y,
+                &mut camera, roll
+            );
 
             // set camera front of input_component
             input_component.camera_qx = camera.RotQuat.v.x;
@@ -228,21 +237,21 @@ fn main() -> io::Result<()> {
 
             // receive all incoming server data
             loop {
-                let size:u32;
+                let size: u32;
                 match stream.peek(&mut size_buf) {
                     Ok(4) => {
                         // big-endian for networks. it's tradition, dammit!
                         size = u32::from_be_bytes(size_buf);
-                    },
+                    }
                     Ok(_) => {
                         // incomplete size field, wait for next tick
                         break;
-                    },
+                    }
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message size from server: {}",e);
+                        eprintln!("Failed to read message size from server: {}", e);
                         // TODO: handle lost client
                         break;
                     }
@@ -257,13 +266,13 @@ fn main() -> io::Result<()> {
                         // TODO: handle this throwing an error. Occasionally crashes ^
                         let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                         client_ecs = Some(value);
-                    },
+                    }
                     Ok(_) => {
                         break;
-                    },
+                    }
                     Err(e) => {
-                        eprintln!("Failed to read message from server: {}",e);
-                    },
+                        eprintln!("Failed to read message from server: {}", e);
+                    }
                 }
             }
 
@@ -293,9 +302,11 @@ fn main() -> io::Result<()> {
                             client_health.health = c_ecs.health_components[player_key].health;
                         }
 
-                        let player_pos = vec3(c_ecs.position_components[player_key].x,
+                        let player_pos = vec3(
+                            c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z);
+                            c_ecs.position_components[player_key].z
+                        );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
                         for &renderable in &c_ecs.renderables {
@@ -341,13 +352,18 @@ fn main() -> io::Result<()> {
                 // note: the first iteration through the match{} above draws the model without view and projection setup
               
                 // draw skybox
-                let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
+                let projection: Matrix4<f32> = perspective(
+                    Deg(camera.Zoom),
+                    width as f32 / height as f32,
+                    0.1,
+                    100.0
+                );
                 skybox.draw(camera.GetViewMatrix(), projection);
 
                 crosshair.draw_at_center(
-                  vec2(width as f32 / 2.0, height as f32 / 2.0),
-                  vec2(50.0, 50.0),
-              );
+                    vec2(width as f32 / 2.0, height as f32 / 2.0),
+                    vec2(50.0, 50.0)
+                );
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -370,7 +386,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
             Deg(camera.Zoom),
             width as f32 / height as f32,
             0.1,
-            10000.0,
+            100.0,
         );
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
