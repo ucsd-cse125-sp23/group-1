@@ -386,7 +386,7 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
             Deg(camera.Zoom),
             width as f32 / height as f32,
             0.1,
-            100.0,
+            10000.0,
         );
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
