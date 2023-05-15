@@ -23,9 +23,9 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
+use crate::sprite_renderer::Sprite;
 
 // network
-use crate::sprite_renderer::Sprite;
 use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
