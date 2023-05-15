@@ -92,7 +92,7 @@ fn main() -> std::io::Result<()> {
     stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (hud_shader, skybox, models, light_program) = unsafe {
+    let (light_shader, hud_shader, skybox, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -110,7 +110,7 @@ fn main() -> std::io::Result<()> {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
 
-        let light_program = Shader::new(
+        let light_shader = Shader::new(
             "shaders/light.vs",
             "shaders/light.fs",
         );
@@ -121,7 +121,7 @@ fn main() -> std::io::Result<()> {
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
         models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
-        (hud_shader, skybox, models, light_program)
+        (light_shader, hud_shader, skybox, models)
     };
 
     // client ECS to be sent to server
@@ -300,7 +300,7 @@ fn main() -> std::io::Result<()> {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 // activate shader
-                let shader = &light_program;
+                let shader = &light_shader;
                 shader.use_program();
 
                 // TODO: lighting variables (this can imported from a json file?)
