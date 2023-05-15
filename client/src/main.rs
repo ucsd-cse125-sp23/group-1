@@ -14,10 +14,9 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec3, vec4, Deg, Matrix4, Point3, Quaternion, Vector3};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3};
 
-use core::mem::{size_of, size_of_val};
-use std::ffi::{c_void, CStr};
+use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
 
 use crate::camera::*;
@@ -26,6 +25,7 @@ use crate::shader::Shader;
 use crate::skybox::Skybox;
 
 // network
+use crate::sprite_renderer::Sprite;
 use shared::shared_components::*;
 use shared::{SCR_HEIGHT, SCR_WIDTH};
 use std::io::{self, Read, Write};
@@ -90,16 +90,13 @@ fn main() -> io::Result<()> {
         .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, sprite_shader, skybox, models) = unsafe {
+    let (shader_program, sprite_shader, skybox, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
 
         // create shader program using shader.rs
         let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
-
-        // create HUD shader
-        let hud_shader = Shader::new("shaders/hud.vs", "shaders/hud.fs");
 
         let sprite_shader = Shader::new("shaders/sprite.vs", "shaders/sprite.fs");
 
@@ -115,45 +112,19 @@ fn main() -> io::Result<()> {
         let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, hud_shader, sprite_shader, skybox, models)
+        (shader_program, sprite_shader, skybox, models)
+    };
+
+    let crosshair = unsafe {
+        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/crosshair.png");
+        sprite
     };
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
-    // set up HUD renderer
-    let mut vao = 0;
-    let mut vbo = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao as *mut u32);
-        gl::GenBuffers(1, &mut vbo);
-
-        // define crosshair vertices (TEMPORARY)
-        // coords are relative to screen size -- currently 640x480
-        // TODO: re-implement with textured quad
-        let vertices: [f32; 8] = [-0.0375, -0.0, 0.0375, -0.0, 0.0, 0.05, 0.0, -0.05];
-
-        // 1. bind Vertex Array Object
-        gl::BindVertexArray(vao);
-        // 2. copy array into a buffer
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            size_of_val(&vertices) as isize,
-            vertices.as_ptr().cast(),
-            gl::STATIC_DRAW,
-        );
-        // 3. set vertex attribute pointers
-        gl::VertexAttribPointer(
-            0,
-            2,
-            gl::FLOAT,
-            gl::FALSE,
-            (2 * size_of::<f32>()) as i32,
-            0 as *mut c_void,
-        );
-        gl::EnableVertexAttribArray(0);
-    }
     // RENDER LOOP
     // -----------
     while !window.should_close() {
@@ -307,10 +278,10 @@ fn main() -> io::Result<()> {
             );
             skybox.draw(camera.GetViewMatrix(), projection);
 
-            // DRAW HUD
-            hud_shader.use_program();
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::LINES, 0, 4);
+            crosshair.draw_at_center(
+                vec2(SCR_WIDTH as f32 / 2.0, SCR_HEIGHT as f32 / 2.0),
+                vec2(50.0, 50.0),
+            );
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
