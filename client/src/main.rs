@@ -1,38 +1,36 @@
-mod shader;
-mod macros;
 mod camera;
+mod macros;
 mod mesh;
 mod model;
+mod shader;
 mod skybox;
 mod sprite_renderer;
-mod tracker;
 mod util;
 
 use std::collections::HashMap;
 
 // graphics
-extern crate glfw;
 extern crate gl;
+extern crate glfw;
 
-use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4};
+use self::glfw::{Action, Context, Key, MouseButton};
+use cgmath::{perspective, vec3, vec4, Deg, Matrix4, Point3, Quaternion, Vector3};
 
+use core::mem::{size_of, size_of_val};
+use std::ffi::{c_void, CStr};
 use std::sync::mpsc::Receiver;
-use std::ffi::{CStr, c_void};
-use core::{mem::{size_of, size_of_val}};
 
-use crate::shader::Shader;
 use crate::camera::*;
 use crate::model::Model;
+use crate::shader::Shader;
 use crate::skybox::Skybox;
 
 // network
-use std::io::{Read, Write, self};
-use std::net::{TcpStream};
-use std::str;
-use shared::{SCR_HEIGHT, SCR_WIDTH};
 use shared::shared_components::*;
-use crate::tracker::Tracker;
+use shared::{SCR_HEIGHT, SCR_WIDTH};
+use std::io::{self, Read, Write};
+use std::net::TcpStream;
+use std::str;
 
 fn main() -> io::Result<()> {
     // create camera and camera information
@@ -48,13 +46,21 @@ fn main() -> io::Result<()> {
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
     // glfw window creation
     // --------------------
-    let (mut window, events) = glfw.create_window(SCR_WIDTH, SCR_HEIGHT, shared::WINDOW_TITLE, glfw::WindowMode::Windowed)
+    let (mut window, events) = glfw
+        .create_window(
+            SCR_WIDTH,
+            SCR_HEIGHT,
+            shared::WINDOW_TITLE,
+            glfw::WindowMode::Windowed,
+        )
         .expect("Failed to create GLFW window");
 
     window.make_current();
@@ -70,7 +76,8 @@ fn main() -> io::Result<()> {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     // Create network TcpStream
-    let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
+    let mut stream =
+        TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -78,7 +85,9 @@ fn main() -> io::Result<()> {
     let client_id = read_buf[0] as usize;
     println!("client id: {}", client_id);
 
-    stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
     let (shader_program, hud_shader, sprite_shader, skybox, models) = unsafe {
@@ -87,21 +96,12 @@ fn main() -> io::Result<()> {
         gl::Enable(gl::DEPTH_TEST);
 
         // create shader program using shader.rs
-        let shader_program = Shader::new(
-            "shaders/shader.vs",
-            "shaders/shader.fs",
-        );
+        let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
 
         // create HUD shader
-        let hud_shader = Shader::new(
-            "shaders/hud.vs",
-            "shaders/hud.fs",
-        );
+        let hud_shader = Shader::new("shaders/hud.vs", "shaders/hud.fs");
 
-        let sprite_shader = Shader::new(
-            "shaders/sprite.vs",
-            "shaders/sprite.fs"
-        );
+        let sprite_shader = Shader::new("shaders/sprite.vs", "shaders/sprite.fs");
 
         // textures for skybox
         let skybox = Skybox::new("resources/skybox/space", ".png");
@@ -112,16 +112,10 @@ fn main() -> io::Result<()> {
 
         // add all models to hashmap
         // -----------
-        let mut models: HashMap<String,Model> = HashMap::new();
+        let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
         (shader_program, hud_shader, sprite_shader, skybox, models)
-    };
-
-    let mut tracker = unsafe {
-        let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
-        let tracker = Tracker::new(projection, sprite_shader.id, 1.0);
-        tracker
     };
 
     // client ECS to be sent to server
@@ -137,12 +131,7 @@ fn main() -> io::Result<()> {
         // define crosshair vertices (TEMPORARY)
         // coords are relative to screen size -- currently 640x480
         // TODO: re-implement with textured quad
-        let vertices: [f32; 8] = [
-        -0.0375, -0.0,
-         0.0375, -0.0,
-         0.0,   0.05,
-         0.0,  -0.05,
-        ];
+        let vertices: [f32; 8] = [-0.0375, -0.0, 0.0375, -0.0, 0.0, 0.05, 0.0, -0.05];
 
         // 1. bind Vertex Array Object
         gl::BindVertexArray(vao);
@@ -152,10 +141,17 @@ fn main() -> io::Result<()> {
             gl::ARRAY_BUFFER,
             size_of_val(&vertices) as isize,
             vertices.as_ptr().cast(),
-            gl::STATIC_DRAW
+            gl::STATIC_DRAW,
         );
         // 3. set vertex attribute pointers
-        gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
+        gl::VertexAttribPointer(
+            0,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (2 * size_of::<f32>()) as i32,
+            0 as *mut c_void,
+        );
         gl::EnableVertexAttribArray(0);
     }
     // RENDER LOOP
@@ -172,7 +168,14 @@ fn main() -> io::Result<()> {
 
         // events
         // ------
-        process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera, roll);
+        process_events(
+            &events,
+            &mut first_mouse,
+            &mut last_x,
+            &mut last_y,
+            &mut camera,
+            roll,
+        );
 
         // set camera front of input_component
         // input_component.camera_front_x = camera.Front.x;
@@ -184,7 +187,8 @@ fn main() -> io::Result<()> {
         input_component.camera_qw = camera.RotQuat.s;
 
         // send client data
-        let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+        let j =
+            serde_json::to_string(&input_component).expect("Input component serialization error");
         let send_size = j.len() as u32 + 4;
         let send = [u32::to_be_bytes(send_size).to_vec(), j.clone().into_bytes()].concat();
         match stream.write(&send) {
@@ -196,21 +200,21 @@ fn main() -> io::Result<()> {
         // receive all incoming server data
         loop {
             let mut size_buf = [0 as u8; 4];
-            let size:u32;
+            let size: u32;
             match stream.peek(&mut size_buf) {
                 Ok(4) => {
                     // big-endian for networks. it's tradition, dammit!
                     size = u32::from_be_bytes(size_buf);
-                },
+                }
                 Ok(_) => {
                     // incomplete size field, wait for next tick
                     break;
-                },
+                }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                     break;
                 }
                 Err(e) => {
-                    eprintln!("Failed to read message size from server: {}",e);
+                    eprintln!("Failed to read message size from server: {}", e);
                     // TODO: handle lost client
                     break;
                 }
@@ -220,18 +224,22 @@ fn main() -> io::Result<()> {
             match stream.peek(&mut read_buf) {
                 Ok(bytes_read) if bytes_read == s_size => {
                     // if this throws an error we deserve to crash tbh
-                    stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                    let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                    let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                    stream
+                        .read_exact(&mut read_buf)
+                        .expect("read_exact did not read the same amount of bytes as peek");
+                    let message: &str =
+                        str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                    let value: ClientECS = serde_json::from_str(message)
+                        .expect("Error converting string to ClientECS");
                     client_ecs = Some(value);
                     // c_ecs = value;
-                },
+                }
                 Ok(_) => {
                     break;
-                },
+                }
                 Err(e) => {
-                    eprintln!("Failed to read message from server: {}",e);
-                },
+                    eprintln!("Failed to read message from server: {}", e);
+                }
             }
         }
 
@@ -249,9 +257,11 @@ fn main() -> io::Result<()> {
                 Some(c_ecs) => {
                     let player_key = c_ecs.players[client_id];
 
-                    let player_pos = vec3(c_ecs.position_components[player_key].x,
+                    let player_pos = vec3(
+                        c_ecs.position_components[player_key].x,
                         c_ecs.position_components[player_key].y,
-                        c_ecs.position_components[player_key].z);
+                        c_ecs.position_components[player_key].z,
+                    );
                     set_camera_pos(&mut camera, player_pos, &shader_program);
 
                     for &renderable in &c_ecs.renderables {
@@ -268,7 +278,9 @@ fn main() -> io::Result<()> {
                             let model_qy = c_ecs.position_components[renderable].qy;
                             let model_qz = c_ecs.position_components[renderable].qz;
                             let model_qw = c_ecs.position_components[renderable].qw;
-                            let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
+                            let rot_mat = Matrix4::from(Quaternion::new(
+                                model_qw, model_qx, model_qy, model_qz,
+                            ));
 
                             // setup scale matrix (skip for now)
                             let scale_mat = Matrix4::from_scale(1.0);
@@ -281,24 +293,24 @@ fn main() -> io::Result<()> {
                     }
                 }
                 None => {
-                    set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program);
+                    set_camera_pos(&mut camera, vec3(0.0, 0.0, 0.0), &shader_program);
                 }
             }
             // note: the first iteration through the match{} above draws the model without view and projection setup
 
             // draw skybox
-            let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective(
+                Deg(camera.Zoom),
+                SCR_WIDTH as f32 / SCR_HEIGHT as f32,
+                0.1,
+                100.0,
+            );
             skybox.draw(camera.GetViewMatrix(), projection);
 
             // DRAW HUD
             hud_shader.use_program();
             gl::BindVertexArray(vao);
             gl::DrawArrays(gl::LINES, 0, 4);
-
-            // draw trackers on screen
-            // TODO: it's currently hard coded
-            tracker.draw_tracker(&camera, vec3(0.0, 0.0, 0.0), vec4(0.91797, 0.25, 0.2031, 1.0));
-            tracker.draw_tracker(&camera, vec3(100.0, 0.0, 0.0), vec4(0.2031, 0.7852, 0.91797, 1.0));
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -318,19 +330,26 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
 
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), SCR_WIDTH as f32 / SCR_HEIGHT as f32 , 0.1, 100.0);
+        let projection: Matrix4<f32> = perspective(
+            Deg(camera.Zoom),
+            SCR_WIDTH as f32 / SCR_HEIGHT as f32,
+            0.1,
+            100.0,
+        );
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }
 
 /// Event processing function as introduced in 1.7.4 (Camera Class) and used in
 /// most later tutorials
-pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
-                      first_mouse: &mut bool,
-                      last_x: &mut f32,
-                      last_y: &mut f32,
-                      camera: &mut Camera,
-                      roll: bool) {
+pub fn process_events(
+    events: &Receiver<(f64, glfw::WindowEvent)>,
+    first_mouse: &mut bool,
+    last_x: &mut f32,
+    last_y: &mut f32,
+    camera: &mut Camera,
+    roll: bool,
+) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -363,7 +382,11 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent, roll: &mut bool) {
+fn process_inputs(
+    window: &mut glfw::Window,
+    input_component: &mut PlayerInputComponent,
+    roll: &mut bool,
+) {
     if window.get_key(Key::W) == Action::Press {
         input_component.w_pressed = true;
     }
