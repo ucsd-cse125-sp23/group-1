@@ -15,7 +15,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -100,7 +100,7 @@ fn main() -> io::Result<()> {
         .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, sprite_shader, skybox, models) = unsafe {
+    let (shader_program, sprite_shader, skybox, models, tracker_colors) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -122,7 +122,13 @@ fn main() -> io::Result<()> {
         let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
 
-        (shader_program, sprite_shader, skybox, models)
+        let colors: [Vector4<f32>; 3] = [
+            vec4(0.91797, 0.25, 0.2031, 1.0),
+            vec4(0.2031, 0.7852, 0.91797, 1.0),
+            vec4(0.3867, 0.9648, 0.0781, 1.0),
+        ];
+
+        (shader_program, sprite_shader, skybox, models, colors)
     };
 
     let crosshair = unsafe {
@@ -343,6 +349,17 @@ fn main() -> io::Result<()> {
                             }
                         }
 
+                        // draw trackers
+                        let mut i = 0;
+                        for &player in &c_ecs.players {
+                            if player != player_key {
+                                let pos = &c_ecs.position_components[player];
+                                let pos = vec3(pos.x, pos.y, pos.z);
+                                tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()]);
+                            }
+                            i += 1;
+                        }
+
                         // game has ended
                         if c_ecs.game_ended {
                             for (i, player) in c_ecs.players.iter().enumerate() {
@@ -369,10 +386,6 @@ fn main() -> io::Result<()> {
                 skybox.draw(camera.GetViewMatrix(), projection);
 
                 crosshair.draw_at_center(vec2(width as f32 / 2.0, height as f32 / 2.0), vec2(50.0, 50.0));
-                // draw trackers on screen
-                // TODO: it's currently hard coded
-                tracker.draw_tracker(&camera, vec3(0.0, 0.0, 0.0), vec4(0.91797, 0.25, 0.2031, 1.0));
-                tracker.draw_tracker(&camera, vec3(100.0, 0.0, 0.0), vec4(0.2031, 0.7852, 0.91797, 1.0));
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

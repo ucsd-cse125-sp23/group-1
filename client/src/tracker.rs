@@ -29,8 +29,6 @@ impl Tracker {
         self.line_width = width;
     }
 
-
-
     pub unsafe fn draw_tracker(&mut self, camera: &Camera, position: Vector3<f32>, color: Vector4<f32>) {
         let point = Point3::from_vec(position);
 
