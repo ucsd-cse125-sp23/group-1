@@ -29,7 +29,7 @@ impl Tracker {
         self.line_width = width;
     }
 
-    pub unsafe fn draw_tracker(&mut self, camera: &Camera, position: Vector3<f32>, color: Vector4<f32>) {
+    pub unsafe fn draw_tracker(&mut self, camera: &Camera, position: Vector3<f32>, color: Vector4<f32>, trackers: &mut Vec<(Rad<f32>, Vector2<f32>, Vector2<f32>, Vector4<f32>)>) {
         let point = Point3::from_vec(position);
 
         let projection = camera.GetViewMatrix().transform_point(point).to_vec();
@@ -52,8 +52,26 @@ impl Tracker {
         let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
         let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
 
-        self.line.set_color(color);
-        self.draw_from_vectors(v1_norm, v2_norm);
+        let mut angle_proj = v2_norm.angle(v1_norm).normalize();
+        if angle_proj == Rad(0.0) {
+            angle_proj = Rad::full_turn();
+        }
+        println!("{:?}",angle_proj);
+
+        // self.line.set_color(color);
+        trackers.push((angle_proj, v1_norm, v2_norm, color));
+        // self.draw_from_vectors(v1_norm, v2_norm);
+    }
+
+    pub unsafe fn draw_all_trackers(&mut self, mut trackers: Vec<(Rad<f32>, Vector2<f32>, Vector2<f32>, Vector4<f32>)>) {
+        trackers.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        for tracker in trackers {
+            let mut color = tracker.3;
+            // hardcoded alpha
+            color.w = 0.5;
+            self.line.set_color(color);
+            self.draw_from_vectors(tracker.1, tracker.2);
+        }
     }
 
     pub unsafe fn draw_from_vectors(&self, v1: Vector2<f32>, v2: Vector2<f32>) {

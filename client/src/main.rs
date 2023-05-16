@@ -299,6 +299,8 @@ fn main() -> io::Result<()> {
                 // activate shader
                 shader_program.use_program();
 
+                let mut trackers = vec![];
+
                 // NEEDS TO BE REWORKED FOR MENU STATE
                 match &client_ecs {
                     Some(c_ecs) => {
@@ -355,7 +357,8 @@ fn main() -> io::Result<()> {
                             if player != player_key {
                                 let pos = &c_ecs.position_components[player];
                                 let pos = vec3(pos.x, pos.y, pos.z);
-                                tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()]);
+                                println!("player {}:", i);
+                                tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
                             }
                             i += 1;
                         }
@@ -386,6 +389,10 @@ fn main() -> io::Result<()> {
                 skybox.draw(camera.GetViewMatrix(), projection);
 
                 crosshair.draw_at_center(vec2(width as f32 / 2.0, height as f32 / 2.0), vec2(50.0, 50.0));
+
+                // gl::DepthMask(gl::FALSE);
+                tracker.draw_all_trackers(trackers);
+                // gl::DepthMask(gl::TRUE);
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
