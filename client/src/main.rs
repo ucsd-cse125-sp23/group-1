@@ -15,7 +15,7 @@ extern crate glfw;
 extern crate gl;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2};
 
 use std::sync::mpsc::Receiver;
 use std::ffi::{CStr, c_void};
@@ -120,7 +120,7 @@ fn main() -> io::Result<()> {
 
     let mut tracker = unsafe {
         let projection = cgmath::ortho(0.0, SCR_WIDTH as f32, 0.0, SCR_HEIGHT as f32, -1.0, 1.0);
-        let tracker = Tracker::new(projection, sprite_shader.id, 1.0);
+        let tracker = Tracker::new(projection, sprite_shader.id, 1.0, vec2(SCR_WIDTH as f32, SCR_HEIGHT as f32));
         tracker
     };
 

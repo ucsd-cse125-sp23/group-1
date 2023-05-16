@@ -8,16 +8,18 @@ pub struct Tracker {
     line_width: f32,
     line: Sprite,
     target_radius: f32,
+    screen_size: Vector2<f32>,
 }
 
 impl Tracker {
-    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32, target_radius: f32) -> Tracker {
+    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32, target_radius: f32, screen_size: Vector2<f32>) -> Tracker {
         let rect = Sprite::new(projection, shader_id);
 
         let tracker = Tracker {
             line_width: 10.0,
             line: rect,
             target_radius,
+            screen_size,
         };
 
         tracker
@@ -26,6 +28,8 @@ impl Tracker {
     pub fn set_line_width(&mut self, width: f32) {
         self.line_width = width;
     }
+
+
 
     pub unsafe fn draw_tracker(&mut self, camera: &Camera, position: Vector3<f32>, color: Vector4<f32>) {
         let point = Point3::from_vec(position);
@@ -55,7 +59,7 @@ impl Tracker {
     }
 
     pub unsafe fn draw_from_vectors(&self, v1: Vector2<f32>, v2: Vector2<f32>) {
-        let screen_size = vec2(800.0, 600.0);
+        let screen_size = self.screen_size;
 
         // corner positions
         let top_right_corner = screen_size / 2.0;
