@@ -304,11 +304,10 @@ fn main() -> std::io::Result<()> {
                 shader.use_program();
 
                 // TODO: lighting variables (this can imported from a json file?)
-                let light_pos = vec3(10., 10., 10.);
+                let light_dir = vec3(0., 0., 1.);
                 let light_ambience = vec3(0.2, 0.2, 0.2);
                 let light_diffuse = vec3(0.5, 0.5, 0.5);
-
-                shader.setVector3(c_str!("lightPos"), &light_pos);
+                shader.setVector3(c_str!("lightDir"), &light_dir);
                 shader.setVector3(c_str!("lightAmb"), &light_ambience);
                 shader.setVector3(c_str!("lightDif"), &light_diffuse);
 
@@ -357,6 +356,7 @@ fn main() -> std::io::Result<()> {
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader.set_mat4(c_str!("model"), &model);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
+                                // shader.set_mat4(c_str!("texture_normal1"), &);
                                 models[model_name].draw(&shader);
                             }
                         }
