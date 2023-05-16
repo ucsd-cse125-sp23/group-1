@@ -48,8 +48,8 @@ impl Tracker {
             v2 = v1;
         }
 
-        let v1_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
-        let v2_proj = perspective(Deg(camera.Zoom), shared::SCR_WIDTH as f32 / shared::SCR_HEIGHT as f32 , 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
+        let v1_proj = perspective(Deg(camera.Zoom), self.screen_size.x / self.screen_size.y, 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
+        let v2_proj = perspective(Deg(camera.Zoom), self.screen_size.x / self.screen_size.y, 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
 
         let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
         let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();

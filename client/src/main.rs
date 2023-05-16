@@ -6,6 +6,7 @@ mod shader;
 mod skybox;
 mod sprite_renderer;
 mod util;
+mod tracker;
 
 use std::collections::HashMap;
 
@@ -32,6 +33,7 @@ use std::process;
 use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
+use crate::tracker::Tracker;
 
 fn main() -> io::Result<()> {
     // create camera and camera information
