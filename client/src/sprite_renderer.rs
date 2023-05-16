@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use std::ffi::{c_void, CStr};
 use std::{mem, ptr};
 
-use cgmath::{vec3, Matrix4, Rad, Vector2, Vector4, Zero, vec2, Array};
+use cgmath::{vec2, vec3, Array, Matrix4, Rad, Vector2, Vector4, Zero};
 use image::GenericImage;
 use std::path::Path;
 
@@ -35,18 +35,13 @@ impl Sprite {
             texture: Texture {
                 id: 0,
                 size: Vector2::zero(),
-            }
+            },
         };
 
         let vertices: [f32; 24] = [
             // pos    // tex
-            0.0, 1.0, 0.0, 1.0,
-            1.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 0.0,
-
-            0.0, 1.0, 0.0, 1.0,
-            1.0, 1.0, 1.0, 1.0,
-            1.0, 0.0, 1.0, 0.0,
+            0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
         ];
 
         let mut vbo = 0;
@@ -88,7 +83,7 @@ impl Sprite {
 
         gl::GenTextures(1, &mut self.texture.id);
         gl::BindTexture(gl::TEXTURE_2D, self.texture.id); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-        // set the texture wrapping parameters
+                                                          // set the texture wrapping parameters
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); // set texture wrapping to gl::REPEAT (default wrapping method)
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
         // set texture filtering parameters
@@ -121,18 +116,16 @@ impl Sprite {
     pub unsafe fn draw_from_corners(&self, top_left: Vector2<f32>, bottom_right: Vector2<f32>) {
         let width = bottom_right.x - top_left.x;
         let height = bottom_right.y - top_left.y;
-        self.draw_at_top_left(top_left, vec2(width, height));
+        self.draw_at_bot_left(top_left, vec2(width, height));
     }
 
-    pub fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>, color: Vector4<f32>) {
+    pub unsafe fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>) {
         // TODO: complete function
+        let new_position = position + vec2(-size.x / 2.0, -size.y / 2.0);
+        self.draw_at_bot_left(new_position, size);
     }
 
-    pub unsafe fn draw_at_top_left(
-        &self,
-        position: Vector2<f32>,
-        size: Vector2<f32>,
-    ) {
+    pub unsafe fn draw_at_bot_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
         self.shader.use_program();
 
         let mut model = Matrix4::from_translation(vec3(position.x, position.y, 0.0));
