@@ -9,7 +9,12 @@ pub fn read_data(stream: &mut TcpStream) -> String {
         Ok(4) => {
             size = u32::from_be_bytes(size_buf);
         },
-        _ => return "".to_string(),
+        Ok(_) => return "".to_string(),
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => return "".to_string(),
+        Err(_) => {
+            eprintln!("server disconnected");
+            process::exit(1);
+        }
     }
 
     let s_size: usize = size.try_into().unwrap();
@@ -21,7 +26,11 @@ pub fn read_data(stream: &mut TcpStream) -> String {
             message = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
         },
         Ok(_) => {},
-        Err(_) => process::exit(1),
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => (),
+        Err(_) => {
+            eprintln!("server disconnected");
+            process::exit(1);
+        }
     }
     return message.to_string();
 }
@@ -32,7 +41,7 @@ pub fn write_data(stream: &mut TcpStream, string: String) {
     match stream.write(&message) {
         Ok(_) => (),
         Err(ref e) if e.kind() == ErrorKind::WouldBlock => (),
-        Err(_) => process::exit(1),
+        Err(_) => (),
     }
 }
 

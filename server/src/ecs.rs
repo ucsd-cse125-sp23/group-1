@@ -206,6 +206,8 @@ impl ECS {
             if !connected {
                 self.network_components[player].connected = false;
                 self.active_players -= 1;
+                self.player_health_components[player].health = 0;
+                self.player_health_components[player].alive = false;
             }
 
             // once all inputs have been aggregated for this player
@@ -237,6 +239,8 @@ impl ECS {
                 Err(e) => {
                     eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                     self.network_components[player].connected = false;
+                    self.player_health_components[player].health = 0;
+                    self.player_health_components[player].alive = false;
                 }
             }
         }
@@ -306,6 +310,8 @@ impl ECS {
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                         self.network_components[player].connected = false;
+                        self.player_health_components[player].health = 0;
+                        self.player_health_components[player].alive = false;
                         self.active_players -= 1;
                     }
                 }
@@ -542,6 +548,8 @@ impl ECS {
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
                         self.network_components[player].connected = false;
+                        self.player_health_components[player].health = 0;
+                        self.player_health_components[player].alive = false;
                         self.active_players -= 1;
                     }
                 };

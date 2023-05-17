@@ -353,7 +353,7 @@ fn main() -> std::io::Result<()> {
                         // game has ended
                         if c_ecs.game_ended {
                             for (i, player) in c_ecs.players.iter().enumerate() {
-                                if c_ecs.health_components[*player].alive {
+                                if c_ecs.health_components[*player].alive && c_ecs.health_components[*player].health > 0 {
                                     println!("The winner is player {}!", i);
                                 }
                             }
