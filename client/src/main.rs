@@ -130,11 +130,75 @@ fn main() -> io::Result<()> {
         sprite
     };
 
+    let empty_healthbar = unsafe {
+        let projection = cgmath::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/emptyHealthBar.png");
+        sprite
+    };
+
+    let full_healthbar = unsafe {
+        let projection = cgmath::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/fullHealthBar.png");
+        sprite
+    };
+
+    let ammo_0 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo0.png");
+        sprite
+    };
+
+    let ammo_1 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo1.png");
+        sprite
+    };
+
+    let ammo_2 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo2.png");
+        sprite
+    };
+
+    let ammo_3 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo3.png");
+        sprite
+    };
+
+    let ammo_4 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo4.png");
+        sprite
+    };
+
+    let ammo_5 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo5.png");
+        sprite
+    };
+
+    let ammo_6 = unsafe {
+        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo6.png");
+        sprite
+    };
+
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
     // health component initialized
     let mut client_health = PlayerHealthComponent::default();
+    let mut client_ammo = 0;
     
     // WINDOW LOOP
     // -----------
@@ -289,6 +353,7 @@ fn main() -> io::Result<()> {
                 match &client_ecs {
                     Some(c_ecs) => {
                         let player_key = c_ecs.players[client_id];
+                        client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                         // handle changes in client health
                         if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
@@ -364,6 +429,50 @@ fn main() -> io::Result<()> {
                     vec2(width as f32 / 2.0, height as f32 / 2.0),
                     vec2(50.0, 50.0)
                 );
+
+                if client_health.alive {
+                    full_healthbar.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(33.0, 10.0)
+                    );
+                } else {
+                    empty_healthbar.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(33.0, 10.0)
+                    );
+                }
+
+                match client_ammo {
+                    0 => ammo_0.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    1 => ammo_1.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    2 => ammo_2.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    3 => ammo_3.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    4 => ammo_4.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    5 => ammo_5.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    6 => ammo_6.draw_at_bot_left(
+                        vec2(5.0, 5.0),
+                        vec2(30.0, 10.0)
+                    ),
+                    _ => ()
+                }
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

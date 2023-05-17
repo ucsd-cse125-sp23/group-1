@@ -270,6 +270,7 @@ impl ECS {
         ClientECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
+            weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
             players: self.players.clone(),
