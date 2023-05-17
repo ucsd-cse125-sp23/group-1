@@ -73,18 +73,16 @@ impl ECS {
         for &player in &self.players {
             if self.network_components[player].connected {
                 self.active_players += 1;
-                self.player_input_components[player] = PlayerInputComponent::default();
-                self.position_components[player] = PositionComponent::default();
-                self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-                self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
                 self.player_health_components[player] = PlayerHealthComponent::default();
+                self.renderables.push(player);
             } else {
-                self.player_input_components[player] = PlayerInputComponent::default();
-                self.position_components[player] = PositionComponent::default();
-                self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-                self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
                 self.player_health_components[player] = PlayerHealthComponent{alive: false, health: 0};
             }
+
+            self.player_input_components[player] = PlayerInputComponent::default();
+            self.position_components[player] = PositionComponent::default();
+            self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
+            self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
 
             // TODO: Handle more than 5 players without crashing
 
@@ -99,7 +97,6 @@ impl ECS {
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
-            self.renderables.push(player);
         }
 
         self.game_ended = false;
