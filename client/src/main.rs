@@ -120,6 +120,8 @@ fn main() -> std::io::Result<()> {
         // -----------
         let mut models: HashMap<String,Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
+        models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
         (shader_program, hud_shader, skybox, models)
     };

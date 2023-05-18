@@ -254,5 +254,30 @@
         },
         "dynamic": false,
         "restitution": 1.0
+    },
+    {
+        "name": "sungod",
+        "modelname": "sungod",
+        "pos": [
+            0.0,
+            0.0,
+            -20.0
+        ],
+        "shape": {
+            "Convex": "../client/resources/sungod/sungod.obj"
+        }   
+    },
+    {
+        "name": "asteroid",
+        "modelname": "asteroid",
+        "pos": [
+            0.0,
+            0.0,
+            -5.0
+        ],
+        "shape": {
+            "Convex": "../client/resources/new_asteroid/asteroid.obj"
+        },
+        "scale": 2.0
     }
 ]
