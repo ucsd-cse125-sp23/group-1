@@ -73,6 +73,7 @@ impl ClientECS {
 #[derive(Serialize, Deserialize)]
 pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
+    pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub players: Vec<Entity>,
     pub start_game: bool,
 }
@@ -110,6 +111,7 @@ impl PositionComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ModelComponent {
     pub modelname: String,
+    pub scale: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

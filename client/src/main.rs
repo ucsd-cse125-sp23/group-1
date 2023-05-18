@@ -174,6 +174,9 @@ fn main() -> io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
+                            let start_pos = &lobby_ecs.position_components[lobby_ecs.players[client_id]];
+                            camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
+                            camera.UpdateVecs();
                             client_ecs = None;
                             first_mouse = true;
                             in_lobby = false;
@@ -326,7 +329,7 @@ fn main() -> io::Result<()> {
                                 let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
                             
                                 // setup scale matrix (skip for now)
-                                let scale_mat = Matrix4::from_scale(1.0);
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
                             
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
