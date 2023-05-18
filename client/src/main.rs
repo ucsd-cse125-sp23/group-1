@@ -1,37 +1,39 @@
-mod shader;
-mod macros;
 mod camera;
+mod macros;
 mod mesh;
 mod model;
+mod shader;
 mod skybox;
+mod sprite_renderer;
+mod util;
 
 use std::collections::HashMap;
 
 // graphics
-extern crate glfw;
 extern crate gl;
+extern crate glfw;
 
-use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3};
+use self::glfw::{Action, Context, Key, MouseButton};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3};
 
+use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
-use std::ffi::{CStr, c_void};
-use core::{mem::{size_of, size_of_val}};
 
-use crate::shader::Shader;
 use crate::camera::*;
 use crate::model::Model;
+use crate::shader::Shader;
 use crate::skybox::Skybox;
 
 // network
-use std::io::{Read, self};
+use crate::sprite_renderer::Sprite;
+use std::io::{self, Read};
 use std::net::{TcpStream};
-use std::str;
 use std::process;
+use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -40,12 +42,13 @@ fn main() -> std::io::Result<()> {
     let mut first_mouse = true;
     let mut last_x: f32; let mut last_y: f32;
 
-
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
     glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
     #[cfg(target_os = "macos")]
     glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
@@ -81,7 +84,8 @@ fn main() -> std::io::Result<()> {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     // Create network TcpStream
-    let mut stream = TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
+    let mut stream =
+        TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -89,25 +93,20 @@ fn main() -> std::io::Result<()> {
     let client_id = read_buf[0] as usize;
     println!("client id: {}", client_id);
 
-    stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, hud_shader, skybox, models) = unsafe {
+    let (shader_program, sprite_shader, skybox, models) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
 
         // create shader program using shader.rs
-        let shader_program = Shader::new(
-            "shaders/shader.vs",
-            "shaders/shader.fs",
-        );
+        let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
 
-        // create HUD shader
-        let hud_shader = Shader::new(
-            "shaders/hud.vs",
-            "shaders/hud.fs",
-        );
+        let sprite_shader = Shader::new("shaders/sprite.vs", "shaders/sprite.fs");
 
         // textures for skybox
         let skybox = Skybox::new("resources/skybox/space", ".png");
@@ -118,12 +117,19 @@ fn main() -> std::io::Result<()> {
 
         // add all models to hashmap
         // -----------
-        let mut models: HashMap<String,Model> = HashMap::new();
+        let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
         models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
         models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
-        (shader_program, hud_shader, skybox, models)
+        (shader_program, sprite_shader, skybox, models)
+    };
+
+    let crosshair = unsafe {
+        let projection = cgmath::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
+        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/crosshair.png");
+        sprite
     };
 
     // client ECS to be sent to server
@@ -131,39 +137,6 @@ fn main() -> std::io::Result<()> {
 
     // health component initialized
     let mut client_health = PlayerHealthComponent::default();
-
-    // set up HUD renderer
-    let mut vao = 0;
-    let mut vbo = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao as *mut u32);
-        gl::GenBuffers(1, &mut vbo);
-        
-        // define crosshair vertices (TEMPORARY)
-        // coords are relative to screen size -- currently 640x480
-        // TODO: re-implement with textured quad
-        let vertices: [f32; 8] = [
-        -0.0375, -0.0,
-         0.0375, -0.0,
-         0.0,   0.05,
-         0.0,  -0.05,
-        ];
-
-        // 1. bind Vertex Array Object
-        gl::BindVertexArray(vao);
-        // 2. copy array into a buffer
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            size_of_val(&vertices) as isize,
-            vertices.as_ptr().cast(),
-            gl::STATIC_DRAW
-        );
-        // 3. set vertex attribute pointers
-        gl::VertexAttribPointer(0, 2, gl::FLOAT, gl::FALSE, (2 * size_of::<f32>()) as i32, 0 as *mut c_void);
-        gl::EnableVertexAttribArray(0);
-    }
- 
     
     // WINDOW LOOP
     // -----------
@@ -228,7 +201,7 @@ fn main() -> std::io::Result<()> {
                 }
             }
         }
-
+      
         // GAME LOOP
         let mut in_game = true;
         window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -239,11 +212,21 @@ fn main() -> std::io::Result<()> {
 
             // process inputs
             // --------------
-            process_inputs(&mut window, &mut input_component, &mut roll);
+            process_inputs(
+                &mut window,
+                &mut input_component,
+                &mut roll
+            );
 
             // events
             // ------
-            process_events(&events, &mut first_mouse, &mut last_x, &mut last_y, &mut camera, roll);
+            process_events(
+                &events,
+                &mut first_mouse,
+                &mut last_x,
+                &mut last_y,
+                &mut camera, roll
+            );
 
             // set camera front of input_component
             input_component.camera_qx = camera.RotQuat.v.x;
@@ -259,21 +242,21 @@ fn main() -> std::io::Result<()> {
 
             // receive all incoming server data
             loop {
-                let size:u32;
+                let size: u32;
                 match stream.peek(&mut size_buf) {
                     Ok(4) => {
                         // big-endian for networks. it's tradition, dammit!
                         size = u32::from_be_bytes(size_buf);
-                    },
+                    }
                     Ok(_) => {
                         // incomplete size field, wait for next tick
                         break;
-                    },
+                    }
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message size from server: {}",e);
+                        eprintln!("Failed to read message size from server: {}", e);
                         // TODO: handle lost client
                         break;
                     }
@@ -288,13 +271,13 @@ fn main() -> std::io::Result<()> {
                         // TODO: handle this throwing an error. Occasionally crashes ^
                         let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                         client_ecs = Some(value);
-                    },
+                    }
                     Ok(_) => {
                         break;
-                    },
+                    }
                     Err(e) => {
-                        eprintln!("Failed to read message from server: {}",e);
-                    },
+                        eprintln!("Failed to read message from server: {}", e);
+                    }
                 }
             }
 
@@ -324,9 +307,11 @@ fn main() -> std::io::Result<()> {
                             client_health.health = c_ecs.health_components[player_key].health;
                         }
 
-                        let player_pos = vec3(c_ecs.position_components[player_key].x,
+                        let player_pos = vec3(
+                            c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z);
+                            c_ecs.position_components[player_key].z
+                        );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
                         for &renderable in &c_ecs.renderables {
@@ -370,15 +355,20 @@ fn main() -> std::io::Result<()> {
                     }
                 }
                 // note: the first iteration through the match{} above draws the model without view and projection setup
-
+              
                 // draw skybox
-                let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 100.0);
+                let projection: Matrix4<f32> = perspective(
+                    Deg(camera.Zoom),
+                    width as f32 / height as f32,
+                    0.1,
+                    100.0
+                );
                 skybox.draw(camera.GetViewMatrix(), projection);
 
-                // DRAW HUD
-                hud_shader.use_program();
-                gl::BindVertexArray(vao);
-                gl::DrawArrays(gl::LINES, 0, 4);
+                crosshair.draw_at_center(
+                    vec2(width as f32 / 2.0, height as f32 / 2.0),
+                    vec2(50.0, 50.0)
+                );
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -397,20 +387,26 @@ fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shade
     unsafe {
         let view = camera.GetViewMatrix();
         shader_program.set_mat4(c_str!("view"), &view);
-        
-        let projection: Matrix4<f32> = perspective(Deg(camera.Zoom), width as f32 / height as f32 , 0.1, 10000.0);
+        let projection: Matrix4<f32> = perspective(
+            Deg(camera.Zoom),
+            width as f32 / height as f32,
+            0.1,
+            10000.0,
+        );
         shader_program.set_mat4(c_str!("projection"), &projection);
     }
 }
 
 /// Event processing function as introduced in 1.7.4 (Camera Class) and used in
 /// most later tutorials
-pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
-                      first_mouse: &mut bool,
-                      last_x: &mut f32,
-                      last_y: &mut f32,
-                      camera: &mut Camera,
-                      roll: bool) {
+pub fn process_events(
+    events: &Receiver<(f64, glfw::WindowEvent)>,
+    first_mouse: &mut bool,
+    last_x: &mut f32,
+    last_y: &mut f32,
+    camera: &mut Camera,
+    roll: bool,
+) {
     for (_, event) in glfw::flush_messages(events) {
         match event {
             glfw::WindowEvent::FramebufferSize(width, height) => {
@@ -447,7 +443,11 @@ pub fn process_events(events: &Receiver<(f64, glfw::WindowEvent)>,
 }
 
 // process input and edit client sending packet
-fn process_inputs(window: &mut glfw::Window, input_component: &mut PlayerInputComponent, roll: &mut bool) {
+fn process_inputs(
+    window: &mut glfw::Window,
+    input_component: &mut PlayerInputComponent,
+    roll: &mut bool,
+) {
     if window.get_key(Key::W) == Action::Press {
         input_component.w_pressed = true;
     }
