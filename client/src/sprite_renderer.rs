@@ -13,9 +13,15 @@ pub struct Texture {
     pub size: Vector2<f32>,
 }
 
+pub struct Transform {
+    pub position: Vector2<f32>,
+    pub rotation: f32,
+    pub scale: Vector2<f32>,
+}
+
 pub struct Sprite {
     pub projection: Matrix4<f32>,
-    pub rotation: f32,
+    pub transform: Transform,
     pub color: Vector4<f32>,
     pub quad_vao: u32,
     pub shader: Shader,
@@ -24,10 +30,15 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32) -> Sprite {
+    pub unsafe fn new(screen_size: Vector2<f32>, shader_id: u32) -> Sprite {
+        let projection = cgmath::ortho(0.0, screen_size.x as f32, 0.0, screen_size.y as f32, -1.0, 1.0);
         let mut sprite = Sprite {
             projection,
-            rotation: 0.0,
+            transform: Transform {
+                position: Vector2::zero(),
+                rotation: 0.0,
+                scale: Vector2::from_value(1.0),
+            },
             color: Vector4::from_value(1.0),
             quad_vao: 0,
             shader: Shader { id: shader_id },
@@ -40,8 +51,13 @@ impl Sprite {
 
         let vertices: [f32; 24] = [
             // pos    // tex
-            0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 1.0, 1.0,
+
+            0.0, 1.0, 0.0, 0.0,
+            1.0, 0.0, 1.0, 1.0,
+            1.0, 1.0, 1.0, 0.0,
         ];
 
         let mut vbo = 0;
@@ -113,15 +129,65 @@ impl Sprite {
         self.color = color;
     }
 
+    pub fn set_rotation(&mut self, rotation: f32) {
+        self.transform.rotation = rotation;
+    }
+
+    pub fn set_position(&mut self, position: Vector2<f32>) {
+        self.transform.position = position;
+    }
+
+    pub fn set_scale(&mut self, scale: Vector2<f32>) {
+        self.transform.scale = scale;
+    }
+
+    pub fn set_transform(&mut self, transform: Transform) {
+        self.transform = transform;
+    }
+
+    pub fn set_size(&mut self, size: Vector2<f32>) {
+        self.transform.scale.x = size.x / self.texture.size.x;
+        self.transform.scale.y = size.y / self.texture.size.y;
+    }
+
     pub unsafe fn draw_from_corners(&self, top_left: Vector2<f32>, bottom_right: Vector2<f32>) {
         let width = bottom_right.x - top_left.x;
         let height = bottom_right.y - top_left.y;
         self.draw_at_bot_left(top_left, vec2(width, height));
     }
 
+    pub unsafe fn draw(&self) {
+        let new_position = self.transform.position
+            + vec2(
+                -self.texture.size.x * self.transform.scale.x / 2.0,
+                -self.texture.size.y * self.transform.scale.y / 2.0,
+            );
+        self.draw_at_bot_left(
+            new_position,
+            vec2(
+                self.texture.size.x * self.transform.scale.x,
+                self.texture.size.y * self.transform.scale.y,
+            ),
+        );
+    }
+
     pub unsafe fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>) {
-        // TODO: complete function
         let new_position = position + vec2(-size.x / 2.0, -size.y / 2.0);
+        self.draw_at_bot_left(new_position, size);
+    }
+
+    pub unsafe fn draw_at_top_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
+        let new_position = position + vec2(0.0, -size.y);
+        self.draw_at_bot_left(new_position, size);
+    }
+
+    pub unsafe fn draw_at_top_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
+        let new_position = position + vec2(-size.x, -size.y);
+        self.draw_at_bot_left(new_position, size);
+    }
+
+    pub unsafe fn draw_at_bot_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
+        let new_position = position + vec2(-size.x, 0.0);
         self.draw_at_bot_left(new_position, size);
     }
 
@@ -131,7 +197,7 @@ impl Sprite {
         let mut model = Matrix4::from_translation(vec3(position.x, position.y, 0.0));
 
         model = model * Matrix4::from_translation(vec3(0.5 * size.x, 0.5 * size.y, 0.0));
-        model = model * Matrix4::from_angle_z(Rad(self.rotation * (PI / 180.0)));
+        model = model * Matrix4::from_angle_z(Rad(self.transform.rotation * (PI / 180.0)));
         model = model * Matrix4::from_translation(vec3(-0.5 * size.x, -0.5 * size.y, 0.0));
 
         model = model * Matrix4::from_nonuniform_scale(size.x, size.y, 1.0);
