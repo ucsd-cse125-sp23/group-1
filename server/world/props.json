@@ -264,7 +264,7 @@
             -20.0
         ],
         "shape": {
-            "Convex": "../client/resources/sungod/sungod.obj"
+            "ConvexDecomp": "../client/resources/sungod/sungod.obj"
         }   
     },
     {
@@ -276,7 +276,7 @@
             -5.0
         ],
         "shape": {
-            "Convex": "../client/resources/new_asteroid/asteroid.obj"
+            "ConvexDecomp": "../client/resources/new_asteroid/asteroid.obj"
         },
         "scale": 2.0
     }
