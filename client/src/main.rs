@@ -390,9 +390,9 @@ fn main() -> io::Result<()> {
 
                 crosshair.draw_at_center(vec2(width as f32 / 2.0, height as f32 / 2.0), vec2(50.0, 50.0));
 
-                // gl::DepthMask(gl::FALSE);
+                gl::DepthMask(gl::FALSE);
                 tracker.draw_all_trackers(trackers);
-                // gl::DepthMask(gl::TRUE);
+                gl::DepthMask(gl::TRUE);
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

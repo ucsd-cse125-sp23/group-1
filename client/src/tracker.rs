@@ -16,7 +16,7 @@ impl Tracker {
         let rect = Sprite::new(projection, shader_id);
 
         let tracker = Tracker {
-            line_width: 10.0,
+            line_width: 5.0,
             line: rect,
             target_radius,
             screen_size,
@@ -64,7 +64,7 @@ impl Tracker {
     }
 
     pub unsafe fn draw_all_trackers(&mut self, mut trackers: Vec<(Rad<f32>, Vector2<f32>, Vector2<f32>, Vector4<f32>)>) {
-        trackers.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        trackers.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
         for tracker in trackers {
             let mut color = tracker.3;
             // hardcoded alpha
@@ -249,7 +249,7 @@ fn find_points(
         }
     }
 
-    let v2_p1;
+    let mut v2_p1;
     if v2_closest_angle == lower_angle {
         v2_p1 = low_point;
     } else if v2_in_range {
@@ -262,6 +262,11 @@ fn find_points(
         if v2_closest_angle == angle1 {
             v2_p2 = 0.0;
         }
+    }
+
+    if !(v1_closest_angle == lower_angle && v2_closest_angle == higher_angle) {
+        v2_p1 = low_point;
+        v2_p2 = low_point;
     }
 
     (v1_p1, v1_p2, v2_p1, v2_p2)
