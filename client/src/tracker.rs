@@ -56,7 +56,6 @@ impl Tracker {
         if angle_proj == Rad(0.0) {
             angle_proj = Rad::full_turn();
         }
-        println!("{:?}",angle_proj);
 
         // self.line.set_color(color);
         trackers.push((angle_proj, v1_norm, v2_norm, color));

@@ -357,7 +357,6 @@ fn main() -> io::Result<()> {
                             if player != player_key {
                                 let pos = &c_ecs.position_components[player];
                                 let pos = vec3(pos.x, pos.y, pos.z);
-                                println!("player {}:", i);
                                 tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
                             }
                             i += 1;
