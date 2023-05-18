@@ -354,7 +354,7 @@ fn main() -> io::Result<()> {
                         // draw trackers
                         let mut i = 0;
                         for &player in &c_ecs.players {
-                            if player != player_key {
+                            if player != player_key && c_ecs.health_components[player].alive {
                                 let pos = &c_ecs.position_components[player];
                                 let pos = vec3(pos.x, pos.y, pos.z);
                                 tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
