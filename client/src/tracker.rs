@@ -49,8 +49,13 @@ impl Tracker {
         let v1_proj = perspective(Deg(camera.Zoom), self.screen_size.x / self.screen_size.y, 0.1, 10000.0).transform_vector(vec3(v1.x,v1.y,projection.z));
         let v2_proj = perspective(Deg(camera.Zoom), self.screen_size.x / self.screen_size.y, 0.1, 10000.0).transform_vector(vec3(v2.x,v2.y,projection.z));
 
-        let v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
-        let v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
+        let mut v1_norm = vec2(v1_proj.x, v1_proj.y).normalize();
+        let mut v2_norm = vec2(v2_proj.x, v2_proj.y).normalize();
+
+        if v1_norm.x.is_nan() || v1_norm.y.is_nan() || v2_norm.x.is_nan() || v2_norm.y.is_nan() {
+            v1_norm = vec2(0.0,1.0);
+            v2_norm = vec2(0.0,1.0);
+        }
 
         let mut angle_proj = v2_norm.angle(v1_norm).normalize();
         if angle_proj == Rad(0.0) {
@@ -63,7 +68,12 @@ impl Tracker {
     }
 
     pub unsafe fn draw_all_trackers(&mut self, mut trackers: Vec<(Rad<f32>, Vector2<f32>, Vector2<f32>, Vector4<f32>)>) {
-        trackers.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+        trackers.sort_by(|a, b| {
+            match b.0.partial_cmp(&a.0) {
+                Some(ord) => ord,
+                None => panic!("\nERROR SORTING TRACKERS\nTRACKER 1: {:?}\nTRACKER 2: {:?}\n",*a,*b)
+            }
+        });
         for tracker in trackers {
             let mut color = tracker.3;
             // hardcoded alpha
