@@ -32,6 +32,7 @@ use std::process;
 use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
+use shared::*;
 
 fn main() -> io::Result<()> {
     // create camera and camera information
@@ -71,6 +72,7 @@ fn main() -> io::Result<()> {
 
     last_x = width as f32 / 2.0;
     last_y = height as f32 / 2.0;
+    let screen_size = vec2(width as f32, height as f32);
 
     window.make_current();
     window.set_framebuffer_size_polling(true);
@@ -85,7 +87,7 @@ fn main() -> io::Result<()> {
 
     // Create network TcpStream
     let mut stream =
-        TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
+        TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -124,73 +126,91 @@ fn main() -> io::Result<()> {
     };
 
     let crosshair = unsafe {
-        let mut sprite = Sprite::new(vec2(width as f32, height as f32), sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
         sprite.set_position(vec2(width as f32 / 2.0, height as f32 / 2.0));
-        sprite.set_scale(Vector2::from_value(0.03));
+        sprite.set_scale(Vector2::from_value(CROSSHAIR_SCALE));
         sprite
     };
 
     let empty_healthbar = unsafe {
-        let projection = cgmath::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/emptyHealthBar.png");
+        sprite.set_position(vec2(5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopLeft);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let full_healthbar = unsafe {
-        let projection = cgmath::ortho(0.0, width as f32, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/fullHealthBar.png");
+        sprite.set_position(vec2(5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopLeft);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_0 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo0.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_1 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo1.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_2 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo2.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_3 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo3.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_4 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo4.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_5 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo5.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
     let ammo_6 = unsafe {
-        let projection = cgmath::ortho(width as f32, 0.0, height as f32, 0.0, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/ammo6.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
@@ -432,46 +452,19 @@ fn main() -> io::Result<()> {
                 crosshair.draw();
 
                 if client_health.alive {
-                    full_healthbar.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(33.0, 10.0)
-                    );
+                    full_healthbar.draw();
                 } else {
-                    empty_healthbar.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(33.0, 10.0)
-                    );
+                    empty_healthbar.draw();
                 }
 
                 match client_ammo {
-                    0 => ammo_0.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    1 => ammo_1.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    2 => ammo_2.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    3 => ammo_3.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    4 => ammo_4.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    5 => ammo_5.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
-                    6 => ammo_6.draw_at_bot_left(
-                        vec2(5.0, 5.0),
-                        vec2(30.0, 10.0)
-                    ),
+                    0 => ammo_0.draw(),
+                    1 => ammo_1.draw(),
+                    2 => ammo_2.draw(),
+                    3 => ammo_3.draw(),
+                    4 => ammo_4.draw(),
+                    5 => ammo_5.draw(),
+                    6 => ammo_6.draw(),
                     _ => ()
                 }
             }
