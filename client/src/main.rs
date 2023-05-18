@@ -14,7 +14,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -23,9 +23,9 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
+use crate::sprite_renderer::{Anchor, Sprite};
 
 // network
-use crate::sprite_renderer::Sprite;
 use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
@@ -124,9 +124,10 @@ fn main() -> io::Result<()> {
     };
 
     let crosshair = unsafe {
-        let projection = cgmath::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(vec2(width as f32, height as f32), sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
+        sprite.set_position(vec2(width as f32 / 2.0, height as f32 / 2.0));
+        sprite.set_scale(Vector2::from_value(0.03));
         sprite
     };
 
@@ -363,10 +364,7 @@ fn main() -> io::Result<()> {
                 );
                 skybox.draw(camera.GetViewMatrix(), projection);
 
-                crosshair.draw_at_center(
-                    vec2(width as f32 / 2.0, height as f32 / 2.0),
-                    vec2(50.0, 50.0)
-                );
+                crosshair.draw();
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
