@@ -78,9 +78,7 @@ impl Camera {
             rot = Quaternion::from_axis_angle(axis, angle).normalize();
             self.RotQuat = (rot * self.RotQuat).normalize(); 
         }
-        self.Front = (self.RotQuat * vec3(0.0,0.0,-1.0)).normalize();
-        self.Right = (self.RotQuat * vec3(1.0,0.0,0.0)).normalize();
-        self.Up = (self.RotQuat * vec3(0.0,1.0,0.0)).normalize();
+        self.UpdateVecs();
     }
 
     // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
@@ -100,6 +98,10 @@ impl Camera {
         let front = vec3(0.0,0.0,1.0);
         let up = vec3(0.0,1.0,0.0);
         self.RotQuat = Quaternion::look_at( front, up).normalize();
+        self.UpdateVecs();
+    }
+
+    pub fn UpdateVecs(&mut self) {
         self.Front = (self.RotQuat * vec3(0.0,0.0,-1.0)).normalize();
         self.Right = (self.RotQuat * vec3(1.0,0.0,0.0)).normalize();
         self.Up = (self.RotQuat * vec3(0.0,1.0,0.0)).normalize();

@@ -28,7 +28,7 @@ fn main() {
     let mut ecs = ecs::ECS::new();
 
     init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
-    init_world::init_player_spawns(&mut ecs);
+    init_world::init_player_spawns(&mut ecs.spawnpoints);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
@@ -98,7 +98,7 @@ fn main() {
             // pad tick time by spin sleeping
             let tick = end.duration_since(start);
             let tick_ms = tick.as_millis() as u64;
-            if tick_ms > shared::TICK_SPEED {
+            if tick_ms >= shared::TICK_SPEED {
                 eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
             } else {
                 spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
