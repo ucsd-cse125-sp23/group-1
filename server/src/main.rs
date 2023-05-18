@@ -99,7 +99,7 @@ fn main() {
             // pad tick time by spin sleeping
             let tick = end.duration_since(start);
             let tick_ms = tick.as_millis() as u64;
-            if tick_ms > shared::TICK_SPEED {
+            if tick_ms >= shared::TICK_SPEED {
                 eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
             } else {
                 spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
