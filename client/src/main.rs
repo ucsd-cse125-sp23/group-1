@@ -124,6 +124,8 @@ fn main() -> io::Result<()> {
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
         models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
+
+
         (light_shader, sprite_shader, skybox, models)
     };
 
@@ -293,7 +295,7 @@ fn main() -> io::Result<()> {
                 // TODO: lighting variables (this can imported from a json file?)
                 let light_dir = vec3(0., 0., 1.);
                 let light_ambience = vec3(0.2, 0.2, 0.2);
-                let light_diffuse = vec3(0.5, 0.5, 0.5);
+                let light_diffuse = vec3(1., 1., 1.);
                 shader.setVector3(c_str!("lightDir"), &light_dir);
                 shader.setVector3(c_str!("lightAmb"), &light_ambience);
                 shader.setVector3(c_str!("lightDif"), &light_diffuse);

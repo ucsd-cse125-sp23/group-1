@@ -2,6 +2,7 @@
 
 in vec2 TexCoords;
 in vec3 Normal;
+in mat3 TBN;
 
 out vec4 color;
 
@@ -23,11 +24,11 @@ void main()
     if (load_normal == 1) {
         vec3 tnormal = texture(texture_normal1, TexCoords).rgb;
         tnormal = normalize(tnormal * 2.0 - 1.0);
-        normal =  normal * tnormal;
+        normal =  normalize(TBN * tnormal);
     }
 
     // diffuse calculation
-    float diff = max(dot(normal, lightDir), 0.0);
+    float diff = max(dot(normal, lightDir), 0.1);
     vec3 diffuse = diff * lightDif;
 
     // add ambient to result
