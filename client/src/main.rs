@@ -23,7 +23,7 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
-use crate::sprite_renderer::Sprite;
+use crate::sprite_renderer::{Anchor, Sprite};
 
 // network
 use std::io::{self, Read};
@@ -126,7 +126,7 @@ fn main() -> io::Result<()> {
     let crosshair = unsafe {
         let mut sprite = Sprite::new(vec2(width as f32, height as f32), sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
-        sprite.set_position(vec2(width as f32/2.0, height as f32/2.0));
+        sprite.set_position(vec2(width as f32 / 2.0, height as f32 / 2.0));
         sprite.set_scale(Vector2::from_value(0.03));
         sprite
     };

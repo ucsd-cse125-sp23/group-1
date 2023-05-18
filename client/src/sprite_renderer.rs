@@ -19,8 +19,17 @@ pub struct Transform {
     pub scale: Vector2<f32>,
 }
 
+pub enum Anchor {
+    BotLeft,
+    BotRight,
+    TopLeft,
+    TopRight,
+    Centered,
+}
+
 pub struct Sprite {
     pub projection: Matrix4<f32>,
+    pub anchor: Anchor,
     pub transform: Transform,
     pub color: Vector4<f32>,
     pub quad_vao: u32,
@@ -31,9 +40,17 @@ pub struct Sprite {
 
 impl Sprite {
     pub unsafe fn new(screen_size: Vector2<f32>, shader_id: u32) -> Sprite {
-        let projection = cgmath::ortho(0.0, screen_size.x as f32, 0.0, screen_size.y as f32, -1.0, 1.0);
+        let projection = cgmath::ortho(
+            0.0,
+            screen_size.x as f32,
+            0.0,
+            screen_size.y as f32,
+            -1.0,
+            1.0,
+        );
         let mut sprite = Sprite {
             projection,
+            anchor: Anchor::Centered,
             transform: Transform {
                 position: Vector2::zero(),
                 rotation: 0.0,
@@ -54,7 +71,7 @@ impl Sprite {
             0.0, 1.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0,
             1.0, 0.0, 1.0, 1.0,
-
+            
             0.0, 1.0, 0.0, 0.0,
             1.0, 0.0, 1.0, 1.0,
             1.0, 1.0, 1.0, 0.0,
@@ -145,6 +162,10 @@ impl Sprite {
         self.transform = transform;
     }
 
+    pub fn set_anchor(&mut self, anchor: Anchor) {
+        self.anchor = anchor;
+    }
+
     pub fn set_size(&mut self, size: Vector2<f32>) {
         self.transform.scale.x = size.x / self.texture.size.x;
         self.transform.scale.y = size.y / self.texture.size.y;
@@ -157,11 +178,32 @@ impl Sprite {
     }
 
     pub unsafe fn draw(&self) {
-        let new_position = self.transform.position
-            + vec2(
-                -self.texture.size.x * self.transform.scale.x / 2.0,
-                -self.texture.size.y * self.transform.scale.y / 2.0,
-            );
+        let new_position;
+        match self.anchor {
+            Anchor::BotLeft => new_position = self.transform.position,
+            Anchor::BotRight => {
+                new_position = self.transform.position
+                    + vec2(-self.texture.size.x * self.transform.scale.x, 0.0);
+            }
+            Anchor::TopLeft => {
+                new_position = self.transform.position
+                    + vec2(0.0, -self.texture.size.y * self.transform.scale.y);
+            }
+            Anchor::TopRight => {
+                new_position = self.transform.position
+                    + vec2(
+                        -self.texture.size.x * self.transform.scale.x,
+                        -self.texture.size.y * self.transform.scale.y,
+                    );
+            }
+            Anchor::Centered => {
+                new_position = self.transform.position
+                    + vec2(
+                        -self.texture.size.x * self.transform.scale.x / 2.0,
+                        -self.texture.size.y * self.transform.scale.y / 2.0,
+                    );
+            }
+        }
         self.draw_at_bot_left(
             new_position,
             vec2(
