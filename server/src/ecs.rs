@@ -28,6 +28,18 @@ pub struct ECS {
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
+    // physics objects
+    pub rigid_body_set: RigidBodySet,
+    pub collider_set: ColliderSet,
+    pub physics_pipeline: PhysicsPipeline,
+    pub island_manager: IslandManager,
+    pub broad_phase: BroadPhase,
+    pub narrow_phase: NarrowPhase,
+    pub impulse_joint_set: ImpulseJointSet,
+    pub multibody_joint_set: MultibodyJointSet,
+    pub ccd_solver: CCDSolver,
+    pub query_pipeline: QueryPipeline,
+
     pub ids: Vec<Entity>,
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
@@ -45,18 +57,33 @@ impl ECS {
     pub fn new() -> ECS {
         ECS {
             name_components: SlotMap::new(),
+
             player_input_components: SecondaryMap::new(),
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             player_health_components: SecondaryMap::new(),
+
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
+
+            rigid_body_set: RigidBodySet::new(),
+            collider_set: ColliderSet::new(),
+            physics_pipeline: PhysicsPipeline::new(), 
+            island_manager: IslandManager::new(),
+            broad_phase: BroadPhase::new(),
+            narrow_phase: NarrowPhase::new(),
+            impulse_joint_set: ImpulseJointSet::new(),
+            multibody_joint_set: MultibodyJointSet::new(),
+            ccd_solver: CCDSolver::new(),
+            query_pipeline: QueryPipeline::new(),
+
             ids: vec![],
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
+
             spawnpoints: vec![],
             active_players: 0,
             game_ended: false,
@@ -65,20 +92,45 @@ impl ECS {
 
     /**
      * Clear ECS of everything but players, reset all the components/fields for a game restart
-     *
-     * @param   rigid_body_set
-     * @param   collider_set
      */
-    pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
+    pub fn reset(&mut self) {
+        // remove disconnected players
+        let mut disconnected_players: Vec<Entity> = vec![];
+        for &player in &self.players {
+            if !self.network_components[player].connected {
+                disconnected_players.push(player);
+            }
+        }
+        for player in disconnected_players{
+            self.remove_player(player);
+        }
+
+        // reset physics objects
+        self.rigid_body_set = RigidBodySet::new();
+        self.collider_set = ColliderSet::new();
+        self.physics_pipeline = PhysicsPipeline::new();
+        self.island_manager = IslandManager::new();
+        self.broad_phase = BroadPhase::new();
+        self.narrow_phase = NarrowPhase::new();
+        self.impulse_joint_set = ImpulseJointSet::new();
+        self.multibody_joint_set = MultibodyJointSet::new();
+        self.ccd_solver = CCDSolver::new();
+        self.query_pipeline = QueryPipeline::new();
+
         // clear ECS of everything but players
         self.name_components.retain(|key, _| self.players.contains(&key));
+        self.player_input_components.retain(|key, _| self.players.contains(&key));
         self.position_components.retain(|key, _| self.players.contains(&key));
+        self.player_weapon_components.retain(|key, _| self.players.contains(&key));
         self.model_components.retain(|key, _| self.players.contains(&key));
+        self.player_health_components.retain(|key, _| self.players.contains(&key));
         self.physics_components.retain(|key, _| self.players.contains(&key));
+        self.network_components.retain(|key, _| self.players.contains(&key));
+        self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.dynamics.clear();
         self.renderables.clear();
 
-        init_world(self, rigid_body_set, collider_set);
+        init_world(self);
         init_player_spawns(&mut self.spawnpoints);
 
         for &player in &self.players {
@@ -106,9 +158,9 @@ impl ECS {
                 qw: player_pos.rotation.w,
             };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
-            let handle = rigid_body_set.insert(rigid_body);
+            let handle = self.rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
-            let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+            let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
             self.renderables.push(player);
@@ -123,10 +175,8 @@ impl ECS {
      * updates ECS network components
      *
      * @param   listener: provides TCP server socket support
-     * @param   rigid_body_set
-     * @param   collider_set
      */
-    pub fn connect_client(&mut self, listener: &TcpListener, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
+    pub fn connect_client(&mut self, listener: &TcpListener) {
         match listener.accept() {
             Ok((stream, addr)) => {
                 let mut curr_stream = stream;
@@ -137,7 +187,7 @@ impl ECS {
                 curr_stream.write(&[client_id]).unwrap();
                 curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
-                let player = self.new_player(name.clone(),rigid_body_set,collider_set);
+                let player = self.new_player(name.clone());
                 self.network_components.insert(player, NetworkComponent{connected: true, stream: curr_stream});
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
@@ -264,6 +314,7 @@ impl ECS {
             }
         }
 
+        // remove players that get disconnected in lobby state
         for player in disconnected_players {
             self.remove_player(player);
         }
@@ -275,6 +326,22 @@ impl ECS {
      * @param   player key
      */
     pub fn remove_player(&mut self, player: Entity){
+        self.rigid_body_set.remove(
+            self.physics_components[player].handle,
+            &mut self.island_manager,
+            &mut self.collider_set,
+            &mut self.impulse_joint_set,
+            &mut self.multibody_joint_set,
+            true    // TODO: double check the bool
+        );
+
+        self.collider_set.remove(
+            self.physics_components[player].collider_handle,
+            &mut self.island_manager,
+            &mut self.rigid_body_set,
+            true    // TODO: double check the bool
+        );
+
         self.name_components.remove(player);
         self.player_input_components.remove(player);
         self.position_components.remove(player);
@@ -383,12 +450,10 @@ impl ECS {
      * Creates a new player
      *
      * @param   name
-     * @param   rigid_body_set
-     * @param   collider_set
      * 
      * @return  an Entity that represents the player
      */
-    pub fn new_player(&mut self, name: String, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> Entity {
+    pub fn new_player(&mut self, name: String) -> Entity {
         let player = self.name_components.insert(name);
         self.ids.push(player);
         self.players.push(player);
@@ -413,16 +478,15 @@ impl ECS {
             qw: player_pos.rotation.w,
         });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
-        let handle = rigid_body_set.insert(rigid_body);
+        let handle = self.rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
-        let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+        let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
     }
 
-    pub fn spawn_prop(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, 
-        name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32, roll: f32, pitch: f32, yaw: f32, 
-        dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
+    pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
+        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
             let entity = self.name_components.insert(name);
             self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
@@ -450,23 +514,21 @@ impl ECS {
                     Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
                 ).build();
             }
-            let handle = rigid_body_set.insert(rigid_body);
+            let handle = self.rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(
                 entity.data().as_ffi() as u128
             ).build();
-            let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
+            let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
 
     }
 
     /**
      * Updates position components of all objects in the game
-     *
-     * @param   rigid_body_set
      */
-    pub fn update_positions(&mut self, rigid_body_set: &mut RigidBodySet) {
+    pub fn update_positions(&mut self) {
         for &dynamic in &self.dynamics {
-            let rigid_body = rigid_body_set.get(self.physics_components[dynamic].handle).unwrap();
+            let rigid_body = self.rigid_body_set.get(self.physics_components[dynamic].handle).unwrap();
             let mut position = &mut self.position_components[dynamic];
             position.x = rigid_body.translation().x;
             position.y = rigid_body.translation().y;
@@ -481,12 +543,8 @@ impl ECS {
     /**
      * Handle player firing + weapon cooldown,
      * detect if target is another player, update health components if necessary
-     *
-     * @param   rigid_body_set
-     * @param   collider_set
-     * @param   query_pipeline
      */
-    pub fn player_fire(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, query_pipeline: & QueryPipeline) {
+    pub fn player_fire(&mut self) {
         for &player in &self.players {
             let mut weapon = &mut self.player_weapon_components[player];
             let input = &self.player_input_components[player];
@@ -508,9 +566,9 @@ impl ECS {
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
-                match query_pipeline.cast_ray(rigid_body_set, collider_set, &ray, max_toi, solid, filter) {
+                match self.query_pipeline.cast_ray(&mut self.rigid_body_set, &mut self.collider_set, &ray, max_toi, solid, filter) {
                     Some((target_collider_handle, toi)) => {
-                        let target_collider = collider_set.get_mut(target_collider_handle).unwrap();
+                        let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
 
                         let target_name = & self.name_components[target];
@@ -529,7 +587,7 @@ impl ECS {
                         }
 
                         let hit_point = ray.point_at(toi);
-                        let target_body = rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
@@ -538,7 +596,7 @@ impl ECS {
                     },
                 }
 
-                let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+                let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
                 rigid_body.apply_impulse(-impulse, true);
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
@@ -554,15 +612,13 @@ impl ECS {
 
     /**
      * TODO: add description
-     *
-     * @param   rigid_body_set
      */
-    pub fn player_move(&mut self, rigid_body_set: &mut RigidBodySet) {
+    pub fn player_move(&mut self) {
         for &player in &self.players {
             let input = &self.player_input_components[player];
             let camera = &self.player_camera_components[player];
             let impulse = 0.05;
-            let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
             rigid_body.set_rotation(camera.rot, true);
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
@@ -636,7 +692,7 @@ impl ECS {
     }
 
     /**
-     * Given a disconnected player, remove them from ECS and update health/network components
+     * Given a disconnected player, update network component, mark them as dead/inactive
      *
      * @param player's key
      */
@@ -644,7 +700,6 @@ impl ECS {
         self.network_components[player].connected = false;
         self.player_health_components[player].alive = false;
         self.player_health_components[player].health = 0;
-        self.remove_player(player);
         self.active_players -= 1;
     }
 }
