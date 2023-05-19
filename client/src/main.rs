@@ -259,7 +259,7 @@ fn main() -> io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
-                            let start_pos = &lobby_ecs.position_components[lobby_ecs.players[client_id]];
+                            let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                             camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                             camera.UpdateVecs();
                             client_ecs = None;
