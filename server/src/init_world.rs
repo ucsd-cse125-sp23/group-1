@@ -97,7 +97,10 @@ pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set
                 let (vertices, indices) = load_scaled_model(path, prop.scale);
                 SharedShape::convex_decomposition(&vertices, &indices)
             },
-            _ => panic!("Unsupported shape"),
+            Shape::Trimesh(path) => {
+                let (vertices, indices) = load_scaled_model(path, prop.scale);
+                SharedShape::trimesh(vertices, indices)
+            }
         };
         ecs.spawn_prop(rigid_body_set, collider_set, prop.name, prop.modelname, prop.pos.0, prop.pos.1, prop.pos.2, prop.rot.roll, prop.rot.pitch, prop.rot.yaw, prop.dynamic, sharedshape, prop.scale, prop.density, prop.restitution);
     }
