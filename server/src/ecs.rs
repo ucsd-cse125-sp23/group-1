@@ -400,8 +400,9 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
+                let halfheight = 1.0;
 
-                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);

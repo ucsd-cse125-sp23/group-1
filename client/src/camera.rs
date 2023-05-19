@@ -55,7 +55,8 @@ impl Default for Camera {
 impl Camera {
     /// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     pub fn GetViewMatrix(&self) -> Matrix4 {
-        Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
+        let halfheight = 1.0;
+        Matrix4::look_at(self.Position + (self.Up * halfheight), self.Position + (self.Up * halfheight) + self.Front, self.Up)
     }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
