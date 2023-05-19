@@ -6,6 +6,7 @@ use std::io::{Read, Write, self};
 use std::net::TcpListener;
 use rand::{thread_rng,seq::IteratorRandom};
 
+use shared::*;
 use shared::shared_components::*;
 use crate::{server_components::*, init_world::*};
 
@@ -20,13 +21,14 @@ pub struct ECS {
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
+    pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
-    pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
 
+    pub ids: Vec<Entity>,
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
@@ -37,6 +39,9 @@ pub struct ECS {
 }
 
 impl ECS {
+    /**
+     * Initialize an ECS
+     */
     pub fn new() -> ECS {
         ECS {
             name_components: SlotMap::new(),
@@ -44,19 +49,26 @@ impl ECS {
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
+            player_health_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
-            player_health_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
+            ids: vec![],
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
+            spawnpoints: vec![],
             active_players: 0,
             game_ended: false,
-            spawnpoints: vec![],
         }
     }
 
+    /**
+     * Clear ECS of everything but players, reset all the components/fields for a game restart
+     *
+     * @param   rigid_body_set
+     * @param   collider_set
+     */
     pub fn reset(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
         // clear ECS of everything but players
         self.name_components.retain(|key, _| self.players.contains(&key));
@@ -65,24 +77,20 @@ impl ECS {
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.dynamics.clear();
         self.renderables.clear();
-        self.active_players = 0;
 
         init_world(self, rigid_body_set, collider_set);
         init_player_spawns(self);
 
         for &player in &self.players {
-            if self.network_components[player].connected {
-                self.active_players += 1;
-                self.player_health_components[player] = PlayerHealthComponent::default();
-                self.renderables.push(player);
-            } else {
-                self.player_health_components[player] = PlayerHealthComponent{alive: false, health: 0};
+            if !self.network_components[player].connected {
+                panic!("a disconnected player found");
             }
 
             self.player_input_components[player] = PlayerInputComponent::default();
             self.position_components[player] = PositionComponent::default();
-            self.player_weapon_components[player] = PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false};
-            self.player_camera_components[player] = PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]};
+            self.player_weapon_components[player] = PlayerWeaponComponent::default();
+            self.player_camera_components[player] = PlayerCameraComponent::default();
+            self.player_health_components[player] = PlayerHealthComponent::default();
 
             // TODO: Handle more than 5 players without crashing
 
@@ -90,6 +98,7 @@ impl ECS {
             //     eprintln!("Ran out of player spawnpoints, reusing");
             //     init_player_spawns(self);
             // }
+
             let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = rigid_body_set.insert(rigid_body);
@@ -97,8 +106,10 @@ impl ECS {
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
+            self.renderables.push(player);
         }
 
+        self.active_players = self.players.len() as u8;
         self.game_ended = false;
     }
 
@@ -106,23 +117,23 @@ impl ECS {
      * Listens to accept client connection, adds player (name, rigid body set, collider set),
      * updates ECS network components
      *
-     * @param listener: provides TCP server socket support
-     * @param rigid_body_set
-     * @param collider_set
+     * @param   listener: provides TCP server socket support
+     * @param   rigid_body_set
+     * @param   collider_set
      */
     pub fn connect_client(&mut self, listener: &TcpListener, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
         match listener.accept() {
             Ok((stream, addr)) => {
                 let mut curr_stream = stream;
-                println!("Client connected: {addr:?}, client id: {}", self.players.len());
+                println!("Client connected: {addr:?}, client id: {}", self.ids.len());
                 // send client id -- supports no more than 255 clients
-                let client_id = self.players.len() as u8;
+                let client_id = self.ids.len() as u8;
                 // if this error happens something is very wrong with the connection
                 curr_stream.write(&[client_id]).unwrap();
                 curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone(),rigid_body_set,collider_set);
-                self.network_components.insert(player, NetworkComponent { connected: true, stream:curr_stream });
+                self.network_components.insert(player, NetworkComponent{connected: true, stream: curr_stream});
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
                 self.send_ready_message(false);
@@ -139,6 +150,8 @@ impl ECS {
      * ECS player input components for each player
      */
     pub fn receive_inputs(&mut self) {
+        let mut disconnected_players: Vec<Entity> = vec![];
+
         for &player in &self.players {
             let mut connected = true;
 
@@ -201,10 +214,7 @@ impl ECS {
 
             // handle lost client
             if !connected {
-                self.network_components[player].connected = false;
-                self.active_players -= 1;
-                self.player_health_components[player].health = 0;
-                self.player_health_components[player].alive = false;
+                disconnected_players.push(player);
             }
 
             // once all inputs have been aggregated for this player
@@ -219,12 +229,21 @@ impl ECS {
             camera.camera_up = camera.rot * vector![0.0,1.0,0.0];
             self.player_input_components[player] = input_temp;
         }
+
+        // remove disconnected players
+        for player in disconnected_players {
+            self.handle_client_disconnect(player);
+        }
     }
 
     /**
-     * Tell all the players, the game has started
+     * Tell all the players, the game state
+     * 
+     * @param   start_game: whether the game has started 
      */
     pub fn send_ready_message(&mut self, start_game: bool){
+        let mut disconnected_players: Vec<Entity> = vec![];
+
         let lobby_ecs = self.lobby_ecs(start_game);
         let j = serde_json::to_string(&lobby_ecs).expect("Lobby ECS serialization error");
         let size = j.len() as u32 + 4;
@@ -235,41 +254,43 @@ impl ECS {
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
                 Err(e) => {
                     eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
-                    self.network_components[player].connected = false;
-                    self.player_health_components[player].health = 0;
-                    self.player_health_components[player].alive = false;
+                    disconnected_players.push(player);
                 }
             }
+        }
+
+        for player in disconnected_players {
+            self.remove_player(player);
         }
     }
 
     /**
-     * Remove players from ECS
+     * Remove a player from ECS
+     * 
+     * @param   player key
      */
-    pub fn remove_players(&mut self, to_remove_players: Vec<Entity>){
-        for &player in &to_remove_players {
-            self.name_components.remove(player);
-            self.player_input_components.remove(player);
-            self.position_components.remove(player);
-            self.player_weapon_components.remove(player);
-            self.model_components.remove(player);
-            self.physics_components.remove(player);
-            self.network_components.remove(player);
-            self.player_health_components.remove(player);
-            self.player_camera_components.remove(player);
+    pub fn remove_player(&mut self, player: Entity){
+        self.name_components.remove(player);
+        self.player_input_components.remove(player);
+        self.position_components.remove(player);
+        self.player_weapon_components.remove(player);
+        self.model_components.remove(player);
+        self.physics_components.remove(player);
+        self.network_components.remove(player);
+        self.player_health_components.remove(player);
+        self.player_camera_components.remove(player);
 
-            self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
-            self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
-            self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
-        }
+        self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
+        self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
+        self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
     }
 
     /**
      * Given a new player input component, updates the current component
      *
-     * @param curr: player input component to be updated
-     * @param value: player input component to be saved
-     */ // may God have mercy on our souls
+     * @param   curr: player input component to be updated
+     * @param   value: player input component to be saved
+     */
     pub fn combine_input(curr: &mut PlayerInputComponent, value: PlayerInputComponent) {
         curr.lmb_clicked |=  value.lmb_clicked;
         curr.rmb_clicked |= value.rmb_clicked;
@@ -290,6 +311,8 @@ impl ECS {
      * Using TCP streams associated with each player, send updated + serialized client ECS
      */
     pub fn update_clients(&mut self) {
+        let mut disconnected_players: Vec<Entity> = vec![];
+
         // game ends if there's 1 active player left
         if self.active_players <= 1 {
             self.game_ended = true;
@@ -306,18 +329,21 @@ impl ECS {
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
-                        self.network_components[player].connected = false;
-                        self.player_health_components[player].health = 0;
-                        self.player_health_components[player].alive = false;
-                        self.active_players -= 1;
+                        disconnected_players.push(player);
                     }
                 }
             }
+        }
+
+        for player in disconnected_players {
+            self.handle_client_disconnect(player);
         }
     }
 
     /**
      * Creates client ECS, containing names + position components of all objects and players data
+     * 
+     * @return  the client ECS
      */
     pub fn client_ecs(&self) -> ClientECS {
         ClientECS {
@@ -326,18 +352,22 @@ impl ECS {
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
             players: self.players.clone(),
+            ids: self.ids.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
         }
     }
 
     /**
-     * Creates lobby ECS before starting the game
+     * Create lobby ECS to represent the game state
+     * 
+     * @param   start_game: whether the game has started
      */
     pub fn lobby_ecs(&self, start_game: bool) -> LobbyECS {
         LobbyECS {
             name_components: self.name_components.clone(),
             players: self.players.clone(),
+            ids: self.ids.clone(),
             start_game: start_game,
         }
     }
@@ -345,22 +375,23 @@ impl ECS {
     /**
      * Creates a new player
      *
-     * @param name
-     * @param rigid_body_set
-     * @param collider_set
+     * @param   name
+     * @param   rigid_body_set
+     * @param   collider_set
      * 
-     * @return an Entity that represents the player
+     * @return  an Entity that represents the player
      */
     pub fn new_player(&mut self, name: String, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) -> Entity {
         let player = self.name_components.insert(name);
+        self.ids.push(player);
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
         self.model_components.insert(player, ModelComponent { modelname: "cube".to_string() });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.position_components.insert(player, PositionComponent::default());
-        self.player_weapon_components.insert(player, PlayerWeaponComponent{cooldown: 0, ammo: 6, reloading: false});
-        self.player_camera_components.insert(player, PlayerCameraComponent{rot: UnitQuaternion::identity(),camera_front: vector![0.0, 0.0, 0.0],camera_up: vector![0.0, 0.0, 0.0],camera_right: vector![0.0, 0.0, 0.0]});
+        self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
+        self.player_camera_components.insert(player, PlayerCameraComponent::default());
         if self.spawnpoints.is_empty() {
             eprintln!("Ran out of player spawnpoints, reusing");
             init_player_spawns(self);
@@ -380,17 +411,34 @@ impl ECS {
             let entity = self.name_components.insert(name);
             self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(rot_x,rot_y,rot_z);
-            self.position_components.insert(entity, PositionComponent { x: (pos_x), y: (pos_y), z: (pos_z), qx: (rot.i), qy: (rot.j), qz: (rot.k), qw: (rot.w) });
+            self.position_components.insert(
+                entity, 
+                PositionComponent {
+                    x: (pos_x),
+                    y: (pos_y),
+                    z: (pos_z),
+                    qx: (rot.i),
+                    qy: (rot.j),
+                    qz: (rot.k),
+                    qw: (rot.w)
+                }
+            );
             self.model_components.insert(entity,ModelComponent { modelname });
             let rigid_body: RigidBody;
             if dynamic {
                 self.dynamics.push(entity);
-                rigid_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).can_sleep(false).build();
+                rigid_body = RigidBodyBuilder::dynamic().position(
+                    Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
+                ).can_sleep(false).build();
             } else {
-                rigid_body = RigidBodyBuilder::fixed().position(Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)).build();
+                rigid_body = RigidBodyBuilder::fixed().position(
+                    Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
+                ).build();
             }
             let handle = rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(entity.data().as_ffi() as u128).build();
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(
+                entity.data().as_ffi() as u128
+            ).build();
             let collider_handle = collider_set.insert_with_parent(collider, handle, rigid_body_set);
             self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
 
@@ -399,7 +447,7 @@ impl ECS {
     /**
      * Updates position components of all objects in the game
      *
-     * @param rigid_body_set
+     * @param   rigid_body_set
      */
     pub fn update_positions(&mut self, rigid_body_set: &mut RigidBodySet) {
         for &dynamic in &self.dynamics {
@@ -416,9 +464,12 @@ impl ECS {
     }
 
     /**
-     * TODO: add description
+     * Handle player firing + weapon cooldown,
+     * detect if target is another player, update health components if necessary
      *
-     * @param rigid_body_set
+     * @param   rigid_body_set
+     * @param   collider_set
+     * @param   query_pipeline
      */
     pub fn player_fire(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, query_pipeline: & QueryPipeline) {
         for &player in &self.players {
@@ -427,7 +478,7 @@ impl ECS {
             if weapon.cooldown > 0 {
                 weapon.cooldown -= 1;
                 if weapon.reloading && weapon.cooldown == 0 {
-                    weapon.ammo = 6;
+                    weapon.ammo = AMMO_COUNT;
                     weapon.reloading = false;
                     println!("ammo: {}",weapon.ammo);
                 }
@@ -478,7 +529,7 @@ impl ECS {
                 weapon.cooldown = 30;
                 weapon.ammo -= 1;
                 println!("ammo: {}",weapon.ammo);
-            } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < 6)) && weapon.cooldown == 0 {
+            } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 println!("reloading...");
                 weapon.cooldown = 180;
                 weapon.reloading = true;
@@ -486,6 +537,11 @@ impl ECS {
         }
     }
 
+    /**
+     * TODO: add description
+     *
+     * @param   rigid_body_set
+     */
     pub fn player_move(&mut self, rigid_body_set: &mut RigidBodySet) {
         for &player in &self.players {
             let input = &self.player_input_components[player];
@@ -514,7 +570,14 @@ impl ECS {
         }
     }
 
+    /**
+     * Check for new ready updates and update number of ready players
+     *
+     * @param   current # of ready players
+     * @return  updated # of ready players
+     */
     pub fn check_ready_updates(&mut self, curr: u8) -> u8{
+        let mut disconnected_players: Vec<Entity> = vec![];
         let mut ready_players = curr;
         
         // check each connection for ready updates
@@ -544,14 +607,29 @@ impl ECS {
                     Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
                     Err(e) => {
                         eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        self.network_components[player].connected = false;
-                        self.player_health_components[player].health = 0;
-                        self.player_health_components[player].alive = false;
-                        self.active_players -= 1;
+                        disconnected_players.push(player);
                     }
                 };
             }
         }
+        
+        for player in disconnected_players {
+            self.handle_client_disconnect(player);
+        }
+
         return ready_players;
+    }
+
+    /**
+     * Given a disconnected player, remove them from ECS and update health/network components
+     *
+     * @param player's key
+     */
+    fn handle_client_disconnect(&mut self, player: DefaultKey){
+        self.network_components[player].connected = false;
+        self.player_health_components[player].alive = false;
+        self.player_health_components[player].health = 0;
+        self.remove_player(player);
+        self.active_players -= 1;
     }
 }

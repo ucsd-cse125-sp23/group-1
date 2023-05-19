@@ -8,12 +8,14 @@ mod ecs;
 mod init_world;
 mod server_components;
 
+use shared::*;
+
 fn main() {
     let mut rigid_body_set = RigidBodySet::new();
     let mut collider_set = ColliderSet::new();
 
     let gravity = vector![0.0, 0.0, 0.0];
-    let integration_parameters = IntegrationParameters { dt: (shared::TICK_SPEED as f32) / 1000.0, ..Default::default()};
+    let integration_parameters = IntegrationParameters { dt: (TICK_SPEED as f32) / 1000.0, ..Default::default()};
     let mut physics_pipeline = PhysicsPipeline::new();
     let mut island_manager = IslandManager::new();
     let mut broad_phase = BroadPhase::new();
@@ -31,7 +33,7 @@ fn main() {
     init_world::init_player_spawns(&mut ecs);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
-    let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");
+    let listener = TcpListener::bind("0.0.0.0:".to_string() + &PORT.to_string()).expect("Error binding address");
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
 
@@ -49,7 +51,7 @@ fn main() {
         loop {
             events.clear();
             // timeout set to server tick speed
-            poller.wait(&mut events, Some(Duration::from_millis(shared::TICK_SPEED))).unwrap();
+            poller.wait(&mut events, Some(Duration::from_millis(TICK_SPEED))).unwrap();
             // connect anyone who wants to connect
             for _ in &events {
                 ecs.connect_client(&listener, &mut rigid_body_set, &mut collider_set);
@@ -58,7 +60,7 @@ fn main() {
             // check each connection for ready updates
             ready_players = ecs.check_ready_updates(ready_players);
             // println!("ready players: {}, active players: {}, total players: {}", ready_players, ecs.active_players, ecs.players.len());
-            if ready_players >= 2 && ready_players == ecs.active_players {
+            if ready_players >= MIN_PLAYERS && ready_players == ecs.active_players {
                 ecs.send_ready_message(true);
                 break;
             }
@@ -99,10 +101,10 @@ fn main() {
             // pad tick time by spin sleeping
             let tick = end.duration_since(start);
             let tick_ms = tick.as_millis() as u64;
-            if tick_ms > shared::TICK_SPEED {
-                eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, shared::TICK_SPEED);
+            if tick_ms > TICK_SPEED {
+                eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, TICK_SPEED);
             } else {
-                spin_sleep::sleep(Duration::from_millis(shared::TICK_SPEED) - tick);
+                spin_sleep::sleep(Duration::from_millis(TICK_SPEED) - tick);
             }
         }
         println!("[SERVER]: Game over.");

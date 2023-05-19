@@ -288,7 +288,7 @@ fn main() -> io::Result<()> {
                 // NEEDS TO BE REWORKED FOR MENU STATE
                 match &client_ecs {
                     Some(c_ecs) => {
-                        let player_key = c_ecs.players[client_id];
+                        let player_key = c_ecs.ids[client_id];
 
                         // handle changes in client health
                         if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
@@ -337,8 +337,11 @@ fn main() -> io::Result<()> {
 
                         // game has ended
                         if c_ecs.game_ended {
-                            for (i, player) in c_ecs.players.iter().enumerate() {
-                                if c_ecs.health_components[*player].alive && c_ecs.health_components[*player].health > 0 {
+                            for (i, player) in c_ecs.ids.iter().enumerate() {
+                                if  c_ecs.players.contains(player) && 
+                                    c_ecs.health_components[*player].alive &&
+                                    c_ecs.health_components[*player].health > 0 
+                                {
                                     println!("The winner is player {}!", i);
                                 }
                             }
