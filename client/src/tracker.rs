@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 use crate::sprite_renderer::Sprite;
 use crate::util::vec2_signed_angle;
-use cgmath::{vec2, Matrix4, Vector2, Vector3, Point3, EuclideanSpace, Transform, Rad, InnerSpace, Angle, Basis2, Rotation2, Rotation, perspective, Deg, vec3, Vector4};
+use cgmath::{vec2, Vector2, Vector3, Point3, EuclideanSpace, Transform, Rad, InnerSpace, Angle, Basis2, Rotation2, Rotation, perspective, Deg, vec3, Vector4};
 use std::f32::consts::PI;
 use crate::camera::Camera;
 
@@ -12,8 +14,8 @@ pub struct Tracker {
 }
 
 impl Tracker {
-    pub unsafe fn new(projection: Matrix4<f32>, shader_id: u32, target_radius: f32, screen_size: Vector2<f32>) -> Tracker {
-        let rect = Sprite::new(projection, shader_id);
+    pub unsafe fn new(shader_id: u32, target_radius: f32, screen_size: Vector2<f32>) -> Tracker {
+        let rect = Sprite::new(screen_size, shader_id);
 
         let tracker = Tracker {
             line_width: 5.0,

@@ -15,7 +15,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4, Vector2, Array};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -27,7 +27,6 @@ use crate::skybox::Skybox;
 use crate::sprite_renderer::{Anchor, Sprite};
 
 // network
-use crate::sprite_renderer::Sprite;
 use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
@@ -224,8 +223,7 @@ fn main() -> io::Result<()> {
     };
 
     let mut tracker = unsafe {
-        let projection = cgmath::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
-        let tracker = Tracker::new(projection, sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
         tracker
     };
 
@@ -507,7 +505,6 @@ fn main() -> io::Result<()> {
             glfw.poll_events();
         }
     }
-    Ok(())
 }
 
 fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &Shader, width: u32, height: u32) {
