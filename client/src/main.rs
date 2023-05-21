@@ -24,6 +24,7 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
+use crate::sprite_renderer::{Anchor, Sprite};
 
 // network
 use crate::sprite_renderer::Sprite;
@@ -33,6 +34,7 @@ use std::process;
 use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
+use shared::*;
 use crate::tracker::Tracker;
 
 fn main() -> io::Result<()> {
@@ -73,6 +75,7 @@ fn main() -> io::Result<()> {
 
     last_x = width as f32 / 2.0;
     last_y = height as f32 / 2.0;
+    let screen_size = vec2(width as f32, height as f32);
 
     window.make_current();
     window.set_framebuffer_size_polling(true);
@@ -87,7 +90,7 @@ fn main() -> io::Result<()> {
 
     // Create network TcpStream
     let mut stream =
-        TcpStream::connect(shared::SERVER_ADDR.to_string() + ":" + &shared::PORT.to_string())?;
+        TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -132,9 +135,91 @@ fn main() -> io::Result<()> {
     };
 
     let crosshair = unsafe {
-        let projection = cgmath::ortho(0.0, width as f32, 0.0, height as f32, -1.0, 1.0);
-        let mut sprite = Sprite::new(projection, sprite_shader.id);
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
+        sprite.set_position(vec2(width as f32 / 2.0, height as f32 / 2.0));
+        sprite.set_scale(Vector2::from_value(CROSSHAIR_SCALE));
+        sprite
+    };
+
+    let empty_healthbar = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/emptyHealthBar.png");
+        sprite.set_position(vec2(5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopLeft);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let full_healthbar = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/fullHealthBar.png");
+        sprite.set_position(vec2(5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopLeft);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_0 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo0.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_1 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo1.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_2 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo2.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_3 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo3.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_4 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo4.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_5 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo5.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
+        sprite
+    };
+
+    let ammo_6 = unsafe {
+        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
+        sprite.set_texture("resources/ui_textures/ammo6.png");
+        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
+        sprite.set_anchor(Anchor::TopRight);
+        sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
 
@@ -149,6 +234,7 @@ fn main() -> io::Result<()> {
 
     // health component initialized
     let mut client_health = PlayerHealthComponent::default();
+    let mut client_ammo = 0;
 
     // WINDOW LOOP
     // -----------
@@ -173,7 +259,7 @@ fn main() -> io::Result<()> {
             if window.get_key(Key::Escape) == Action::Press {
                 window.set_cursor_mode(glfw::CursorMode::Normal);
             }
-
+            
             // TODO: render lobby frame
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -188,6 +274,9 @@ fn main() -> io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
+                            let start_pos = &lobby_ecs.position_components[lobby_ecs.players[client_id]];
+                            camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
+                            camera.UpdateVecs();
                             client_ecs = None;
                             first_mouse = true;
                             in_lobby = false;
@@ -196,7 +285,7 @@ fn main() -> io::Result<()> {
                     _ => ()
                 }
             }
-
+            
             // poll events
             window.swap_buffers();
             glfw.poll_events();
@@ -210,7 +299,7 @@ fn main() -> io::Result<()> {
                 }
             }
         }
-
+      
         // GAME LOOP
         let mut in_game = true;
         window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -305,6 +394,7 @@ fn main() -> io::Result<()> {
                 match &client_ecs {
                     Some(c_ecs) => {
                         let player_key = c_ecs.players[client_id];
+                        client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                         // handle changes in client health
                         if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
@@ -342,8 +432,8 @@ fn main() -> io::Result<()> {
                                 let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
 
                                 // setup scale matrix (skip for now)
-                                let scale_mat = Matrix4::from_scale(1.0);
-
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
+                            
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
@@ -377,7 +467,7 @@ fn main() -> io::Result<()> {
                     }
                 }
                 // note: the first iteration through the match{} above draws the model without view and projection setup
-
+              
                 // draw skybox
                 let projection: Matrix4<f32> = perspective(
                     Deg(camera.Zoom),
@@ -387,7 +477,24 @@ fn main() -> io::Result<()> {
                 );
                 skybox.draw(camera.GetViewMatrix(), projection);
 
-                crosshair.draw_at_center(vec2(width as f32 / 2.0, height as f32 / 2.0), vec2(50.0, 50.0));
+                crosshair.draw();
+
+                if client_health.alive {
+                    full_healthbar.draw();
+                } else {
+                    empty_healthbar.draw();
+                }
+
+                match client_ammo {
+                    0 => ammo_0.draw(),
+                    1 => ammo_1.draw(),
+                    2 => ammo_2.draw(),
+                    3 => ammo_3.draw(),
+                    4 => ammo_4.draw(),
+                    5 => ammo_5.draw(),
+                    6 => ammo_6.draw(),
+                    _ => ()
+                }
 
                 gl::DepthMask(gl::FALSE);
                 tracker.draw_all_trackers(trackers);

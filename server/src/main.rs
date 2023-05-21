@@ -28,7 +28,7 @@ fn main() {
     let mut ecs = ecs::ECS::new();
 
     init_world::init_world(&mut ecs, &mut rigid_body_set, &mut collider_set);
-    init_world::init_player_spawns(&mut ecs);
+    init_world::init_player_spawns(&mut ecs.spawnpoints);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &shared::PORT.to_string()).expect("Error binding address");

@@ -49,6 +49,7 @@ impl PlayerInputComponent {
 pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub players: Vec<Entity>,
@@ -61,6 +62,7 @@ impl ClientECS {
         ClientECS{
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
+            weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
             players: vec![],
@@ -73,6 +75,7 @@ impl ClientECS {
 #[derive(Serialize, Deserialize)]
 pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
+    pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub players: Vec<Entity>,
     pub start_game: bool,
 }
@@ -110,6 +113,7 @@ impl PositionComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ModelComponent {
     pub modelname: String,
+    pub scale: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
