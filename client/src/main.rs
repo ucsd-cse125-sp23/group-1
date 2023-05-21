@@ -6,6 +6,7 @@ mod shader;
 mod skybox;
 mod sprite_renderer;
 mod util;
+mod lasso;
 
 use std::collections::HashMap;
 
@@ -14,7 +15,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, SquareMatrix, EuclideanSpace, Transform, Matrix};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -33,6 +34,7 @@ use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use shared::*;
+use crate::lasso::Lasso;
 
 fn main() -> io::Result<()> {
     // create camera and camera information
@@ -125,6 +127,7 @@ fn main() -> io::Result<()> {
         (shader_program, sprite_shader, skybox, models)
     };
 
+    // create all objects
     let crosshair = unsafe {
         let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
@@ -213,6 +216,8 @@ fn main() -> io::Result<()> {
         sprite.set_scale(Vector2::from_value(BAR_SCALE));
         sprite
     };
+
+    let lasso = Lasso::new();
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -423,6 +428,11 @@ fn main() -> io::Result<()> {
                                 models[model_name].draw(&shader_program);
                             }
                         }
+
+                        // draw lasso from the player to another point
+                        // TODO: the second point is currently hard coded
+                        let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(0.5, -1.0, 0.0));
+                        lasso.draw_btw_points(lasso_p1.to_vec(), vec3(1.0, 1.0, 1.0), &shader_program);
 
                         // game has ended
                         if c_ecs.game_ended {
