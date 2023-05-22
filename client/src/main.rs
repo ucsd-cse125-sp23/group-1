@@ -32,6 +32,8 @@ use std::net::{TcpStream};
 use std::process;
 use std::str;
 use shared::*;
+use shared::shared_components::*;
+use shared::shared_functions::*;
 use crate::lasso::Lasso;
 
 fn main() -> io::Result<()> {
@@ -431,8 +433,8 @@ fn main() -> io::Result<()> {
 
                         // draw lasso from the player to another point
                         // TODO: the second point is currently hard coded
-                        let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(0.5, -1.0, 0.0));
-                        lasso.draw_btw_points(lasso_p1.to_vec(), vec3(1.0, 1.0, 1.0), &shader_program);
+                        // let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(0.5, -1.0, 0.0));
+                        // lasso.draw_btw_points(lasso_p1.to_vec(), vec3(1.0, 1.0, 1.0), &shader_program);
 
                         for &player in &c_ecs.players {
                             if c_ecs.player_lasso_components.contains_key(player) {
@@ -444,6 +446,8 @@ fn main() -> io::Result<()> {
                                 let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                 // TODO: draw rope from player to anchor
+                                let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(player_x, player_y, player_z));
+                                lasso.draw_btw_points(lasso_p1.to_vec(), vec3(anchor_x, anchor_y, anchor_z), &shader_program);
                             }
                         }
 
