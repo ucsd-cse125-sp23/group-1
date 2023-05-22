@@ -32,9 +32,10 @@ fn main() {
     // poll for clients until game begins
     listener.set_nonblocking(true).unwrap();
     let key = 0;
+    let poller = Poller::new().unwrap();
     // MAIN SERVER LOOP
     loop {
-        let poller = Poller::new().unwrap();
+        
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
         let mut ready_players = 0;
@@ -57,7 +58,7 @@ fn main() {
                 break;
             }
         }
-
+        poller.delete(&listener).unwrap();
         // GAME LOOP
         println!("[SERVER]: Starting game");
         while !ecs.game_ended {
