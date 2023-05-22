@@ -11,9 +11,6 @@ mod server_components;
 use shared::*;
 
 fn main() {
-    // let mut rigid_body_set = RigidBodySet::new();
-    // let mut collider_set = ColliderSet::new();
-
     let gravity = vector![0.0, 0.0, 0.0];
     let integration_parameters = IntegrationParameters { dt: (TICK_SPEED as f32) / 1000.0, ..Default::default()};
     let physics_hooks = ();
