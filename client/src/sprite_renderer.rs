@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::shader::Shader;
 use gl::types::{GLfloat, GLsizei, GLsizeiptr};
 use std::f32::consts::PI;

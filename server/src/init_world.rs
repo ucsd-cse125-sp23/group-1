@@ -82,7 +82,7 @@ fn load_scaled_model(path: String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3
     (vertices, indices)
 }
 
-pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
+pub fn init_world(ecs: &mut ECS) {
     let j = fs::read_to_string("world/props.json").expect("Error reading file world/props.json");
     let props: Vec<Prop> = serde_json::from_str(&j).expect("Error deserializing world/props.json");
     for prop in props {
@@ -99,7 +99,21 @@ pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set
             },
             _ => panic!("Unsupported shape"),
         };
-        ecs.spawn_prop(rigid_body_set, collider_set, prop.name, prop.modelname, prop.pos.0, prop.pos.1, prop.pos.2, prop.rot.roll, prop.rot.pitch, prop.rot.yaw, prop.dynamic, sharedshape, prop.scale, prop.density, prop.restitution);
+        ecs.spawn_prop(
+            prop.name,
+            prop.modelname,
+            prop.pos.0,
+            prop.pos.1,
+            prop.pos.2,
+            prop.rot.roll,
+            prop.rot.pitch,
+            prop.rot.yaw,
+            prop.dynamic,
+            sharedshape,
+            prop.scale,
+            prop.density,
+            prop.restitution
+        );
     }
 }
 

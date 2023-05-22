@@ -7,6 +7,7 @@ mod skybox;
 mod sprite_renderer;
 mod util;
 mod lasso;
+mod tracker;
 
 use std::collections::HashMap;
 
@@ -15,7 +16,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, SquareMatrix, EuclideanSpace, Transform, Matrix};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -35,6 +36,7 @@ use shared::*;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use crate::lasso::Lasso;
+use crate::tracker::Tracker;
 
 fn main() -> io::Result<()> {
     // create camera and camera information
@@ -86,8 +88,9 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-
+    
     // Create network TcpStream
+    // TODO: change to connect_timeout?
     let mut stream =
         TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 
@@ -102,7 +105,7 @@ fn main() -> io::Result<()> {
         .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, sprite_shader, skybox, models) = unsafe {
+    let (shader_program, sprite_shader, skybox, models, tracker_colors) = unsafe {
         // configure global opengl state
         // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
@@ -126,7 +129,13 @@ fn main() -> io::Result<()> {
         models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
         models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
-        (shader_program, sprite_shader, skybox, models)
+        let colors: [Vector4<f32>; 3] = [
+            vec4(0.91797, 0.25, 0.2031, 1.0),
+            vec4(0.2031, 0.7852, 0.91797, 1.0),
+            vec4(0.3867, 0.9648, 0.0781, 1.0),
+        ];
+
+        (shader_program, sprite_shader, skybox, models, colors)
     };
 
     // create all objects
@@ -220,6 +229,11 @@ fn main() -> io::Result<()> {
     };
 
     let lasso = Lasso::new();
+    
+    let mut tracker = unsafe {
+        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        tracker
+    };
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -266,7 +280,7 @@ fn main() -> io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
-                            let start_pos = &lobby_ecs.position_components[lobby_ecs.players[client_id]];
+                            let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                             camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                             camera.UpdateVecs();
                             client_ecs = None;
@@ -346,9 +360,8 @@ fn main() -> io::Result<()> {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message size from server: {}", e);
-                        // TODO: handle lost client
-                        break;
+                        eprintln!("Failed to read message size from server: {}",e);
+                        process::exit(1);
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -366,7 +379,8 @@ fn main() -> io::Result<()> {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message from server: {}", e);
+                        eprintln!("Failed to read message from server: {}",e);
+                        process::exit(1);
                     }
                 }
             }
@@ -380,10 +394,12 @@ fn main() -> io::Result<()> {
                 // activate shader
                 shader_program.use_program();
 
+                let mut trackers = vec![];
+
                 // NEEDS TO BE REWORKED FOR MENU STATE
                 match &client_ecs {
                     Some(c_ecs) => {
-                        let player_key = c_ecs.players[client_id];
+                        let player_key = c_ecs.ids[client_id];
                         client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                         // handle changes in client health
@@ -415,7 +431,7 @@ fn main() -> io::Result<()> {
                                 let model_z = c_ecs.position_components[renderable].z;
                                 let model_pos = vec3(model_x, model_y, model_z);
                                 let pos_mat = Matrix4::from_translation(model_pos);
-                            
+
                                 // setup rotation matrix
                                 let model_qx = c_ecs.position_components[renderable].qx;
                                 let model_qy = c_ecs.position_components[renderable].qy;
@@ -433,8 +449,9 @@ fn main() -> io::Result<()> {
                             }
                         }
 
-                        // lasso
+                        let mut i = 0;
                         for &player in &c_ecs.players {
+                            // lasso
                             if c_ecs.player_lasso_components.contains_key(player) {
                                 // setup position matrix
                                 let player_x = c_ecs.position_components[player].x;
@@ -464,12 +481,23 @@ fn main() -> io::Result<()> {
                                 let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                 lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                             }
+
+                            // draw trackers
+                            if player != player_key && c_ecs.health_components[player].alive {
+                                let pos = &c_ecs.position_components[player];
+                                let pos = vec3(pos.x, pos.y, pos.z);
+                                tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
+                            }
+                            i += 1;
                         }
 
                         // game has ended
                         if c_ecs.game_ended {
-                            for (i, player) in c_ecs.players.iter().enumerate() {
-                                if c_ecs.health_components[*player].alive {
+                            for (i, player) in c_ecs.ids.iter().enumerate() {
+                                if  c_ecs.players.contains(player) && 
+                                    c_ecs.health_components[*player].alive &&
+                                    c_ecs.health_components[*player].health > 0 
+                                {
                                     println!("The winner is player {}!", i);
                                 }
                             }
@@ -510,6 +538,10 @@ fn main() -> io::Result<()> {
                     6 => ammo_6.draw(),
                     _ => ()
                 }
+
+                gl::DepthMask(gl::FALSE);
+                tracker.draw_all_trackers(trackers);
+                gl::DepthMask(gl::TRUE);
             }
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
