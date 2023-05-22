@@ -1,17 +1,19 @@
 use crate::ecs::*;
 use rapier3d::{dynamics::RigidBodySet, geometry::{ColliderSet,SharedShape}};
-use nalgebra::{Isometry3, Translation3, UnitQuaternion};
+use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3};
 use serde::Deserialize;
 use std::fs;
+use std::path::Path;
 use rand::{thread_rng, Rng};
+use tobj;
 
 #[derive(Deserialize)]
 enum Shape {
     Ball(f32),
     Cuboid(f32,f32,f32),
-    Convex{},
-    ConvexDecomp{},
-    Trimesh{},
+    Convex(String),
+    ConvexDecomp(String),
+    Trimesh(String),
 }
 
 #[derive(Deserialize)]
@@ -62,6 +64,24 @@ struct SpawnPoint {
 
 fn spawnpoint_default_rot() -> Option<EulerRot> { None }
 
+fn load_scaled_model(path: String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
+    let path = Path::new(&path);
+    let obj = tobj::load_obj(path);
+    let (models, _) = obj.unwrap();
+    let mesh = &models[0].mesh;
+    let num_vertices = mesh.positions.len() / 3;
+
+    let mut vertices: Vec<Point3<f32>> = Vec::with_capacity(num_vertices);
+    let indices: Vec<_> = mesh.indices.clone().chunks(3).map(|idx| [idx[0] as u32, idx[1] as u32, idx[2] as u32]).collect();
+        
+    let p = &mesh.positions;
+    for i in 0..num_vertices {
+        vertices.push(point!(p[i*3], p[i*3+1], p[i*3+2]) * scale);
+    }
+
+    (vertices, indices)
+}
+
 pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet) {
     let j = fs::read_to_string("world/props.json").expect("Error reading file world/props.json");
     let props: Vec<Prop> = serde_json::from_str(&j).expect("Error deserializing world/props.json");
@@ -69,6 +89,14 @@ pub fn init_world(ecs: &mut ECS, rigid_body_set: &mut RigidBodySet, collider_set
         let sharedshape = match prop.shape {
             Shape::Ball(r) => SharedShape::ball(r * prop.scale),
             Shape::Cuboid(hx, hy, hz) => SharedShape::cuboid(hx * prop.scale, hy * prop.scale, hz * prop.scale),
+            Shape::Convex(path) => {
+                let (vertices, _) = load_scaled_model(path, prop.scale);
+                SharedShape::convex_hull(&vertices).expect("failed to generate convex hull")
+            },
+            Shape::ConvexDecomp(path) => {
+                let (vertices, indices) = load_scaled_model(path, prop.scale);
+                SharedShape::convex_decomposition(&vertices, &indices)
+            },
             _ => panic!("Unsupported shape"),
         };
         ecs.spawn_prop(rigid_body_set, collider_set, prop.name, prop.modelname, prop.pos.0, prop.pos.1, prop.pos.2, prop.rot.roll, prop.rot.pitch, prop.rot.yaw, prop.dynamic, sharedshape, prop.scale, prop.density, prop.restitution);

@@ -31,8 +31,6 @@ use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
 use std::str;
-use shared::shared_components::*;
-use shared::shared_functions::*;
 use shared::*;
 use crate::lasso::Lasso;
 
@@ -123,6 +121,8 @@ fn main() -> io::Result<()> {
         // -----------
         let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
+        models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
         (shader_program, sprite_shader, skybox, models)
     };
@@ -434,6 +434,19 @@ fn main() -> io::Result<()> {
                         let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(0.5, -1.0, 0.0));
                         lasso.draw_btw_points(lasso_p1.to_vec(), vec3(1.0, 1.0, 1.0), &shader_program);
 
+                        for &player in &c_ecs.players {
+                            if c_ecs.player_lasso_components.contains_key(player) {
+                                let player_x = c_ecs.position_components[player].x;
+                                let player_y = c_ecs.position_components[player].x;
+                                let player_z = c_ecs.position_components[player].y;
+                                let anchor_x = c_ecs.player_lasso_components[player].anchor_x;
+                                let anchor_y = c_ecs.player_lasso_components[player].anchor_y;
+                                let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
+
+                                // TODO: draw rope from player to anchor
+                            }
+                        }
+
                         // game has ended
                         if c_ecs.game_ended {
                             for (i, player) in c_ecs.players.iter().enumerate() {
@@ -582,6 +595,9 @@ fn process_inputs(
     }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;
+    }
+    if window.get_mouse_button(MouseButton::Button2) == Action::Press {
+        input_component.rmb_clicked = true;
     }
 
     // TODO: add additional quit hotkey?

@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion};
+use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion,distance};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::str;
 use std::io::{Read, Write, self};
@@ -19,6 +19,7 @@ pub struct ECS {
     pub player_input_components: SecondaryMap<Entity, PlayerInputComponent>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
+    pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     
     // server components
@@ -26,6 +27,7 @@ pub struct ECS {
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
+    pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
 
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
@@ -43,11 +45,13 @@ impl ECS {
             player_input_components: SecondaryMap::new(),
             position_components: SecondaryMap::new(),
             player_weapon_components: SecondaryMap::new(),
+            player_lasso_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
             player_health_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
+            player_lasso_phys_components: SecondaryMap::new(),
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
@@ -279,6 +283,7 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
+            player_lasso_components: self.player_lasso_components.clone(),
             players: self.players.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
@@ -445,6 +450,77 @@ impl ECS {
                 println!("reloading...");
                 weapon.cooldown = 180;
                 weapon.reloading = true;
+            }
+        }
+    }
+
+    pub fn player_lasso(&mut self, rigid_body_set: &mut RigidBodySet, collider_set: &mut ColliderSet, impulse_joint_set: &mut ImpulseJointSet, query_pipeline: & QueryPipeline) {
+        for &player in &self.players {
+            let slack = 0.01;
+            let input = &self.player_input_components[player];
+            if self.player_lasso_phys_components.contains_key(player) {
+                let lasso_phys = &mut self.player_lasso_phys_components[player];
+                if input.rmb_clicked {
+                    let position = &self.position_components[player];
+                    let anchor = rigid_body_set.get_mut(lasso_phys.anchor_handle).unwrap();
+                    let anchor_point = anchor.position() * lasso_phys.anchor_point_local;
+                    self.player_lasso_components[player].anchor_x = anchor_point.x;
+                    self.player_lasso_components[player].anchor_y = anchor_point.y;
+                    self.player_lasso_components[player].anchor_z = anchor_point.z;
+                    let dist = distance(&point![position.x, position.y, position.z],&anchor_point);
+                    let new_limit = dist / 3.0_f32.sqrt() + slack;
+                    let ropejoint = impulse_joint_set.get_mut(lasso_phys.joint_handle).unwrap();
+                    if new_limit < lasso_phys.limit {
+                        lasso_phys.limit = new_limit;
+                    }
+                    let lim = lasso_phys.limit;
+                    ropejoint.data.set_limits(JointAxis::X, [lim,lim]);
+                    ropejoint.data.set_limits(JointAxis::Y, [lim,lim]);
+                    ropejoint.data.set_limits(JointAxis::Z, [lim,lim]);
+
+                    let anchor = rigid_body_set.get_mut(self.player_lasso_phys_components[player].anchor_handle).unwrap();
+                    // let anchor_t = anchor.translation().clone();
+                    // TODO: calculate impulse based on mass of objects
+                    anchor.apply_impulse_at_point((vector![position.x, position.y, position.z]-vector![anchor_point.x, anchor_point.y, anchor_point.z]).normalize() * 0.2, anchor_point, true);
+                    let rigid_body = rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+                    rigid_body.apply_impulse((vector![anchor_point.x, anchor_point.y, anchor_point.z]-vector![position.x, position.y, position.z]).normalize() * 0.2, true);
+                } else {
+                    println!("releasing lasso");
+                    impulse_joint_set.remove(lasso_phys.joint_handle,true);
+                    self.player_lasso_phys_components.remove(player);
+                    self.player_lasso_components.remove(player);
+                }
+            } else if input.rmb_clicked {
+                println!("throwing lasso");
+                let fire_vec = &self.player_camera_components[player].camera_front;
+                let position = &self.position_components[player];
+                let player_handle = &self.physics_components[player].handle;
+
+                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let max_toi = 1000.0; //depends on size of map
+                let solid = true;
+                let filter = QueryFilter::new().exclude_rigid_body(*player_handle);
+                match query_pipeline.cast_ray(rigid_body_set, collider_set, &ray, max_toi, solid, filter) {
+                    Some((target_collider_handle, toi)) => {
+                        let target_collider = collider_set.get_mut(target_collider_handle).unwrap();
+                        let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                        let target_name = & self.name_components[target];
+                        println!("Hit target {}",target_name);
+                        let hit_point = ray.point_at(toi);
+                        let dist = distance(&point![position.x, position.y, position.z],&hit_point);
+                        let limit = dist / 3.0_f32.sqrt() + slack;
+                        let target_handle = &self.physics_components[target].handle;
+                        let target_body = rigid_body_set.get_mut(*target_handle).unwrap();
+                        let hit_point_local = target_body.position().inverse() * hit_point;
+                        let joint = RopeJointBuilder::new().local_anchor2(hit_point_local).limits([limit,limit]).build();
+                        let joint_handle = impulse_joint_set.insert(*player_handle, *target_handle, joint, true);
+                        self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { anchor_handle:*target_handle, anchor_point_local: hit_point_local, joint_handle, limit });
+                        self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: hit_point.x, anchor_y: hit_point.y, anchor_z: hit_point.z });
+                    },
+                    None => {
+                        println!("Miss");
+                    },
+                }
             }
         }
     }
