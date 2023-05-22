@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
 use std::str;
 
+use crate::AMMO_COUNT;
 type Entity = DefaultKey;
 
 // client -> server component
@@ -20,7 +21,7 @@ pub struct PlayerInputComponent {
     pub camera_qx: f32,
     pub camera_qy: f32,
     pub camera_qz: f32,
-    pub camera_qw: f32,
+    pub camera_qw: f32
 }
 
 impl PlayerInputComponent {
@@ -38,7 +39,7 @@ impl PlayerInputComponent {
             camera_qx: 0.0,
             camera_qy: 0.0,
             camera_qz: 0.0,
-            camera_qw: 1.0,
+            camera_qw: 1.0
         }
     }
 }
@@ -49,11 +50,13 @@ impl PlayerInputComponent {
 pub struct ClientECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub players: Vec<Entity>,
+    pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
-    pub game_ended: bool,
+    pub game_ended: bool
 }
 
 impl ClientECS {
@@ -61,11 +64,13 @@ impl ClientECS {
         ClientECS{
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
+            weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
             players: vec![],
+            ids: vec![],
             renderables: vec![],
-            game_ended: false,
+            game_ended: false
         }
     }
 }
@@ -75,12 +80,13 @@ pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
     pub players: Vec<Entity>,
-    pub start_game: bool,
+    pub ids: Vec<Entity>,
+    pub start_game: bool
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ReadyECS {
-    pub ready: bool,
+    pub ready: bool
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -91,7 +97,7 @@ pub struct PositionComponent {
     pub qx: f32,
     pub qy: f32,
     pub qz: f32,
-    pub qw: f32,
+    pub qw: f32
 }
 
 impl PositionComponent {
@@ -111,27 +117,37 @@ impl PositionComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ModelComponent {
     pub modelname: String,
-    pub scale: f32,
+    pub scale: f32
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerWeaponComponent {
     pub cooldown: i16,
     pub ammo: u8,
-    pub reloading: bool,
+    pub reloading: bool
+}
+
+impl PlayerWeaponComponent {
+    pub fn default() -> PlayerWeaponComponent{
+        PlayerWeaponComponent {
+            cooldown: 0,
+            ammo: AMMO_COUNT,
+            reloading: false
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerHealthComponent {
     pub alive: bool,
-    pub health: u8,
+    pub health: u8
 }
 
 impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
-            alive : true,
-            health : 1,
+            alive: true,
+            health: 1
         }
     }
 }
