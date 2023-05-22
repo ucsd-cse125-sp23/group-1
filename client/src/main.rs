@@ -86,8 +86,9 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-
+    
     // Create network TcpStream
+    // TODO: change to connect_timeout?
     let mut stream =
         TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 
@@ -272,7 +273,7 @@ fn main() -> io::Result<()> {
                     Ok(lobby_ecs) => {
                         if lobby_ecs.start_game {
                             println!("Game starting!");
-                            let start_pos = &lobby_ecs.position_components[lobby_ecs.players[client_id]];
+                            let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                             camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                             camera.UpdateVecs();
                             client_ecs = None;
@@ -352,9 +353,8 @@ fn main() -> io::Result<()> {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message size from server: {}", e);
-                        // TODO: handle lost client
-                        break;
+                        eprintln!("Failed to read message size from server: {}",e);
+                        process::exit(1);
                     }
                 }
                 let s_size = size.try_into().unwrap();
@@ -372,7 +372,8 @@ fn main() -> io::Result<()> {
                         break;
                     }
                     Err(e) => {
-                        eprintln!("Failed to read message from server: {}", e);
+                        eprintln!("Failed to read message from server: {}",e);
+                        process::exit(1);
                     }
                 }
             }
@@ -391,7 +392,7 @@ fn main() -> io::Result<()> {
                 // NEEDS TO BE REWORKED FOR MENU STATE
                 match &client_ecs {
                     Some(c_ecs) => {
-                        let player_key = c_ecs.players[client_id];
+                        let player_key = c_ecs.ids[client_id];
                         client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                         // handle changes in client health
@@ -452,8 +453,11 @@ fn main() -> io::Result<()> {
 
                         // game has ended
                         if c_ecs.game_ended {
-                            for (i, player) in c_ecs.players.iter().enumerate() {
-                                if c_ecs.health_components[*player].alive {
+                            for (i, player) in c_ecs.ids.iter().enumerate() {
+                                if  c_ecs.players.contains(player) && 
+                                    c_ecs.health_components[*player].alive &&
+                                    c_ecs.health_components[*player].health > 0 
+                                {
                                     println!("The winner is player {}!", i);
                                 }
                             }
