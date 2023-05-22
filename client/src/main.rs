@@ -398,6 +398,7 @@ fn main() -> io::Result<()> {
                             client_health.health = c_ecs.health_components[player_key].health;
                         }
 
+                        // setup player camera
                         let player_pos = vec3(
                             c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
@@ -405,6 +406,7 @@ fn main() -> io::Result<()> {
                         );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
+                        // draw models
                         for &renderable in &c_ecs.renderables {
                             if renderable != player_key {
                                 // setup position matrix
@@ -421,7 +423,7 @@ fn main() -> io::Result<()> {
                                 let model_qw = c_ecs.position_components[renderable].qw;
                                 let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
                             
-                                // setup scale matrix (skip for now)
+                                // setup scale matrix
                                 let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
                             
                                 let model = pos_mat * scale_mat * rot_mat;
@@ -431,23 +433,36 @@ fn main() -> io::Result<()> {
                             }
                         }
 
-                        // draw lasso from the player to another point
-                        // TODO: the second point is currently hard coded
-                        // let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(0.5, -1.0, 0.0));
-                        // lasso.draw_btw_points(lasso_p1.to_vec(), vec3(1.0, 1.0, 1.0), &shader_program);
-
+                        // lasso
                         for &player in &c_ecs.players {
                             if c_ecs.player_lasso_components.contains_key(player) {
+                                // setup position matrix
                                 let player_x = c_ecs.position_components[player].x;
-                                let player_y = c_ecs.position_components[player].x;
-                                let player_z = c_ecs.position_components[player].y;
+                                let player_y = c_ecs.position_components[player].y;
+                                let player_z = c_ecs.position_components[player].z;
+                                let model_pos = vec3(player_x, player_y, player_z);
+                                let pos_mat = Matrix4::from_translation(model_pos);
+
+                                // setup rotation matrix
+                                let player_qx = c_ecs.position_components[player].qx;
+                                let player_qy = c_ecs.position_components[player].qy;
+                                let player_qz = c_ecs.position_components[player].qz;
+                                let player_qw = c_ecs.position_components[player].qw;
+                                let rot_mat = Matrix4::from(Quaternion::new(player_qw, player_qx, player_qy, player_qz));
+
+                                // setup scale matrix
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[player].scale);
+
+                                let model = pos_mat * scale_mat * rot_mat;
+
                                 let anchor_x = c_ecs.player_lasso_components[player].anchor_x;
                                 let anchor_y = c_ecs.player_lasso_components[player].anchor_y;
                                 let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
-                                // TODO: draw rope from player to anchor
-                                let lasso_p1 = camera.GetViewMatrix().invert().unwrap().transform_point(Point3::new(player_x, player_y, player_z));
-                                lasso.draw_btw_points(lasso_p1.to_vec(), vec3(anchor_x, anchor_y, anchor_z), &shader_program);
+                                // draw lasso
+                                let lasso_p1 = model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
+                                lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                             }
                         }
 
@@ -484,6 +499,7 @@ fn main() -> io::Result<()> {
                     empty_healthbar.draw();
                 }
 
+                // draw ammo
                 match client_ammo {
                     0 => ammo_0.draw(),
                     1 => ammo_1.draw(),
