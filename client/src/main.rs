@@ -84,8 +84,9 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-
+    
     // Create network TcpStream
+    // TODO: change to connect_timeout?
     let mut stream =
         TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 

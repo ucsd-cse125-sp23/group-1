@@ -180,11 +180,14 @@ impl ECS {
         match listener.accept() {
             Ok((stream, addr)) => {
                 let mut curr_stream = stream;
-                println!("Client connected: {addr:?}, client id: {}", self.ids.len());
                 // send client id -- supports no more than 255 clients
                 let client_id = self.ids.len() as u8;
-                // if this error happens something is very wrong with the connection
-                curr_stream.write(&[client_id]).unwrap();
+                // will most likely trigger if client exits after requesting to connect
+                if curr_stream.write(&[client_id]).is_err() {
+                    eprintln!("Skipping invalid client connection");
+                    return; // skip adding this client
+                }
+                println!("Client connected: {addr:?}, client id: {}", self.ids.len());
                 curr_stream.set_nonblocking(true).expect("Failed to set stream as nonblocking");
                 let name = "dummy".to_string();     // TODO: get name from client
                 let player = self.new_player(name.clone());
