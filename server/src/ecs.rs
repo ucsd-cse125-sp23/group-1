@@ -40,6 +40,8 @@ pub struct ECS {
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
 
+    pub ready_players: SecondaryMap<Entity, bool>,
+
     pub ids: Vec<Entity>,
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
@@ -78,6 +80,8 @@ impl ECS {
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             query_pipeline: QueryPipeline::new(),
+
+            ready_players: SecondaryMap::new(),
 
             ids: vec![],
             players: vec![],
@@ -127,6 +131,8 @@ impl ECS {
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.network_components.retain(|key, _| self.players.contains(&key));
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
+
+        self.ready_players.clear();
         self.dynamics.clear();
         self.renderables.clear();
 
@@ -443,6 +449,7 @@ impl ECS {
         LobbyECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
+            ready_players: self.ready_players.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
             start_game: start_game,
