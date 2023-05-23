@@ -4,7 +4,10 @@ use shared::*;
 use shared::shared_components::*;
 
 pub struct UI {
-    pub lobby: Sprite,
+    pub p1_lobby: Sprite,
+    pub p2_lobby: Sprite,
+    pub p3_lobby: Sprite,
+    pub p4_lobby: Sprite,
     pub p1: Sprite,
     pub p2: Sprite,
     pub p3: Sprite,
@@ -17,6 +20,14 @@ pub struct UI {
     pub p2_ready: Sprite,
     pub p3_ready: Sprite,
     pub p4_ready: Sprite,
+    pub p1_me: Sprite,
+    pub p2_me: Sprite,
+    pub p3_me: Sprite,
+    pub p4_me: Sprite,
+    pub p1_ready_me: Sprite,
+    pub p2_ready_me: Sprite,
+    pub p3_ready_me: Sprite,
+    pub p4_ready_me: Sprite,
 
     pub crosshair: Sprite,
     pub full_healthbar: Sprite,
@@ -33,12 +44,38 @@ pub struct UI {
 impl UI {
     pub fn initialize(screen_size: Vector2<f32>, shader_id: u32, width: f32, height: f32) -> UI {
         UI {
-            lobby: init_sprite(
+
+            // ===== lobby background =====
+
+            p1_lobby: init_sprite(
                 screen_size, shader_id,
-                "resources/ui_textures/lobby_background.png",
+                "resources/ui_textures/p1_lobby_bg.png",
                 vec2(width / 2.0, height / 2.0),
                 LOBBY_BG_SCALE
             ),
+
+            p2_lobby: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2_lobby_bg.png",
+                vec2(width / 2.0, height / 2.0),
+                LOBBY_BG_SCALE
+            ),
+
+            p3_lobby: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3_lobby_bg.png",
+                vec2(width / 2.0, height / 2.0),
+                LOBBY_BG_SCALE
+            ),
+
+            p4_lobby: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4_lobby_bg.png",
+                vec2(width / 2.0, height / 2.0),
+                LOBBY_BG_SCALE
+            ),
+            
+            // ===== gray player cards ======
 
             p1: init_sprite(
                 screen_size, shader_id,
@@ -68,6 +105,8 @@ impl UI {
                 PLAYER_SCALE
             ),
 
+            // ===== client joined player cards =====
+
             p1_joined: init_sprite(
                 screen_size, shader_id,
                 "resources/ui_textures/p1_joined.png",
@@ -96,6 +135,8 @@ impl UI {
                 PLAYER_SCALE
             ),
 
+            // ===== ready player cards =====
+
             p1_ready: init_sprite(
                 screen_size, shader_id,
                 "resources/ui_textures/p1_ready.png",
@@ -123,6 +164,68 @@ impl UI {
                 vec2(width / 1.25, height / 2.0),
                 PLAYER_SCALE
             ),
+
+            // ===== colored player cards =====
+
+            p1_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1_me.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p2_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2_me.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p3_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3_me.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p4_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4_me.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            // ===== colored ready player cards =====
+
+            p1_ready_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1_ready_me.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p2_ready_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2_ready_me.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p3_ready_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3_ready_me.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            p4_ready_me: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4_ready_me.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_SCALE
+            ),
+
+            // ===== HUD =====
 
             crosshair: init_sprite(
                 screen_size, shader_id,
@@ -216,8 +319,9 @@ impl UI {
         }
     }
 
-    pub fn draw_lobby(&mut self, l: &mut LobbyECS) {
+    pub fn draw_lobby(&mut self, l: &mut LobbyECS, client_id: usize) {
         // TODO: optimize this !!!!
+
         unsafe {
             match l.players.len() {
                 0 => {
@@ -227,42 +331,118 @@ impl UI {
                     self.p4.draw();
                 },
                 1 => {
-                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-                    else { self.p1_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[0]) {
+                        if client_id == 0 { self.p1_ready_me.draw(); }
+                        else { self.p1_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 0 { self.p1_joined.draw(); }
+                        else { self.p1_me.draw(); }
+                    }
+
                     self.p2.draw();
                     self.p3.draw();
                     self.p4.draw();
                 },
                 2 => {
-                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-                    else { self.p1_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-                    else { self.p2_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[0]) {
+                        if client_id == 0 { self.p1_ready_me.draw(); }
+                        else { self.p1_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 0 { self.p1_me.draw(); }
+                        else { self.p1_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[1]) {
+                        if client_id == 1 { self.p2_ready_me.draw(); }
+                        else { self.p2_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 1 { self.p2_me.draw(); }
+                        else { self.p2_joined.draw(); }
+                    }
+
                     self.p3.draw();
                     self.p4.draw();
                 },
                 3 => {
-                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-                    else { self.p1_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-                    else { self.p2_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
-                    else { self.p3_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[0]) {
+                        if client_id == 0 { self.p1_ready_me.draw(); }
+                        else { self.p1_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 0 { self.p1_me.draw(); }
+                        else { self.p1_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[1]) {
+                        if client_id == 1 { self.p2_ready_me.draw(); }
+                        else { self.p2_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 1 { self.p2_me.draw(); }
+                        else { self.p2_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[2]) {
+                        if client_id == 2 { self.p3_ready_me.draw(); }
+                        else { self.p3_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 2 { self.p3_me.draw(); }
+                        else { self.p3_joined.draw(); }
+                    }
+
                     self.p4.draw();
                 },
                 4 => {
-                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-                    else { self.p1_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-                    else { self.p2_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
-                    else { self.p3_joined.draw(); }
-                    if l.ready_players.contains_key(l.players[3]){ self.p4_ready.draw(); }
-                    else { self.p4_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[0]) {
+                        if client_id == 0 { self.p1_ready_me.draw(); }
+                        else { self.p1_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 0 { self.p1_me.draw(); }
+                        else { self.p1_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[1]) {
+                        if client_id == 1 { self.p2_ready_me.draw(); }
+                        else { self.p2_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 1 { self.p2_me.draw(); }
+                        else { self.p2_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[2]) {
+                        if client_id == 2 { self.p3_ready_me.draw(); }
+                        else { self.p3_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 2 { self.p3_me.draw(); }
+                        else { self.p3_joined.draw(); }
+                    }
+
+                    if l.ready_players.contains_key(l.players[3]) {
+                        if client_id == 3 { self.p4_ready_me.draw(); }
+                        else { self.p4_ready.draw(); }
+                    }
+                    else {
+                        if client_id == 3 { self.p4_me.draw(); }
+                        else { self.p4_joined.draw(); }
+                    }
                 },
                 _ => ()
             }
-            self.lobby.draw();
+            
+            match client_id {
+                0 => { self.p1_lobby.draw(); },
+                1 => { self.p2_lobby.draw(); },
+                2 => { self.p3_lobby.draw(); },
+                3 => { self.p4_lobby.draw(); },
+                _ => ()
+            }
         }
     }
 }

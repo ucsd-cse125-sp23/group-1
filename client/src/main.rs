@@ -190,7 +190,8 @@ fn main() -> io::Result<()> {
             
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                ui_elems.draw_lobby(&mut lobby_ecs);
+                // TOOD: lobby_ecs.ids[client_id] get index of element in lobby_ecs.players
+                ui_elems.draw_lobby(&mut lobby_ecs, client_id);
             }
 
             // poll server for ready message or ready-player updates
