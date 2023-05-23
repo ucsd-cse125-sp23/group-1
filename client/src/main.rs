@@ -6,6 +6,7 @@ mod shader;
 mod skybox;
 mod sprite_renderer;
 mod util;
+mod lasso;
 mod tracker;
 
 use std::collections::HashMap;
@@ -14,8 +15,8 @@ use std::collections::HashMap;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4, Vector2, Array};
+use self::glfw::{Action, Context, Key, MouseButton};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -31,9 +32,10 @@ use std::io::{self, Read};
 use std::net::{TcpStream};
 use std::process;
 use std::str;
+use shared::*;
 use shared::shared_components::*;
 use shared::shared_functions::*;
-use shared::*;
+use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 
 fn main() -> io::Result<()> {
@@ -124,6 +126,8 @@ fn main() -> io::Result<()> {
         // -----------
         let mut models: HashMap<String, Model> = HashMap::new();
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+        models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
+        models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
         let colors: [Vector4<f32>; 3] = [
             vec4(0.91797, 0.25, 0.2031, 1.0),
@@ -134,6 +138,7 @@ fn main() -> io::Result<()> {
         (shader_program, sprite_shader, skybox, models, colors)
     };
 
+    // create all objects
     let crosshair = unsafe {
         let mut sprite = Sprite::new(screen_size, sprite_shader.id);
         sprite.set_texture("resources/ui_textures/crosshair.png");
@@ -223,6 +228,8 @@ fn main() -> io::Result<()> {
         sprite
     };
 
+    let lasso = Lasso::new();
+    
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
         tracker
@@ -407,6 +414,7 @@ fn main() -> io::Result<()> {
                             client_health.health = c_ecs.health_components[player_key].health;
                         }
 
+                        // setup player camera
                         let player_pos = vec3(
                             c_ecs.position_components[player_key].x,
                             c_ecs.position_components[player_key].y,
@@ -414,6 +422,7 @@ fn main() -> io::Result<()> {
                         );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
 
+                        // draw models
                         for &renderable in &c_ecs.renderables {
                             if renderable != player_key {
                                 // setup position matrix
@@ -429,8 +438,8 @@ fn main() -> io::Result<()> {
                                 let model_qz = c_ecs.position_components[renderable].qz;
                                 let model_qw = c_ecs.position_components[renderable].qw;
                                 let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
-
-                                // setup scale matrix (skip for now)
+                            
+                                // setup scale matrix
                                 let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
                             
                                 let model = pos_mat * scale_mat * rot_mat;
@@ -440,9 +449,40 @@ fn main() -> io::Result<()> {
                             }
                         }
 
-                        // draw trackers
                         let mut i = 0;
                         for &player in &c_ecs.players {
+                            // lasso
+                            if c_ecs.player_lasso_components.contains_key(player) {
+                                // setup position matrix
+                                let player_x = c_ecs.position_components[player].x;
+                                let player_y = c_ecs.position_components[player].y;
+                                let player_z = c_ecs.position_components[player].z;
+                                let model_pos = vec3(player_x, player_y, player_z);
+                                let pos_mat = Matrix4::from_translation(model_pos);
+
+                                // setup rotation matrix
+                                let player_qx = c_ecs.position_components[player].qx;
+                                let player_qy = c_ecs.position_components[player].qy;
+                                let player_qz = c_ecs.position_components[player].qz;
+                                let player_qw = c_ecs.position_components[player].qw;
+                                let rot_mat = Matrix4::from(Quaternion::new(player_qw, player_qx, player_qy, player_qz));
+
+                                // setup scale matrix
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[player].scale);
+
+                                let model = pos_mat * scale_mat * rot_mat;
+
+                                let anchor_x = c_ecs.player_lasso_components[player].anchor_x;
+                                let anchor_y = c_ecs.player_lasso_components[player].anchor_y;
+                                let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
+
+                                // draw lasso
+                                let lasso_p1 = model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
+                                lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
+                            }
+
+                            // draw trackers
                             if player != player_key && c_ecs.health_components[player].alive {
                                 let pos = &c_ecs.position_components[player];
                                 let pos = vec3(pos.x, pos.y, pos.z);
@@ -487,6 +527,7 @@ fn main() -> io::Result<()> {
                     empty_healthbar.draw();
                 }
 
+                // draw ammo
                 match client_ammo {
                     0 => ammo_0.draw(),
                     1 => ammo_1.draw(),
@@ -606,6 +647,9 @@ fn process_inputs(
     }
     if window.get_mouse_button(MouseButton::Button1) == Action::Press {
         input_component.lmb_clicked = true;
+    }
+    if window.get_mouse_button(MouseButton::Button2) == Action::Press {
+        input_component.rmb_clicked = true;
     }
 
     // TODO: add additional quit hotkey?

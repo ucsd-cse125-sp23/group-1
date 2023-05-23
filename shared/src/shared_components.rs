@@ -7,7 +7,7 @@ type Entity = DefaultKey;
 
 // client -> server component
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerInputComponent {
     pub lmb_clicked: bool,
     pub rmb_clicked: bool,
@@ -53,6 +53,7 @@ pub struct ClientECS {
     pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
+    pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
@@ -67,6 +68,7 @@ impl ClientECS {
             weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
+            player_lasso_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -150,4 +152,11 @@ impl PlayerHealthComponent {
             health : 1
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PlayerLassoComponent {
+    pub anchor_x: f32,
+    pub anchor_y: f32,
+    pub anchor_z: f32
 }

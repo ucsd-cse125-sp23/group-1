@@ -1,4 +1,4 @@
-use nalgebra::{Vector3,UnitQuaternion};
+use nalgebra::{Vector3,UnitQuaternion,OPoint,Const};
 use rapier3d::prelude::*;
 use std::net::{TcpStream};
 
@@ -27,4 +27,11 @@ impl PlayerCameraComponent {
 pub struct NetworkComponent {
     pub connected: bool,
     pub stream: TcpStream
+}
+
+pub struct PlayerLassoPhysComponent {
+    pub anchor_handle: RigidBodyHandle,
+    pub anchor_point_local: OPoint<f32,Const<3>>,
+    pub joint_handle: ImpulseJointHandle,
+    pub limit: f32,
 }
