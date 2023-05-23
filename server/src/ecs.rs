@@ -230,7 +230,10 @@ impl ECS {
             input_temp.camera_qx = self.player_input_components[player].camera_qx;
             input_temp.camera_qy = self.player_input_components[player].camera_qy;
             input_temp.camera_qz = self.player_input_components[player].camera_qz;
+            
             let mut stream = & self.network_components[player].stream;
+
+            let mut received_input = false;
 
             // read messages from client with header length: 4-byte size field
             while self.network_components[player].connected && connected {
@@ -262,7 +265,10 @@ impl ECS {
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
                         let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
                         match serde_json::from_str(message) {
-                            Ok(value) => ECS::combine_input(&mut input_temp, value),
+                            Ok(value) => {
+                                received_input = true;
+                                ECS::combine_input(&mut input_temp, value)
+                            },
                             _ => continue, // skip client if there is malformed message
                         }
                     },
@@ -279,6 +285,12 @@ impl ECS {
             // handle lost client
             if !connected {
                 disconnected_players.push(player);
+            }
+
+            if !received_input {
+                input_temp = self.player_input_components[player].clone();
+                input_temp.lmb_clicked = false;
+                input_temp.r_pressed = false;
             }
 
             // once all inputs have been aggregated for this player

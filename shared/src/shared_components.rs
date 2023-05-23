@@ -7,7 +7,7 @@ type Entity = DefaultKey;
 
 // client -> server component
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerInputComponent {
     pub lmb_clicked: bool,
     pub rmb_clicked: bool,
