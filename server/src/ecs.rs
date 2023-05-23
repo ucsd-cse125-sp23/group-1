@@ -484,7 +484,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0, border: false });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
@@ -511,7 +511,7 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
-        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
+        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool) {
             let entity = self.name_components.insert(name);
             self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
@@ -527,7 +527,7 @@ impl ECS {
                     qw: (rot.w)
                 }
             );
-            self.model_components.insert(entity,ModelComponent { modelname, scale });
+            self.model_components.insert(entity,ModelComponent { modelname, scale, border });
             let rigid_body: RigidBody;
             if dynamic {
                 self.dynamics.push(entity);
@@ -540,7 +540,12 @@ impl ECS {
                 ).build();
             }
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(
+            let combine = if border {
+                CoefficientCombineRule::Max
+            } else {
+                CoefficientCombineRule::Average
+            };
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).restitution_combine_rule(combine).user_data(
                 entity.data().as_ffi() as u128
             ).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
@@ -685,6 +690,10 @@ impl ECS {
                     Some((target_collider_handle, toi)) => {
                         let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                        if self.model_components[target].border {
+                            println!("Hit border");
+                            break;
+                        }
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
                         let hit_point = ray.point_at(toi);
