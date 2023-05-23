@@ -5,14 +5,14 @@ use shared::shared_components::*;
 
 pub struct UI {
     pub lobby: Sprite,
-    // pub p1: Sprite,
-    // pub p2: Sprite,
-    // pub p3: Sprite,
-    // pub p4: Sprite,
-    // pub p1_joined: Sprite,
-    // pub p2_joined: Sprite,
-    // pub p3_joined: Sprite,
-    // pub p4_joined: Sprite,
+    pub p1: Sprite,
+    pub p2: Sprite,
+    pub p3: Sprite,
+    pub p4: Sprite,
+    pub p1_joined: Sprite,
+    pub p2_joined: Sprite,
+    pub p3_joined: Sprite,
+    pub p4_joined: Sprite,
     // pub p1_ready: Sprite,
     // pub p2_ready: Sprite,
     // pub p3_ready: Sprite,
@@ -40,61 +40,61 @@ impl UI {
                 LOBBY_BG_SCALE
             ),
 
-            // p1: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p1.png",
-            //     vec2(width / 5.0, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p1: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p2: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p2.png",
-            //     vec2(width / 2.5, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p2: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p3: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p3.png",
-            //     vec2(width / 1.67, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p3: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p4: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p4.png",
-            //     vec2(width / 1.25, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p4: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p1_joined: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p1_joined.png",
-            //     vec2(width / 5.0, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p1_joined: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1_joined.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p2_joined: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p2_joined.png",
-            //     vec2(width / 2.5, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p2_joined: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2_joined.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p3_joined: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p3_joined.png",
-            //     vec2(width / 1.67, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p3_joined: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3_joined.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p4_joined: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p4_joined.png",
-            //     vec2(width / 1.25, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p4_joined: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4_joined.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_SCALE
+            ),
 
             // p1_ready: init_sprite(
             //     screen_size, shader_id,
@@ -218,28 +218,31 @@ impl UI {
 
     pub fn draw_lobby(&mut self, l: &mut LobbyECS) {
         unsafe {
-            // match l.players.len() {
-            //     0 => {
-            //         self.p1.draw();
-            //         self.p2.draw();
-            //         self.p3.draw();
-            //         self.p4.draw();
-            //     },
-            //     1 => {
+            match l.players.len() {
+                0 => {
+                    self.p1.draw();
+                    self.p2.draw();
+                    self.p3.draw();
+                    self.p4.draw();
+                },
+                1 => {
             //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
             //         else { self.p1_joined.draw(); }
-            //         self.p2.draw();
-            //         self.p3.draw();
-            //         self.p4.draw();
-            //     },
-            //     2 => {
+                    self.p1_joined.draw();
+                    self.p2.draw();
+                    self.p3.draw();
+                    self.p4.draw();
+                },
+                2 => {
             //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
             //         else { self.p1_joined.draw(); }
             //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
             //         else { self.p2_joined.draw(); }
-            //         self.p3.draw();
-            //         self.p4.draw();
-            //     },
+                    self.p1_joined.draw();
+                    self.p2_joined.draw();
+                    self.p3.draw();
+                    self.p4.draw();
+                },
             //     3 => {
             //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
             //         else { self.p1_joined.draw(); }
@@ -259,8 +262,8 @@ impl UI {
             //         if l.ready_players.contains_key(l.players[3]){ self.p4_ready.draw(); }
             //         else { self.p4_joined.draw(); }
             //     },
-            //     _ => ()
-            // }
+                _ => ()
+            }
             self.lobby.draw();
         }
     }
