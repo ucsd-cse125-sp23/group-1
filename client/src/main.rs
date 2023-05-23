@@ -175,6 +175,18 @@ fn main() -> io::Result<()> {
             if window.get_key(Key::Escape) == Action::Press {
                 window.set_cursor_mode(glfw::CursorMode::Normal);
             }
+
+            // events
+            // ------
+            let mut roll = false;
+            
+            process_events(
+                &events,
+                &mut first_mouse,
+                &mut last_x,
+                &mut last_y,
+                &mut camera, roll
+            );
             
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
@@ -213,15 +225,6 @@ fn main() -> io::Result<()> {
             // poll events
             window.swap_buffers();
             glfw.poll_events();
-            for (_, event) in glfw::flush_messages(&events) {
-                match event {
-                    // Exit with code 0 upon window close
-                    glfw::WindowEvent::Close => {
-                        process::exit(0);
-                    }
-                    _ => {}
-                }
-            }
         }
       
         // GAME LOOP
