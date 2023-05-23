@@ -36,7 +36,19 @@ use shared::shared_functions::*;
 use shared::*;
 use crate::tracker::Tracker;
 
+// audio
+use kira::{
+	manager::{
+		AudioManager, AudioManagerSettings,
+		backend::DefaultBackend,
+	},
+	sound::static_sound::{StaticSoundData, StaticSoundSettings},
+};
 fn main() -> io::Result<()> {
+    // initialize audio manager
+    let mut audio = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()).unwrap();
+    let sound_data = StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default()).unwrap();
+    
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -302,6 +314,7 @@ fn main() -> io::Result<()> {
         // GAME LOOP
         let mut in_game = true;
         window.set_cursor_mode(glfw::CursorMode::Disabled);
+        let mut shot_taken = false;
         while in_game {
             input_component = PlayerInputComponent::default();
 
@@ -324,6 +337,14 @@ fn main() -> io::Result<()> {
                 &mut last_y,
                 &mut camera, roll
             );
+            
+            // handle audio
+            if !input_component.lmb_clicked {
+                shot_taken = false;
+            } else if !shot_taken && client_ammo != 0{
+                audio.play(sound_data.clone()).unwrap();
+                shot_taken = true;
+            }
 
             // set camera front of input_component
             input_component.camera_qx = camera.RotQuat.v.x;
