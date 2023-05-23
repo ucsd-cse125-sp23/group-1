@@ -140,14 +140,16 @@ impl PlayerWeaponComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerHealthComponent {
     pub alive: bool,
-    pub health: u8
+    pub health: u8,
+    pub hits: u8
 }
 
 impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 1
+            health : 1,
+            hits: 0
         }
     }
 }

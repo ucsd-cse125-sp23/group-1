@@ -580,6 +580,7 @@ impl ECS {
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {
                             self.player_health_components[target].health -= 1;
+                            self.player_health_components[player].hits += 1;
 
                             if self.player_health_components[target].health == 0 {
                                 // handle player death

@@ -7,6 +7,7 @@ mod skybox;
 mod sprite_renderer;
 mod util;
 mod tracker;
+mod ui;
 
 use std::collections::HashMap;
 
@@ -15,7 +16,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4, Vector2, Array};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4};
 
 use std::ffi::{CStr};
 use std::sync::mpsc::Receiver;
@@ -24,7 +25,6 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
-use crate::sprite_renderer::{Anchor, Sprite};
 
 // network
 use std::io::{self, Read};
@@ -134,94 +134,7 @@ fn main() -> io::Result<()> {
         (shader_program, sprite_shader, skybox, models, colors)
     };
 
-    let crosshair = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/crosshair.png");
-        sprite.set_position(vec2(width as f32 / 2.0, height as f32 / 2.0));
-        sprite.set_scale(Vector2::from_value(CROSSHAIR_SCALE));
-        sprite
-    };
-
-    let empty_healthbar = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/emptyHealthBar.png");
-        sprite.set_position(vec2(5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopLeft);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let full_healthbar = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/fullHealthBar.png");
-        sprite.set_position(vec2(5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopLeft);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_0 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo0.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_1 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo1.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_2 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo2.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_3 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo3.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_4 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo4.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_5 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo5.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
-
-    let ammo_6 = unsafe {
-        let mut sprite = Sprite::new(screen_size, sprite_shader.id);
-        sprite.set_texture("resources/ui_textures/ammo6.png");
-        sprite.set_position(vec2(width as f32 - 5.0, height as f32 - 5.0));
-        sprite.set_anchor(Anchor::TopRight);
-        sprite.set_scale(Vector2::from_value(BAR_SCALE));
-        sprite
-    };
+    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
@@ -262,6 +175,7 @@ fn main() -> io::Result<()> {
             // TODO: render lobby frame
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+                ui_elems.draw_lobby();
             }
 
             // poll server for ready message or ready-player updates
@@ -479,24 +393,7 @@ fn main() -> io::Result<()> {
                 );
                 skybox.draw(camera.GetViewMatrix(), projection);
 
-                crosshair.draw();
-
-                if client_health.alive {
-                    full_healthbar.draw();
-                } else {
-                    empty_healthbar.draw();
-                }
-
-                match client_ammo {
-                    0 => ammo_0.draw(),
-                    1 => ammo_1.draw(),
-                    2 => ammo_2.draw(),
-                    3 => ammo_3.draw(),
-                    4 => ammo_4.draw(),
-                    5 => ammo_5.draw(),
-                    6 => ammo_6.draw(),
-                    _ => ()
-                }
+                ui_elems.draw_game(client_health.alive, client_ammo);
 
                 gl::DepthMask(gl::FALSE);
                 tracker.draw_all_trackers(trackers);
