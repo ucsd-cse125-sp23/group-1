@@ -216,12 +216,51 @@ impl UI {
         }
     }
 
-    pub fn draw_lobby(&mut self) {
+    pub fn draw_lobby(&mut self, l: &mut LobbyECS) {
         unsafe {
-            // self.p1.draw();
-            // self.p2.draw();
-            // self.p3.draw();
-            // self.p4.draw();
+            // match l.players.len() {
+            //     0 => {
+            //         self.p1.draw();
+            //         self.p2.draw();
+            //         self.p3.draw();
+            //         self.p4.draw();
+            //     },
+            //     1 => {
+            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+            //         else { self.p1_joined.draw(); }
+            //         self.p2.draw();
+            //         self.p3.draw();
+            //         self.p4.draw();
+            //     },
+            //     2 => {
+            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+            //         else { self.p1_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+            //         else { self.p2_joined.draw(); }
+            //         self.p3.draw();
+            //         self.p4.draw();
+            //     },
+            //     3 => {
+            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+            //         else { self.p1_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+            //         else { self.p2_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
+            //         else { self.p3_joined.draw(); }
+            //         self.p4.draw();
+            //     },
+            //     4 => {
+            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+            //         else { self.p1_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+            //         else { self.p2_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
+            //         else { self.p3_joined.draw(); }
+            //         if l.ready_players.contains_key(l.players[3]){ self.p4_ready.draw(); }
+            //         else { self.p4_joined.draw(); }
+            //     },
+            //     _ => ()
+            // }
             self.lobby.draw();
         }
     }

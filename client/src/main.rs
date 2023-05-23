@@ -144,6 +144,9 @@ fn main() -> io::Result<()> {
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
+    // lobby ECS to player updates in lobby
+    let mut lobby_ecs = LobbyECS::new();
+
     // health component initialized
     let mut client_health = PlayerHealthComponent::default();
     let mut client_ammo = 0;
@@ -158,6 +161,7 @@ fn main() -> io::Result<()> {
         let mut in_lobby = true;
         window.set_cursor_mode(glfw::CursorMode::Normal);
         println!("Press ENTER when ready to start game");
+
         // MENU LOOP
         while in_lobby {
             // poll enter key (ready button once GUI implemented)
@@ -172,10 +176,9 @@ fn main() -> io::Result<()> {
                 window.set_cursor_mode(glfw::CursorMode::Normal);
             }
             
-            // TODO: render lobby frame
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                ui_elems.draw_lobby();
+                ui_elems.draw_lobby(&mut lobby_ecs);
             }
 
             // poll server for ready message or ready-player updates
@@ -184,7 +187,15 @@ fn main() -> io::Result<()> {
                 // ignore malformed input (probably leftover game state)
                 let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
                 match res {
-                    Ok(lobby_ecs) => {
+                    Ok(l_ecs) => {
+                        // TODO: faster way to copy l_ecs into lobby_ecs ???
+                        lobby_ecs.name_components = l_ecs.name_components;
+                        lobby_ecs.players = l_ecs.players;
+                        lobby_ecs.ids = l_ecs.ids;
+                        lobby_ecs.start_game = l_ecs.start_game;
+                        lobby_ecs.position_components = l_ecs.position_components;
+                        lobby_ecs.ready_players = l_ecs.ready_players;
+
                         if lobby_ecs.start_game {
                             println!("Game starting!");
                             let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];

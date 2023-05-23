@@ -658,48 +658,31 @@ impl ECS {
      * @param   current # of ready players
      * @return  updated # of ready players
      */
-    pub fn check_ready_updates(&mut self, curr: u8) -> u8{
-        let mut disconnected_players: Vec<Entity> = vec![];
-        let mut ready_players = curr;
-        
+    pub fn check_ready_updates(&mut self){
         // check each connection for ready updates
         for &player in &self.players {
             let mut stream = &self.network_components[player].stream;
             let mut size_buf = [0 as u8; 4];
-            if self.network_components[player].connected {
-                match stream.peek(&mut size_buf) {
-                    Ok(4) => {
-                        let read_size = u32::from_be_bytes(size_buf) as usize;
-                        let mut read_buf = vec![0 as u8; read_size];
-                        stream.read(&mut read_buf).unwrap();
-                        let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                        let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
-                        match ready_res {
-                            Ok(ecs) => {
-                                if ecs.ready {
-                                    ready_players += 1;
-                                } else {
-                                    ready_players -= 1;
-                                }
+            match stream.peek(&mut size_buf) {
+                Ok(4) => {
+                    let read_size = u32::from_be_bytes(size_buf) as usize;
+                    let mut read_buf = vec![0 as u8; read_size];
+                    stream.read(&mut read_buf).unwrap();
+                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    let ready_ecs: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                    match ready_ecs {
+                        Ok(ecs) => {
+                            if ecs.ready {
+                                self.ready_players.insert(player, ecs.ready);
                             }
-                            _ => ()
                         }
-                    },
-                    Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                    Err(e) => {
-                        eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        disconnected_players.push(player);
+                        _ => ()
                     }
-                };
-            }
+                },
+                _ => (),
+            };
         }
-        
-        for player in disconnected_players {
-            self.handle_client_disconnect(player);
-        }
-
-        return ready_players;
+        self.send_ready_message(false);
     }
 
     /**
