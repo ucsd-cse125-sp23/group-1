@@ -13,10 +13,10 @@ pub struct UI {
     pub p2_joined: Sprite,
     pub p3_joined: Sprite,
     pub p4_joined: Sprite,
-    // pub p1_ready: Sprite,
-    // pub p2_ready: Sprite,
-    // pub p3_ready: Sprite,
-    // pub p4_ready: Sprite,
+    pub p1_ready: Sprite,
+    pub p2_ready: Sprite,
+    pub p3_ready: Sprite,
+    pub p4_ready: Sprite,
 
     pub crosshair: Sprite,
     pub full_healthbar: Sprite,
@@ -96,33 +96,33 @@ impl UI {
                 PLAYER_SCALE
             ),
 
-            // p1_ready: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p1_ready.png",
-            //     vec2(width / 5.0, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p1_ready: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1_ready.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p2_ready: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p2_ready.png",
-            //     vec2(width / 2.5, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p2_ready: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2_ready.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p3_ready: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p3_ready.png",
-            //     vec2(width / 1.67, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p3_ready: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3_ready.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_SCALE
+            ),
 
-            // p4_ready: init_sprite(
-            //     screen_size, shader_id,
-            //     "resources/ui_textures/p4_ready.png",
-            //     vec2(width / 1.25, height / 2.0),
-            //     PLAYER_SCALE
-            // ),
+            p4_ready: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4_ready.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_SCALE
+            ),
 
             crosshair: init_sprite(
                 screen_size, shader_id,
@@ -226,42 +226,39 @@ impl UI {
                     self.p4.draw();
                 },
                 1 => {
-            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-            //         else { self.p1_joined.draw(); }
-                    self.p1_joined.draw();
+                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+                    else { self.p1_joined.draw(); }
                     self.p2.draw();
                     self.p3.draw();
                     self.p4.draw();
                 },
                 2 => {
-            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-            //         else { self.p1_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-            //         else { self.p2_joined.draw(); }
-                    self.p1_joined.draw();
-                    self.p2_joined.draw();
+                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+                    else { self.p1_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+                    else { self.p2_joined.draw(); }
                     self.p3.draw();
                     self.p4.draw();
                 },
-            //     3 => {
-            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-            //         else { self.p1_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-            //         else { self.p2_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
-            //         else { self.p3_joined.draw(); }
-            //         self.p4.draw();
-            //     },
-            //     4 => {
-            //         if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
-            //         else { self.p1_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
-            //         else { self.p2_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
-            //         else { self.p3_joined.draw(); }
-            //         if l.ready_players.contains_key(l.players[3]){ self.p4_ready.draw(); }
-            //         else { self.p4_joined.draw(); }
-            //     },
+                3 => {
+                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+                    else { self.p1_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+                    else { self.p2_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
+                    else { self.p3_joined.draw(); }
+                    self.p4.draw();
+                },
+                4 => {
+                    if l.ready_players.contains_key(l.players[0]){ self.p1_ready.draw(); }
+                    else { self.p1_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[1]){ self.p2_ready.draw(); }
+                    else { self.p2_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[2]){ self.p3_ready.draw(); }
+                    else { self.p3_joined.draw(); }
+                    if l.ready_players.contains_key(l.players[3]){ self.p4_ready.draw(); }
+                    else { self.p4_joined.draw(); }
+                },
                 _ => ()
             }
             self.lobby.draw();
