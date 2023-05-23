@@ -217,6 +217,7 @@ impl UI {
     }
 
     pub fn draw_lobby(&mut self, l: &mut LobbyECS) {
+        // TODO: optimize this !!!!
         unsafe {
             match l.players.len() {
                 0 => {

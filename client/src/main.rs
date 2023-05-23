@@ -416,6 +416,8 @@ fn main() -> io::Result<()> {
             window.swap_buffers();
             glfw.poll_events();
         }
+
+        // TODO: add game over rendering here: display winner + hit count for all players
     }
 }
 
