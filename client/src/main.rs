@@ -183,8 +183,12 @@ fn main() -> io::Result<()> {
 
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                    // TOOD: lobby_ecs.ids[client_id] get index of element in lobby_ecs.players
-                    ui_elems.draw_lobby(&mut lobby_ecs, client_id);
+                    
+                    let mut curr_id = client_id;
+                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                        curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
+                    }
+                    ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
                 }
 
                 // poll server for ready message or ready-player updates
@@ -194,13 +198,7 @@ fn main() -> io::Result<()> {
                     let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
                     match res {
                         Ok(l_ecs) => {
-                            // TODO: faster way to copy l_ecs into lobby_ecs ???
-                            lobby_ecs.name_components = l_ecs.name_components;
-                            lobby_ecs.players = l_ecs.players;
-                            lobby_ecs.ids = l_ecs.ids;
-                            lobby_ecs.start_game = l_ecs.start_game;
-                            lobby_ecs.position_components = l_ecs.position_components;
-                            lobby_ecs.ready_players = l_ecs.ready_players;
+                            lobby_ecs = l_ecs.clone();
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");

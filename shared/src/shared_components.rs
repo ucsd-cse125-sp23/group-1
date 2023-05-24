@@ -75,7 +75,7 @@ impl ClientECS {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,

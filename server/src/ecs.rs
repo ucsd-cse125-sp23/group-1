@@ -360,6 +360,9 @@ impl ECS {
         self.network_components.remove(player);
         self.player_health_components.remove(player);
         self.player_camera_components.remove(player);
+        if self.ready_players.contains_key(player) {
+            self.ready_players.remove(player);
+        }
 
         self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
         self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
