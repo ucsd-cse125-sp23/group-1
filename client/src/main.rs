@@ -179,9 +179,22 @@ fn main() -> io::Result<()> {
                 window.set_cursor_mode(glfw::CursorMode::Normal);
             }
 
+            // events
+            // ------
+            let mut roll = false;
+
+            process_events(
+                &events,
+                &mut first_mouse,
+                &mut last_x,
+                &mut last_y,
+                &mut camera, roll
+            );
+
             unsafe {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                ui_elems.draw_lobby(&mut lobby_ecs);
+                // TOOD: lobby_ecs.ids[client_id] get index of element in lobby_ecs.players
+                ui_elems.draw_lobby(&mut lobby_ecs, client_id);
             }
 
             // poll server for ready message or ready-player updates
@@ -216,15 +229,6 @@ fn main() -> io::Result<()> {
             // poll events
             window.swap_buffers();
             glfw.poll_events();
-            for (_, event) in glfw::flush_messages(&events) {
-                match event {
-                    // Exit with code 0 upon window close
-                    glfw::WindowEvent::Close => {
-                        process::exit(0);
-                    }
-                    _ => {}
-                }
-            }
         }
       
         // GAME LOOP
