@@ -16,11 +16,10 @@ use std::collections::HashMap;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Context, Key, MouseButton, Action};
-use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, Vector3, vec4, vec2, Vector4};
+use self::glfw::{Context, Key, Action};
+use cgmath::{Matrix4, Quaternion, Deg, vec3, perspective, Point3, vec4, vec2, Vector4};
 
 use std::ffi::{CStr};
-use std::sync::mpsc::Receiver;
 
 use crate::camera::*;
 use crate::model::Model;
@@ -35,10 +34,11 @@ use std::str;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use shared::*;
-use crate::common::{process_events, process_inputs, set_camera_pos};
+use crate::common::*;
 use crate::tracker::Tracker;
 
 enum GameState {
+    EnteringLobby,
     InLobby,
     InGame,
 }
@@ -50,6 +50,7 @@ fn main() -> io::Result<()> {
         ..Camera::default()
     };
     let mut first_mouse = true;
+    let mut first_click = false;
     let mut last_x: f32; let mut last_y: f32;
 
     // glfw: initialize and configure
@@ -73,7 +74,7 @@ fn main() -> io::Result<()> {
             glfw.create_window(
                 width * 2,
                 height * 2,
-                shared::WINDOW_TITLE,
+                WINDOW_TITLE,
                 glfw::WindowMode::Windowed,
             )
         })
@@ -110,43 +111,41 @@ fn main() -> io::Result<()> {
         .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
-    let (shader_program, sprite_shader, skybox, models, tracker_colors) = unsafe {
+    let (shader_program, sprite_shader) = unsafe {
         // configure global opengl state
-        // -----------------------------
         gl::Enable(gl::DEPTH_TEST);
 
-        // create shader program using shader.rs
+        // create shaders
         let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
-
         let sprite_shader = Shader::new("shaders/sprite.vs", "shaders/sprite.fs");
-
-        // textures for skybox
-        let skybox = Skybox::new("resources/skybox/space", ".png");
 
         // actually allow transparency
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
 
-        // add all models to hashmap
-        // -----------
-        let mut models: HashMap<String, Model> = HashMap::new();
-        models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
-
-        let colors: [Vector4<f32>; 3] = [
-            vec4(0.91797, 0.25, 0.2031, 1.0),
-            vec4(0.2031, 0.7852, 0.91797, 1.0),
-            vec4(0.3867, 0.9648, 0.0781, 1.0),
-        ];
-
-        (shader_program, sprite_shader, skybox, models, colors)
+        (shader_program, sprite_shader)
     };
 
-    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+    // textures for skybox
+    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
 
+    // add all models to hashmap
+    let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
+
+    // set up tracker
+    let tracker_colors: [Vector4<f32>; 3] = [
+        vec4(0.91797, 0.25, 0.2031, 1.0),
+        vec4(0.2031, 0.7852, 0.91797, 1.0),
+        vec4(0.3867, 0.9648, 0.0781, 1.0),
+    ];
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
         tracker
     };
+
+    // set up ui
+    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -154,204 +153,194 @@ fn main() -> io::Result<()> {
     // lobby ECS to player updates in lobby
     let mut lobby_ecs = LobbyECS::new();
 
+    // set up loop variables
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
+    let mut ready_sent = false;
 
     // WINDOW LOOP
     // -----------
     loop {
-        let mut in_lobby = true;
-        window.set_cursor_mode(glfw::CursorMode::Normal);
-        println!("Press ENTER when ready to start game");
-
-        // MENU LOOP
-        while in_lobby {
-            let mut ready_sent = false; // prevents sending ready message twice
-            // poll enter key (ready button once GUI implemented)
-            if !ready_sent && window.get_key(Key::Enter) == Action::Press {
-                ready_sent = true;
-                // send ready JSON (hardcoded for now)
-                let ready_json = ReadyECS{ready:true};
-                write_data(&mut stream, serde_json::to_string(&ready_json).unwrap());
-                println!("Ready message sent!");
-            }
-            if window.get_key(Key::Escape) == Action::Press {
-                window.set_cursor_mode(glfw::CursorMode::Normal);
-            }
-
-            // events
-            // ------
-            let mut roll = false;
-
-            process_events(
-                &events,
-                &mut first_mouse,
-                &mut last_x,
-                &mut last_y,
-                &mut camera, roll
-            );
-
-            unsafe {
-                gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-                // TOOD: lobby_ecs.ids[client_id] get index of element in lobby_ecs.players
-                ui_elems.draw_lobby(&mut lobby_ecs, client_id);
-            }
-
-            // poll server for ready message or ready-player updates
-            let received = read_data(&mut stream);
-            if received.len() > 0 {
-                // ignore malformed input (probably leftover game state)
-                let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
-                match res {
-                    Ok(l_ecs) => {
-                        // TODO: faster way to copy l_ecs into lobby_ecs ???
-                        lobby_ecs.name_components = l_ecs.name_components;
-                        lobby_ecs.players = l_ecs.players;
-                        lobby_ecs.ids = l_ecs.ids;
-                        lobby_ecs.start_game = l_ecs.start_game;
-                        lobby_ecs.position_components = l_ecs.position_components;
-                        lobby_ecs.ready_players = l_ecs.ready_players;
-
-                        if lobby_ecs.start_game {
-                            println!("Game starting!");
-                            let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
-                            camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
-                            camera.UpdateVecs();
-                            client_ecs = None;
-                            first_mouse = true;
-                            in_lobby = false;
-                        }
-                    }
-                    _ => ()
-                }
-            }
-
-            // poll events
-            window.swap_buffers();
-            glfw.poll_events();
+        // set cursor mode based on is_focused
+        if is_focused {
+            window.set_cursor_mode(glfw::CursorMode::Disabled);
+        } else {
+            window.set_cursor_mode(glfw::CursorMode::Normal);
         }
-      
-        // GAME LOOP
-        let mut in_game = true;
-        window.set_cursor_mode(glfw::CursorMode::Disabled);
-        while in_game {
-            // initialize components and variables
-            let mut client_ammo = 0;
-            let mut client_health = PlayerHealthComponent::default();
-            let mut input_component = PlayerInputComponent::default();
-            let mut size_buf = [0 as u8; 4];
 
-            let mut roll = false;
+        match game_state {
+            GameState::EnteringLobby => {
+                ready_sent = false; // prevents sending ready message twice
+                println!("Press ENTER when ready to start game");
+                game_state = GameState::InLobby;
+            }
+            GameState::InLobby => {
+                process_inputs_lobby(&mut window, &mut ready_sent, &mut stream);
 
-            // process inputs
-            // --------------
-            process_inputs(
-                &mut window,
-                &mut input_component,
-                &mut roll
-            );
+                // events
+                // ------
+                process_events_lobby(&events);
 
-            // events
-            // ------
-            process_events(
-                &events,
-                &mut first_mouse,
-                &mut last_x,
-                &mut last_y,
-                &mut camera, roll
-            );
-
-            // set camera front of input_component
-            input_component.camera_qx = camera.RotQuat.v.x;
-            input_component.camera_qy = camera.RotQuat.v.y;
-            input_component.camera_qz = camera.RotQuat.v.z;
-            input_component.camera_qw = camera.RotQuat.s;
-
-            // send client data if player is still alive
-            if client_health.alive {
-                let j = serde_json::to_string(&input_component).expect("Input component serialization error");
-                write_data(&mut stream, j);
-            } // TODO: support spectator movement
-
-            // receive all incoming server data
-            loop {
-                let size: u32;
-                match stream.peek(&mut size_buf) {
-                    Ok(4) => {
-                        // big-endian for networks. it's tradition, dammit!
-                        size = u32::from_be_bytes(size_buf);
-                    }
-                    Ok(_) => {
-                        // incomplete size field, wait for next tick
-                        break;
-                    }
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        break;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to read message size from server: {}",e);
-                        process::exit(1);
-                    }
+                unsafe {
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+                    // TOOD: lobby_ecs.ids[client_id] get index of element in lobby_ecs.players
+                    ui_elems.draw_lobby(&mut lobby_ecs, client_id);
                 }
-                let s_size = size.try_into().unwrap();
-                let mut read_buf = vec![0 as u8; s_size];
-                match stream.peek(&mut read_buf) {
-                    Ok(bytes_read) if bytes_read == s_size => {
-                        // if this throws an error we deserve to crash tbh
-                        stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        // TODO: handle this throwing an error. Occasionally crashes ^
-                        let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
-                        client_ecs = Some(value);
-                    }
-                    Ok(_) => {
-                        break;
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to read message from server: {}",e);
-                        process::exit(1);
+
+                // poll server for ready message or ready-player updates
+                let received = read_data(&mut stream);
+                if received.len() > 0 {
+                    // ignore malformed input (probably leftover game state)
+                    let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
+                    match res {
+                        Ok(l_ecs) => {
+                            // TODO: faster way to copy l_ecs into lobby_ecs ???
+                            lobby_ecs.name_components = l_ecs.name_components;
+                            lobby_ecs.players = l_ecs.players;
+                            lobby_ecs.ids = l_ecs.ids;
+                            lobby_ecs.start_game = l_ecs.start_game;
+                            lobby_ecs.position_components = l_ecs.position_components;
+                            lobby_ecs.ready_players = l_ecs.ready_players;
+
+                            if lobby_ecs.start_game {
+                                println!("Game starting!");
+                                let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
+                                camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
+                                camera.UpdateVecs();
+                                client_ecs = None;
+                                first_mouse = true;
+                                game_state = GameState::InGame;
+                            }
+                        }
+                        _ => ()
                     }
                 }
             }
+            GameState::InGame => {
+                // initialize components and variables
+                let mut client_ammo = 0;
+                let mut client_health = PlayerHealthComponent::default();
+                let mut input_component = PlayerInputComponent::default();
+                let mut size_buf = [0 as u8; 4];
 
-            // render
-            // ------
-            unsafe {
-                gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-                gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+                let mut roll = false;
 
-                // activate shader
-                shader_program.use_program();
+                // process inputs
+                // --------------
+                process_inputs_game(
+                    &mut window,
+                    &mut input_component,
+                    &mut roll,
+                    &mut first_click,
+                    is_focused
+                );
 
-                let mut trackers = vec![];
+                // events
+                // ------
+                process_events_game(
+                    &events,
+                    &mut first_mouse,
+                    &mut last_x,
+                    &mut last_y,
+                    &mut camera, 
+                    roll,
+                    is_focused
+                );
 
-                // NEEDS TO BE REWORKED FOR MENU STATE
-                match &client_ecs {
-                    Some(c_ecs) => {
-                        let player_key = c_ecs.ids[client_id];
-                        client_ammo = c_ecs.weapon_components[player_key].ammo;
+                // set camera front of input_component
+                input_component.camera_qx = camera.RotQuat.v.x;
+                input_component.camera_qy = camera.RotQuat.v.y;
+                input_component.camera_qz = camera.RotQuat.v.z;
+                input_component.camera_qw = camera.RotQuat.s;
 
-                        // handle changes in client health
-                        if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
-                            client_health.health = c_ecs.health_components[player_key].health;
-                            println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
-                        } else if c_ecs.health_components[player_key].alive != client_health.alive && client_health.alive {
-                            client_health.alive = c_ecs.health_components[player_key].alive;
-                            println!("Player {} is no longer alive x_x", client_id);
-                        } else {
-                            client_health.alive = c_ecs.health_components[player_key].alive;
-                            client_health.health = c_ecs.health_components[player_key].health;
+                // send client data if player is still alive
+                if client_health.alive {
+                    let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+                    write_data(&mut stream, j);
+                } // TODO: support spectator movement
+
+                // receive all incoming server data
+                loop {
+                    let size: u32;
+                    match stream.peek(&mut size_buf) {
+                        Ok(4) => {
+                            // big-endian for networks. it's tradition, dammit!
+                            size = u32::from_be_bytes(size_buf);
                         }
+                        Ok(_) => {
+                            // incomplete size field, wait for next tick
+                            break;
+                        }
+                        Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                            break;
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to read message size from server: {}",e);
+                            process::exit(1);
+                        }
+                    }
+                    let s_size = size.try_into().unwrap();
+                    let mut read_buf = vec![0 as u8; s_size];
+                    match stream.peek(&mut read_buf) {
+                        Ok(bytes_read) if bytes_read == s_size => {
+                            // if this throws an error we deserve to crash tbh
+                            stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
+                            let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                            // TODO: handle this throwing an error. Occasionally crashes ^
+                            let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                            client_ecs = Some(value);
+                        }
+                        Ok(_) => {
+                            break;
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to read message from server: {}",e);
+                            process::exit(1);
+                        }
+                    }
+                }
 
-                        let player_pos = vec3(
-                            c_ecs.position_components[player_key].x,
-                            c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z
-                        );
-                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                // render
+                // ------
+                unsafe {
+                    gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                        for &renderable in &c_ecs.renderables {
-                            if renderable != player_key {
+                    // activate shader
+                    shader_program.use_program();
+
+                    let mut trackers = vec![];
+
+                    // NEEDS TO BE REWORKED FOR MENU STATE
+                    match &client_ecs {
+                        Some(c_ecs) => {
+                            let player_key = c_ecs.ids[client_id];
+                            client_ammo = c_ecs.weapon_components[player_key].ammo;
+
+                            // handle changes in client health
+                            if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
+                                client_health.health = c_ecs.health_components[player_key].health;
+                                println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
+                            } else if c_ecs.health_components[player_key].alive != client_health.alive && client_health.alive {
+                                client_health.alive = c_ecs.health_components[player_key].alive;
+                                println!("Player {} is no longer alive x_x", client_id);
+                            } else {
+                                client_health.alive = c_ecs.health_components[player_key].alive;
+                                client_health.health = c_ecs.health_components[player_key].health;
+                            }
+
+                            let player_pos = vec3(
+                                c_ecs.position_components[player_key].x,
+                                c_ecs.position_components[player_key].y,
+                                c_ecs.position_components[player_key].z
+                            );
+                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+
+                            for &renderable in &c_ecs.renderables {
+                                if renderable == player_key {
+                                    continue;
+                                }
+                                
                                 // setup position matrix
                                 let model_x = c_ecs.position_components[renderable].x;
                                 let model_y = c_ecs.position_components[renderable].y;
@@ -374,60 +363,70 @@ fn main() -> io::Result<()> {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
-                        }
 
-                        // draw trackers
-                        let mut i = 0;
-                        for &player in &c_ecs.players {
-                            if player != player_key && c_ecs.health_components[player].alive {
-                                let pos = &c_ecs.position_components[player];
-                                let pos = vec3(pos.x, pos.y, pos.z);
-                                tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
-                            }
-                            i += 1;
-                        }
-
-                        // game has ended
-                        if c_ecs.game_ended {
-                            for (i, player) in c_ecs.ids.iter().enumerate() {
-                                if  c_ecs.players.contains(player) && 
-                                    c_ecs.health_components[*player].alive &&
-                                    c_ecs.health_components[*player].health > 0 
-                                {
-                                    println!("The winner is player {}!", i);
+                            // draw trackers
+                            let mut i = 0;
+                            for &player in &c_ecs.players {
+                                if player != player_key && c_ecs.health_components[player].alive {
+                                    let pos = &c_ecs.position_components[player];
+                                    let pos = vec3(pos.x, pos.y, pos.z);
+                                    tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
                                 }
+                                i += 1;
                             }
-                            in_game = false;
+
+                            // game has ended
+                            if c_ecs.game_ended {
+                                for (i, player) in c_ecs.ids.iter().enumerate() {
+                                    if  c_ecs.players.contains(player) && 
+                                        c_ecs.health_components[*player].alive &&
+                                        c_ecs.health_components[*player].health > 0 
+                                    {
+                                        println!("The winner is player {}!", i);
+                                    }
+                                }
+                                game_state = GameState::EnteringLobby;
+                            }
+                        }
+                        None => {
+                            set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height)
                         }
                     }
-                    None => {
-                        set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height)
-                    }
+                    // note: the first iteration through the match{} above draws the model without view and projection setup
+                
+                    // draw skybox
+                    let projection: Matrix4<f32> = perspective(
+                        Deg(camera.Zoom),
+                        width as f32 / height as f32,
+                        0.1,
+                        100.0
+                    );
+                    skybox.draw(camera.GetViewMatrix(), projection);
+
+                    ui_elems.draw_game(client_health.alive, client_ammo);
+
+                    gl::DepthMask(gl::FALSE);
+                    tracker.draw_all_trackers(trackers);
+                    gl::DepthMask(gl::TRUE);
                 }
-                // note: the first iteration through the match{} above draws the model without view and projection setup
-              
-                // draw skybox
-                let projection: Matrix4<f32> = perspective(
-                    Deg(camera.Zoom),
-                    width as f32 / height as f32,
-                    0.1,
-                    100.0
-                );
-                skybox.draw(camera.GetViewMatrix(), projection);
-
-                ui_elems.draw_game(client_health.alive, client_ammo);
-
-                gl::DepthMask(gl::FALSE);
-                tracker.draw_all_trackers(trackers);
-                gl::DepthMask(gl::TRUE);
             }
-
-            // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-            // -------------------------------------------------------------------------------
-            window.swap_buffers();
-            glfw.poll_events();
         }
 
-        // TODO: add game over rendering here: display winner + hit count for all players
+        // change is_focused after key press
+        if is_focused && window.get_key(Key::Escape) == Action::Press {
+            is_focused = false;
+        }
+        // Refocus by clicking on window
+        if !is_focused && window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press {
+            is_focused = true;
+            first_mouse = true;
+            first_click = true;
+
+        }
+
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        window.swap_buffers();
+        glfw.poll_events();
     }
 }
