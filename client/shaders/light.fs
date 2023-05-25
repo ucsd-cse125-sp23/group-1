@@ -31,8 +31,12 @@ void main()
     }
 
     // diffuse calculation
-    float diff = max(dot(normal, lightDir), 0.1);
+    float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = diff * lightDif;
+    // non-conventional way to show diffuse on ambient only side
+    if (diff == 0.0){
+        diffuse = max(dot(-normal, lightDir) * 0.25, 0.0) * lightDif;
+    }
 
     // add ambient to result
     vec3 textureColor = texture(texture_diffuse1, TexCoords).rgb;
