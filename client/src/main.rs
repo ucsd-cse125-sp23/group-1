@@ -220,7 +220,7 @@ fn main() -> io::Result<()> {
                         }
                         _ => ()
                     }
-                    _ => {}
+
                 }
             }
             GameState::InGame => {
@@ -313,13 +313,13 @@ fn main() -> io::Result<()> {
                     gl::ClearColor(0.2, 0.3, 0.3, 1.0);
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                // activate shader
+                    // activate shader
                     shader_program.use_program();
 
-                // TODO: lighting variables (this can imported from a json file?)
-                let light_dir = vec3(0., 0., 1.);
-                let light_ambience = vec3(0.2, 0.2, 0.2);
-                let light_diffuse = vec3(0.5, 0.5, 0.5);
+                    // TODO: lighting variables (this can imported from a json file?)
+                    let light_dir = vec3(0., 0., 1.);
+                    let light_ambience = vec3(0.2, 0.2, 0.2);
+                    let light_diffuse = vec3(0.5, 0.5, 0.5);
                     shader_program.setVector3(c_str!("lightDir"), &light_dir);
                     shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
                     shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
@@ -374,13 +374,12 @@ fn main() -> io::Result<()> {
 
                                 // setup scale matrix
                                 let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
-                            
+
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
-                        }
 
                             let mut i = 0;
                             for &player in &c_ecs.players {
