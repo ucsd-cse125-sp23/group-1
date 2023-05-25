@@ -32,10 +32,8 @@ fn main() {
     let poller = Poller::new().unwrap();
     // MAIN SERVER LOOP
     loop {
-        
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
-        let mut ready_players = 0;
 
         // LOBBY LOOP
         loop {
@@ -48,9 +46,8 @@ fn main() {
                 poller.modify(&listener, Event::readable(key)).unwrap();
             }
             // check each connection for ready updates
-            ready_players = ecs.check_ready_updates(ready_players);
-            // println!("ready players: {}, active players: {}, total players: {}", ready_players, ecs.active_players, ecs.players.len());
-            if ready_players >= MIN_PLAYERS && ready_players == ecs.active_players {
+            ecs.check_ready_updates();
+            if ecs.ready_players.len() >= 2 && ecs.ready_players.len() == ecs.players.len() {
                 ecs.send_ready_message(true);
                 break;
             }
