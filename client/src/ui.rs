@@ -336,8 +336,8 @@ impl UI {
                         else { self.p1_ready.draw(); }
                     }
                     else {
-                        if client_id == 0 { self.p1_joined.draw(); }
-                        else { self.p1_me.draw(); }
+                        if client_id == 0 { self.p1_me.draw(); }
+                        else { self.p1_joined.draw(); }
                     }
 
                     self.p2.draw();
