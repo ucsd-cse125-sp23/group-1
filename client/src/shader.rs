@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::ffi::{CStr, CString};
 use std::{fs, ptr, str};
 use gl::types::*;

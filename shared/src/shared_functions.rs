@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::str;
+use std::{process, str};
 use std::io::{Read,Write,ErrorKind};
 
 pub fn read_data(stream: &mut TcpStream) -> String {
@@ -9,7 +9,12 @@ pub fn read_data(stream: &mut TcpStream) -> String {
         Ok(4) => {
             size = u32::from_be_bytes(size_buf);
         },
-        _ => return "".to_string(),
+        Ok(_) => return "".to_string(),
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => return "".to_string(),
+        Err(_) => {
+            eprintln!("server disconnected");
+            process::exit(1);
+        }
     }
 
     let s_size: usize = size.try_into().unwrap();
@@ -21,21 +26,22 @@ pub fn read_data(stream: &mut TcpStream) -> String {
             message = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
         },
         Ok(_) => {},
-        Err(_) => {},
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => (),
+        Err(_) => {
+            eprintln!("server disconnected");
+            process::exit(1);
+        }
     }
     return message.to_string();
 }
 
-pub fn write_data(stream: &mut TcpStream, string: String) -> bool {
+pub fn write_data(stream: &mut TcpStream, string: String) {
     let size = string.len() as u32 + 4;
     let message = [u32::to_be_bytes(size).to_vec(), string.clone().into_bytes()].concat();
     match stream.write(&message) {
-        Ok(_) => return true,
-        Err(ref e) if e.kind() == ErrorKind::WouldBlock => return false,
-        Err(e) => {
-            println!("Error: {}", e);
-            return false;
-        }
+        Ok(_) => (),
+        Err(ref e) if e.kind() == ErrorKind::WouldBlock => (),
+        Err(_) => (),
     }
 }
 

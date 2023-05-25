@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use cgmath::{InnerSpace, vec3, Vector2, Vector3};
 
 pub fn project_on_plane(vector: Vector3<f32>, plane_normal: Vector3<f32>) -> Vector3<f32> {

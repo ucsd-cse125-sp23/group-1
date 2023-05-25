@@ -1,4 +1,4 @@
-# Blender 3.4.1 MTL File: 'asteroid.blend'
+# Blender 3.4.1 MTL File: 'debug_axis.blend'
 # www.blender.org
 
 newmtl Material.001
@@ -9,5 +9,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd textures/asteroid_diffuse.png
-map_Ns textures/asteroid_normal.png
+map_Kd lasso_diffuse.png

@@ -1,0 +1,283 @@
+[
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }   
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            5.0,
+            0.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }   
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            -5.0,
+            0.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }   
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }   
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            -5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        }   
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            5.0,
+            5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        "scale": 0.5  
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            -5.0,
+            5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        "scale": 0.5  
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            5.0,
+            -5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        "scale": 0.5  
+    },
+    {
+        "name": "cube",
+        "modelname": "cube",
+        "pos": [
+            -5.0,
+            -5.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                1.0,
+                1.0
+            ]
+        },
+        "scale": 0.5  
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            -50.0,
+            0.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                50.0,
+                50.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            50.0,
+            0.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                1.0,
+                50.0,
+                50.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            50.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                50.0,
+                1.0,
+                50.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            -50.0,
+            0.0
+        ],
+        "shape": {
+            "Cuboid": [
+                50.0,
+                1.0,
+                50.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            0.0,
+            50.0
+        ],
+        "shape": {
+            "Cuboid": [
+                50.0,
+                50.0,
+                1.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "wall",
+        "modelname": "cube",
+        "pos": [
+            0.0,
+            0.0,
+            -50.0
+        ],
+        "shape": {
+            "Cuboid": [
+                50.0,
+                50.0,
+                1.0
+            ]
+        },
+        "dynamic": false,
+        "restitution": 1.0
+    },
+    {
+        "name": "sungod",
+        "modelname": "sungod",
+        "pos": [
+            0.0,
+            0.0,
+            -20.0
+        ],
+        "shape": {
+            "ConvexDecomp": "../client/resources/sungod/sungod.obj"
+        }   
+    },
+    {
+        "name": "asteroid",
+        "modelname": "asteroid",
+        "pos": [
+            0.0,
+            0.0,
+            -5.0
+        ],
+        "shape": {
+            "ConvexDecomp": "../client/resources/new_asteroid/asteroid.obj"
+        },
+        "scale": 2.0
+    }
+]
