@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion,Isometry3,Translation3,Quaternion,distance};
+use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::str;
 use std::io::{Read, Write, self};
@@ -42,6 +42,8 @@ pub struct ECS {
     pub ccd_solver: CCDSolver,
     pub query_pipeline: QueryPipeline,
 
+    pub ready_players: SecondaryMap<Entity, bool>,
+
     pub ids: Vec<Entity>,
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
@@ -82,6 +84,8 @@ impl ECS {
             multibody_joint_set: MultibodyJointSet::new(),
             ccd_solver: CCDSolver::new(),
             query_pipeline: QueryPipeline::new(),
+
+            ready_players: SecondaryMap::new(),
 
             ids: vec![],
             players: vec![],
@@ -133,6 +137,7 @@ impl ECS {
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
+        self.ready_players.clear();
         self.dynamics.clear();
         self.renderables.clear();
 
@@ -230,7 +235,7 @@ impl ECS {
             input_temp.camera_qx = self.player_input_components[player].camera_qx;
             input_temp.camera_qy = self.player_input_components[player].camera_qy;
             input_temp.camera_qz = self.player_input_components[player].camera_qz;
-            
+
             let mut stream = & self.network_components[player].stream;
 
             let mut received_input = false;
@@ -374,11 +379,14 @@ impl ECS {
         self.player_camera_components.remove(player);
         self.player_lasso_components.remove(player);
         self.player_lasso_phys_components.remove(player);
-
+        if self.ready_players.contains_key(player) {
+            self.ready_players.remove(player);
+        }
 
         self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
         self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
         self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
+        self.active_players = self.players.len() as u8;
     }
 
     /**
@@ -465,6 +473,7 @@ impl ECS {
         LobbyECS {
             name_components: self.name_components.clone(),
             position_components: self.position_components.clone(),
+            ready_players: self.ready_players.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
             start_game: start_game,
@@ -607,6 +616,7 @@ impl ECS {
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {
                             self.player_health_components[target].health -= 1;
+                            self.player_health_components[player].hits += 1;
 
                             if self.player_health_components[target].health == 0 {
                                 // handle player death
@@ -640,6 +650,9 @@ impl ECS {
         }
     }
 
+    /**
+     * TODO: add description
+     */
     pub fn player_lasso(&mut self) {
         for &player in &self.players {
             let slack = 0.01;
@@ -715,6 +728,9 @@ impl ECS {
         }
     }
 
+    /**
+     * TODO: add description
+     */
     pub fn player_move(&mut self) {
         for &player in &self.players {
             let input = &self.player_input_components[player];
@@ -749,48 +765,31 @@ impl ECS {
      * @param   current # of ready players
      * @return  updated # of ready players
      */
-    pub fn check_ready_updates(&mut self, curr: u8) -> u8{
-        let mut disconnected_players: Vec<Entity> = vec![];
-        let mut ready_players = curr;
-        
+    pub fn check_ready_updates(&mut self){
         // check each connection for ready updates
         for &player in &self.players {
             let mut stream = &self.network_components[player].stream;
             let mut size_buf = [0 as u8; 4];
-            if self.network_components[player].connected {
-                match stream.peek(&mut size_buf) {
-                    Ok(4) => {
-                        let read_size = u32::from_be_bytes(size_buf) as usize;
-                        let mut read_buf = vec![0 as u8; read_size];
-                        stream.read(&mut read_buf).unwrap();
-                        let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                        let ready_res: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
-                        match ready_res {
-                            Ok(ecs) => {
-                                if ecs.ready {
-                                    ready_players += 1;
-                                } else {
-                                    ready_players -= 1;
-                                }
+            match stream.peek(&mut size_buf) {
+                Ok(4) => {
+                    let read_size = u32::from_be_bytes(size_buf) as usize;
+                    let mut read_buf = vec![0 as u8; read_size];
+                    stream.read(&mut read_buf).unwrap();
+                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    let ready_ecs: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                    match ready_ecs {
+                        Ok(ecs) => {
+                            if ecs.ready {
+                                self.ready_players.insert(player, ecs.ready);
                             }
-                            _ => ()
                         }
-                    },
-                    Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
-                    Err(e) => {
-                        eprintln!("Failed to read message size for client {}: {}",self.name_components[player],e);
-                        disconnected_players.push(player);
+                        _ => ()
                     }
-                };
-            }
+                },
+                _ => (),
+            };
         }
-        
-        for player in disconnected_players {
-            self.handle_client_disconnect(player);
-        }
-
-        return ready_players;
+        self.send_ready_message(false);
     }
 
     /**

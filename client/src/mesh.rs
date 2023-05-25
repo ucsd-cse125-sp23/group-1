@@ -81,6 +81,7 @@ impl Mesh {
         for (i, texture) in self.textures.iter().enumerate() {
             gl::ActiveTexture(gl::TEXTURE0 + i as u32); // active proper texture unit before binding
             // retrieve texture number (the N in diffuse_textureN)
+            let mut load_normal = 0;
             let name = &texture.type_;
             let number = match name.as_str() {
                 "texture_diffuse" => {
@@ -93,6 +94,7 @@ impl Mesh {
                 }
                 "texture_normal" => {
                     normal_nr += 1;
+                    load_normal = 1;
                     normal_nr
                 }
                 "texture_height" => {
@@ -104,6 +106,13 @@ impl Mesh {
             // now set the sampler to the correct texture unit
             let sampler = CString::new(format!("{}{}", name, number)).unwrap();
             gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler.as_ptr()), i as i32);
+
+            let name = CString::new("load_normal").unwrap();
+            gl::Uniform1i(gl::GetUniformLocation(shader.id, 
+                name.as_ptr()), load_normal);
+            // shader.set_int(c_str!(sampler.as_ptr()), i as i32);
+            // shader.set_int(c_str!("load_normal"), load_normal);
+
             // and finally bind the texture
             gl::BindTexture(gl::TEXTURE_2D, texture.id);
         }
