@@ -261,6 +261,7 @@ dependencies = [
  "shared",
  "slotmap",
  "spin_sleep",
+ "tobj",
 ]
 
 [[package]]
@@ -861,6 +862,12 @@ dependencies = [
  "quote",
  "syn 2.0.15",
 ]
+
+[[package]]
+name = "tobj"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe69d3e3b94bf71dfd868eb38b0830917bb177a7b32b58cab7ca72691aba7729"
 
 [[package]]
 name = "toml"

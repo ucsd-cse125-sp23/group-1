@@ -62,6 +62,7 @@ fn main() {
             ecs.receive_inputs();
 
             ecs.player_fire();
+            ecs.player_lasso();
             ecs.player_move();
 
             ecs.update_positions();
