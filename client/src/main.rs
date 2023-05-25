@@ -119,7 +119,7 @@ fn main() -> io::Result<()> {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         gl::Enable(gl::BLEND);
 
-        let light_shader = Shader::new(
+        let shader_program = Shader::new(
             "shaders/light.vs",
             "shaders/light.fs",
         );
@@ -394,7 +394,7 @@ fn main() -> io::Result<()> {
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                 // activate shader
-                let shader = &light_shader;
+                let shader = &shader_program;
                 shader.use_program();
 
                 // TODO: lighting variables (this can imported from a json file?)
