@@ -165,7 +165,7 @@ impl ECS {
             };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+            let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
@@ -504,7 +504,7 @@ impl ECS {
         });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+        let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
@@ -586,7 +586,7 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
-                let halfheight = 1.0;
+                let halfheight = 0.5;
 
                 let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
@@ -677,7 +677,7 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];
                 let player_handle = &self.physics_components[player].handle;
-                let halfheight = 1.0;
+                let halfheight = 0.5;
 
                 let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map

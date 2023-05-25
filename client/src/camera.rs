@@ -26,7 +26,7 @@ const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
 const ZOOM: f32 = 45.0;
-const HALFHEIGHT: f32 = 1.0;
+const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
     pub Position: Point3,
