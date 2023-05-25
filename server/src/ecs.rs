@@ -367,6 +367,7 @@ impl ECS {
         self.players.remove(self.players.iter().position(|x| *x == player).expect("not found"));
         self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
         self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
+        self.active_players = self.players.len() as u8;
     }
 
     /**

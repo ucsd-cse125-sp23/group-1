@@ -32,7 +32,6 @@ fn main() {
     let poller = Poller::new().unwrap();
     // MAIN SERVER LOOP
     loop {
-        
         poller.add(&listener, Event::readable(key)).unwrap();
         let mut events: Vec<Event> = Vec::new();
 
