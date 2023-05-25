@@ -148,6 +148,9 @@ pub fn process_inputs_game(
     if window.get_key(Key::Space) == Action::Press {
         *roll = true;
     }
+    if window.get_mouse_button(glfw::MouseButtonRight) == Action::Press {
+        input_component.rmb_clicked = true;
+    }
     if !*first_click && window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press {
         input_component.lmb_clicked = true;
     }

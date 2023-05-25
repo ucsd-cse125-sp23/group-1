@@ -148,6 +148,9 @@ fn main() -> io::Result<()> {
         tracker
     };
 
+    // create lasso
+    let lasso = Lasso::new();
+
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
@@ -216,7 +219,6 @@ fn main() -> io::Result<()> {
                         }
                         _ => ()
                     }
-                    _ => {}
                 }
             }
             GameState::InGame => {
