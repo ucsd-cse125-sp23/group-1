@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
         gl::Enable(gl::DEPTH_TEST);
 
         // create shaders
-        let shader_program = Shader::new("shaders/shader.vs", "shaders/shader.fs");
+        let shader_program = Shader::new("shaders/light.vs", "shaders/light.fs");
         let sprite_shader = Shader::new("shaders/sprite.vs", "shaders/sprite.fs");
 
         // actually allow transparency
@@ -220,6 +220,7 @@ fn main() -> io::Result<()> {
                         }
                         _ => ()
                     }
+
                 }
             }
             GameState::InGame => {
@@ -315,6 +316,14 @@ fn main() -> io::Result<()> {
                     // activate shader
                     shader_program.use_program();
 
+                    // TODO: lighting variables (this can imported from a json file?)
+                    let light_dir = vec3(0., 0., 1.);
+                    let light_ambience = vec3(0.2, 0.2, 0.2);
+                    let light_diffuse = vec3(0.5, 0.5, 0.5);
+                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
+                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
+                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+
                     let mut trackers = vec![];
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
@@ -342,6 +351,7 @@ fn main() -> io::Result<()> {
                             c_ecs.position_components[player_key].z
                         );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
                                 if renderable == player_key {
@@ -364,7 +374,7 @@ fn main() -> io::Result<()> {
 
                                 // setup scale matrix
                                 let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
-                            
+
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
                                 let model_name = &c_ecs.model_components[renderable].modelname;

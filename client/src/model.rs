@@ -3,6 +3,7 @@
 use std::os::raw::c_void;
 use std::path::Path;
 
+use cgmath::InnerSpace;
 use cgmath::{vec2, vec3};
 use gl;
 use image;
@@ -53,12 +54,81 @@ impl Model {
             let indices: Vec<u32> = mesh.indices.clone();
 
             let (p, n, t) = (&mesh.positions, &mesh.normals, &mesh.texcoords);
+            
+            let mut tans: Vec<f32> = vec![0.; num_vertices * 3];
+            let mut bitans: Vec<f32> = vec![0.; num_vertices * 3];
+
+            // calculate tangents and bitangents
+            let num_tri = mesh.indices.len() / 3;
+            for i in 0..num_tri {
+                // get triangle vertex and texture coordinates
+                let i1 = mesh.indices[i*3+0];
+                let i2 = mesh.indices[i*3+1];
+                let i3 = mesh.indices[i*3+2];
+                let p1x = mesh.positions[(i1*3+0) as usize];
+                let p1y = mesh.positions[(i1*3+1) as usize];
+                let p1z = mesh.positions[(i1*3+2) as usize];
+                let p2x = mesh.positions[(i2*3+0) as usize];
+                let p2y = mesh.positions[(i2*3+1) as usize];
+                let p2z = mesh.positions[(i2*3+2) as usize];
+                let p3x = mesh.positions[(i3*3+0) as usize];
+                let p3y = mesh.positions[(i3*3+1) as usize];
+                let p3z = mesh.positions[(i3*3+2) as usize];
+                let p1u = mesh.texcoords[(i1*2+0) as usize];
+                let p1v = mesh.texcoords[(i1*2+1) as usize];
+                let p2u = mesh.texcoords[(i2*2+0) as usize];
+                let p2v = mesh.texcoords[(i2*2+1) as usize];
+                let p3u = mesh.texcoords[(i3*2+0) as usize];
+                let p3v = mesh.texcoords[(i3*2+1) as usize];
+                let p1 = vec3(p1x, p1y, p1z);
+                let p2 = vec3(p2x, p2y, p2z);
+                let p3 = vec3(p3x, p3y, p3z);
+                let uv1 = vec2(p1u, p1v);
+                let uv2 = vec2(p2u, p2v);
+                let uv3 = vec2(p3u, p3v);
+
+                // calculate tangent/bitangent vectors of both triangles
+                let edge1 = p2 - p1;
+                let edge2 = p3 - p1;
+                let delta_uv1 = uv2 - uv1;
+                let delta_uv2 = uv3 - uv1;
+                let f = 1.0 / (delta_uv1.x * delta_uv2.y - delta_uv2.x * delta_uv1.y);
+                let tanx = f * (delta_uv2.y * edge1.x - delta_uv1.y * edge2.x);
+                let tany = f * (delta_uv2.y * edge1.y - delta_uv1.y * edge2.y);
+                let tanz = f * (delta_uv2.y * edge1.z - delta_uv1.y * edge2.z);
+                let bitanx = f * (-delta_uv2.x * edge1.x + delta_uv1.x * edge2.x);
+                let bitany = f * (-delta_uv2.x * edge1.y + delta_uv1.x * edge2.y);
+                let bitanz = f * (-delta_uv2.x * edge1.z + delta_uv1.x * edge2.z);
+                tans[(i1*3+0) as usize] = tanx; 
+                tans[(i1*3+1) as usize] = tany; 
+                tans[(i1*3+2) as usize] = tanz;
+                tans[(i2*3+0) as usize] = tanx; 
+                tans[(i2*3+1) as usize] = tany; 
+                tans[(i2*3+2) as usize] = tanz;
+                tans[(i3*3+0) as usize] = tanx; 
+                tans[(i3*3+1) as usize] = tany; 
+                tans[(i3*3+2) as usize] = tanz;
+                bitans[(i1*3+0) as usize] = bitanx; 
+                bitans[(i1*3+1) as usize] = bitany; 
+                bitans[(i1*3+2) as usize] = bitanz;
+                bitans[(i2*3+0) as usize] = bitanx; 
+                bitans[(i2*3+1) as usize] = bitany; 
+                bitans[(i2*3+2) as usize] = bitanz;
+                bitans[(i3*3+0) as usize] = bitanx; 
+                bitans[(i3*3+1) as usize] = bitany; 
+                bitans[(i3*3+2) as usize] = bitanz;
+            }
+
+            // println!("n_vs: {}, len(tans): {}, len(bitans): {}", num_vertices, tans.len(), bitans.len());
+
             for i in 0..num_vertices {
                 vertices.push(Vertex {
                     position:  vec3(p[i*3], p[i*3+1], p[i*3+2]),
                     normal:    vec3(n[i*3], n[i*3+1], n[i*3+2]),
                     tex_coords: vec2(t[i*2], t[i*2+1]),
-                    ..Vertex::default()
+                    tangent:    vec3(tans[i*3], tans[i*3+1], tans[i*3+2]).normalize(),
+                    bitangent:  vec3(bitans[i*3], bitans[i*3+1], bitans[i*3+2]).normalize()
+                    // ..Vertex::default()
                 })
             }
 

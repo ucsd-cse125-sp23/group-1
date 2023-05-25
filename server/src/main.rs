@@ -92,7 +92,6 @@ fn main() {
             let tick_ms = tick.as_millis() as u64;
             if tick_ms >= TICK_SPEED {
                 eprintln!("ERROR: Tick took {}ms (tick speed set to {}ms)", tick_ms, TICK_SPEED);
-            
             } else {
                 spin_sleep::sleep(Duration::from_millis(TICK_SPEED) - tick);
             }
