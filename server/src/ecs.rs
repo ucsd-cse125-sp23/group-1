@@ -484,7 +484,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "character".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());

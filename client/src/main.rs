@@ -128,6 +128,7 @@ fn main() -> io::Result<()> {
         models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
         models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
         models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+        models.insert("character".to_string(), Model::new("resources/character/characterPosedsample.obj"));
 
         let colors: [Vector4<f32>; 3] = [
             vec4(0.91797, 0.25, 0.2031, 1.0),
