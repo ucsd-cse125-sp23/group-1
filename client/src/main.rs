@@ -138,10 +138,11 @@ fn main() -> io::Result<()> {
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
 
     // set up tracker
-    let tracker_colors: [Vector4<f32>; 3] = [
-        vec4(0.91797, 0.25, 0.2031, 1.0),
-        vec4(0.2031, 0.7852, 0.91797, 1.0),
-        vec4(0.3867, 0.9648, 0.0781, 1.0),
+    let tracker_colors: [Vector4<f32>; 4] = [
+        vec4(222.0 / 255.0, 135.0 / 255.0, 135.0 / 255.0, 1.0),
+        vec4(135.0 / 255.0, 205.0 / 255.0, 222.0 / 255.0, 1.0),
+        vec4(255.0 / 255.0, 230.0 / 255.0, 128.0 / 255.0, 1.0),
+        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0)
     ];
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
