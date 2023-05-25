@@ -477,7 +477,7 @@ fn main() -> io::Result<()> {
                                 let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                 // draw lasso
-                                let lasso_p1 = model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                let lasso_p1 = model.transform_point(Point3::new(0.5, 0.0, 0.0));
                                 let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                 lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                             }
