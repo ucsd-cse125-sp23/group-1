@@ -77,13 +77,27 @@ impl ClientECS {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub ready_players: SecondaryMap<Entity, bool>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub start_game: bool
+}
+
+impl LobbyECS {
+    pub fn new() -> LobbyECS{
+        LobbyECS {
+            name_components: SlotMap::new(),
+            position_components: SecondaryMap::new(),
+            ready_players: SecondaryMap::new(),
+            players: vec![],
+            ids: vec![],
+            start_game: false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -142,14 +156,16 @@ impl PlayerWeaponComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerHealthComponent {
     pub alive: bool,
-    pub health: u8
+    pub health: u8,
+    pub hits: u8
 }
 
 impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 1
+            health : 1,
+            hits: 0
         }
     }
 }
