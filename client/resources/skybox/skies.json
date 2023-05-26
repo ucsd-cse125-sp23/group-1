@@ -1,16 +1,74 @@
 [
     {
-        "path": "space0",
+        "path": "resources/skybox/space0",
         "light_dir": [
-            0.0,
-            0.0,
-            1.0
+            -0.901,
+            0.418,
+            0.115
         ],
         "light_diffuse": [
-
+            0.8,
+            0.8,
+            0.8
         ],
         "light_ambience": [
-            
+            0.174,
+            0.180,
+            0.130
+        ]
+    },
+    {
+        "path": "resources/skybox/space1",
+        "light_dir": [
+            0.079,
+            -0.518,
+            -0.852
+        ],
+        "light_diffuse": [
+            0.8,
+            0.8,
+            0.8
+        ],
+        "light_ambience": [
+            0.196,
+            0.120,
+            0.128
+        ]
+    },
+    {
+        "path": "resources/skybox/space2",
+        "light_dir": [
+            0.029,
+            -0.306,
+            0.951
+        ],
+        "light_diffuse": [
+            0.8,
+            0.8,
+            0.8
+        ],
+        "light_ambience": [
+            0.184,
+            0.174,
+            0.156
+        ]
+    },
+    {
+        "path": "resources/skybox/space3",
+        "light_dir": [
+            -0.003,
+            -0.196,
+            0.981
+        ],
+        "light_diffuse": [
+            0.8,
+            0.8,
+            0.8
+        ],
+        "light_ambience": [
+            0.266,
+            0.24,
+            0.084
         ]
     }
 ]

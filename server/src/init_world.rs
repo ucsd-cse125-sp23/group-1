@@ -1,5 +1,5 @@
 use crate::ecs::*;
-use rapier3d::{dynamics::RigidBodySet, geometry::{ColliderSet,SharedShape}};
+use rapier3d::geometry::SharedShape;
 use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3};
 use serde::Deserialize;
 use std::fs;
@@ -130,4 +130,19 @@ pub fn init_player_spawns(spawnpoints: &mut Vec<Isometry3<f32>>) {
         };
         spawnpoints.push(Isometry3::from_parts(Translation3::new(spawn.pos.0, spawn.pos.1, spawn.pos.2), rot));
     }
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct LoadSky {
+    path: String,
+    light_dir: (f32, f32, f32),
+    light_diffuse: (f32, f32, f32),
+    light_ambience: (f32, f32, f32)
+}
+
+pub fn init_num_skies() -> usize {
+    let j = fs::read_to_string("../client/resources/skybox/skies.json").expect("Error reading file ../client/resources/skybox/skies.json");
+    let loadskies: Vec<LoadSky> = serde_json::from_str(&j).expect("Error deserializing ../client/resources/skybox/skies.json");
+    loadskies.len()
 }
