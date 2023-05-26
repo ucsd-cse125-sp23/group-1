@@ -129,7 +129,7 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
+    let skybox = unsafe{ Skybox::new("resources/skybox/space0", ".png") };
 
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
@@ -319,7 +319,7 @@ fn main() -> io::Result<()> {
                     // TODO: lighting variables (this can imported from a json file?)
                     let light_dir = vec3(0., 0., 1.);
                     let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
+                    let light_diffuse = vec3(0.6, 0.6, 0.6);
                     shader_program.setVector3(c_str!("lightDir"), &light_dir);
                     shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
                     shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
