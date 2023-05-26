@@ -552,6 +552,7 @@ dependencies = [
  "glfw",
  "image",
  "kira",
+ "mint",
  "serde",
  "serde_json",
  "shared",

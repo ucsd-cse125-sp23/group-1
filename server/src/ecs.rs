@@ -22,7 +22,7 @@ pub struct ECS {
     pub player_weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
-    
+    pub audio_components: SecondaryMap<Entity, AudioComponent>,
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
@@ -44,6 +44,8 @@ pub struct ECS {
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
+
+    pub events: Vec<Entity>,
 
     pub spawnpoints: Vec<Isometry3<f32>>,
     pub active_players: u8,
@@ -68,6 +70,8 @@ impl ECS {
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
 
+            audio_components: SecondaryMap::new(),
+
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
             physics_pipeline: PhysicsPipeline::new(), 
@@ -83,6 +87,8 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
+
+            events: vec![],
 
             spawnpoints: vec![],
             active_players: 0,
@@ -130,6 +136,9 @@ impl ECS {
         self.dynamics.clear();
         self.renderables.clear();
 
+        self.audio_components.clear();
+        self.events.clear();
+        
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
 
@@ -427,8 +436,10 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
+            audio_components: self.audio_components.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
+            events: self.events.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
         }

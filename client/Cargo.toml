@@ -26,3 +26,4 @@ config = "0.13.1"
 
 # audio
 kira = "0.8.0"
+mint = "0.5.9"

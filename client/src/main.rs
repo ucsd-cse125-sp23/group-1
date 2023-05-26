@@ -7,6 +7,7 @@ mod skybox;
 mod sprite_renderer;
 mod util;
 mod tracker;
+mod audio;
 
 use std::collections::HashMap;
 
@@ -35,6 +36,7 @@ use shared::shared_components::*;
 use shared::shared_functions::*;
 use shared::*;
 use crate::tracker::Tracker;
+use crate::audio::AudioPlayer;
 
 // audio
 use kira::{
@@ -337,7 +339,20 @@ fn main() -> io::Result<()> {
                 &mut last_y,
                 &mut camera, roll
             );
-            
+
+            match &client_ecs {
+                Some(ecs) => {
+                    for &event in &ecs.events {
+                        if ecs.audio_components.contains_key(event) {
+                            let audio = &ecs.audio_components[event];
+                            
+                        }
+                    }
+                }
+                None => {
+                    // do nothing
+                }
+            }
             // handle audio
             if !input_component.lmb_clicked {
                 shot_taken = false;
