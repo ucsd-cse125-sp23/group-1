@@ -5,13 +5,16 @@ use std::ffi::{CStr};
 
 pub struct Lasso {
     model: Model,
+    debug_model: Model
 }
 
 impl Lasso {
     pub fn new() -> Lasso {
         let model = Model::new("resources/lasso/lasso.obj");
+        let debug_model = Model::new("resources/debug_axis/debug_axis.obj");
         let lasso = Lasso {
             model,
+            debug_model
         };
         lasso
     }
@@ -24,5 +27,11 @@ impl Lasso {
         shader.set_mat4(c_str!("model"), &model);
 
         self.model.draw(shader);
+
+        // temp: draw debug axis
+        let pos_mat = Matrix4::from_translation(p2);
+        let model = pos_mat;
+        shader.set_mat4(c_str!("model"), &model);
+        self.debug_model.draw(shader);
     }
 }
