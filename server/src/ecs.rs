@@ -651,7 +651,7 @@ impl ECS {
      */
     pub fn player_lasso(&mut self) {
         for &player in &self.players {
-            let slack = 0.01;
+            let slack = 0.5;
             let input = &self.player_input_components[player];
             if self.player_lasso_phys_components.contains_key(player) {
                 let lasso_phys = &mut self.player_lasso_phys_components[player];
