@@ -173,7 +173,7 @@ impl ECS {
             };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << index).into(),Group::all())).build();
+            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
@@ -518,7 +518,7 @@ impl ECS {
         });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << index).into(),Group::all())).build();
+        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
@@ -764,7 +764,7 @@ impl ECS {
                 }
             } else if input.rmb_clicked {
                 println!("throwing lasso");
-                let radius = 0.0;
+                let radius = 0.02;
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];
                 let player_handle = &self.physics_components[player].handle;
@@ -773,7 +773,7 @@ impl ECS {
                 let thrown = self.name_components.insert("thrown lasso".to_string());
                 let thrown_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::from(point![position.x, position.y, position.z] + (fire_vec * spawn_dist)), *player_body.rotation())).linvel(*player_body.linvel() + (fire_vec * fire_vel)).lock_rotations().ccd_enabled(true).can_sleep(false).build();
                 let thrown_handle = self.rigid_body_set.insert(thrown_body);
-                let thrown_collider = ColliderBuilder::ball(radius).user_data(thrown.data().as_ffi() as u128).collision_groups(InteractionGroups::new(Group::all(),(!((1 as u32) << index)).into())).build();
+                let thrown_collider = ColliderBuilder::ball(radius).user_data(thrown.data().as_ffi() as u128).collision_groups(InteractionGroups::new(Group::all(),(!((1 as u32) << (index + 1))).into())).build();
                 let thrown_collider_handle = self.collider_set.insert_with_parent(thrown_collider, thrown_handle, &mut self.rigid_body_set);
                 self.physics_components.insert(thrown, PhysicsComponent { handle: thrown_handle, collider_handle: thrown_collider_handle });
                 self.player_lasso_thrown_components.insert(player, PlayerLassoThrownComponent { entity: thrown });
