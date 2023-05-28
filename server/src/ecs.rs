@@ -171,7 +171,7 @@ impl ECS {
                 qz: player_pos.rotation.k,
                 qw: player_pos.rotation.w,
             };
-            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
+            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
@@ -516,7 +516,7 @@ impl ECS {
             qz: player_pos.rotation.k,
             qw: player_pos.rotation.w,
         });
-        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
+        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
