@@ -18,7 +18,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace};
 
 use std::ffi::{CStr};
 
@@ -356,6 +356,12 @@ fn main() -> io::Result<()> {
 
                             for &renderable in &c_ecs.renderables {
                                 if renderable == player_key {
+                                    continue;
+                                }
+
+                                // temp force field rendering
+                                // TODO: force field fades in as player gets close
+                                if c_ecs.model_components[renderable].border && player_pos.magnitude() < 200.0 {
                                     continue;
                                 }
 
