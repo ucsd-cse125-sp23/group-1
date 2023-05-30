@@ -32,8 +32,14 @@ pub struct UI {
 
     // =========================== game ui elements ===========================
     pub crosshair: Sprite,
-    pub full_healthbar: Sprite,
-    pub empty_healthbar: Sprite,
+    pub p1_healthbar: Sprite,
+    pub p2_healthbar: Sprite,
+    pub p3_healthbar: Sprite,
+    pub p4_healthbar: Sprite,
+    pub p1_emptybar: Sprite,
+    pub p2_emptybar: Sprite,
+    pub p3_emptybar: Sprite,
+    pub p4_emptybar: Sprite,
     pub ammo_0: Sprite,
     pub ammo_1: Sprite,
     pub ammo_2: Sprite,
@@ -244,16 +250,58 @@ impl UI {
                 CROSSHAIR_SCALE
             ),
 
-            empty_healthbar: init_sprite_with_anchor(
+            p1_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
-                "resources/ui_textures/emptyHealthBar.png",
+                "resources/ui_textures/p1-health-full.png",
                 vec2(5.0, height - 5.0), 
                 Anchor::TopLeft, BAR_SCALE
             ),
-        
-            full_healthbar: init_sprite_with_anchor(
+
+            p2_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
-                "resources/ui_textures/fullHealthBar.png",
+                "resources/ui_textures/p2-health-full.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p3_healthbar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p3-health-full.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p4_healthbar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p4-health-full.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p1_emptybar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p1-health-empty.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p2_emptybar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p2-health-empty.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p3_emptybar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p3-health-empty.png",
+                vec2(5.0, height - 5.0), 
+                Anchor::TopLeft, BAR_SCALE
+            ),
+
+            p4_emptybar: init_sprite_with_anchor(
+                screen_size, shader_id,
+                "resources/ui_textures/p4-health-empty.png",
                 vec2(5.0, height - 5.0), 
                 Anchor::TopLeft, BAR_SCALE
             ),
@@ -357,12 +405,28 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_alive: bool, client_ammo: u8) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8) {
         unsafe {
             self.crosshair.draw();
 
-            if client_alive { self.full_healthbar.draw(); }
-            else { self.empty_healthbar.draw(); }
+            if client_alive {
+                match client_id {
+                    0 => self.p1_healthbar.draw(),
+                    1 => self.p2_healthbar.draw(),
+                    2 => self.p3_healthbar.draw(),
+                    3 => self.p4_healthbar.draw(),
+                    _ => ()
+                }
+            }
+            else {
+                match client_id {
+                    0 => self.p1_emptybar.draw(),
+                    1 => self.p2_emptybar.draw(),
+                    2 => self.p3_emptybar.draw(),
+                    3 => self.p4_emptybar.draw(),
+                    _ => ()
+                }
+            }
 
             match client_ammo {
                 0 => self.ammo_0.draw(),
