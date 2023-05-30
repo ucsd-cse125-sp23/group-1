@@ -166,6 +166,7 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut curr_id = client_id;
 
     // WINDOW LOOP
     // -----------
@@ -193,7 +194,7 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let mut curr_id = client_id;
+                    curr_id = client_id;
                     if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
@@ -452,7 +453,7 @@ fn main() -> io::Result<()> {
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(client_health.alive, client_ammo);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
