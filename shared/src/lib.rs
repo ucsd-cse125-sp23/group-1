@@ -23,4 +23,4 @@ pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.08;
 pub const CROSSHAIR_SCALE: f32 = 0.03;
-pub const LOBBY_BG_SCALE: f32 = 0.2;
+pub const LOBBY_BG_SCALE: f32 = 1.0;

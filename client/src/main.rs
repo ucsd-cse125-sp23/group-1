@@ -39,6 +39,7 @@ use crate::common::*;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 
+#[derive(PartialEq, Eq)]
 enum GameState {
     EnteringLobby,
     InLobby,
@@ -170,7 +171,7 @@ fn main() -> io::Result<()> {
     // -----------
     loop {
         // set cursor mode based on is_focused
-        if is_focused {
+        if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
         } else {
             window.set_cursor_mode(glfw::CursorMode::Normal);

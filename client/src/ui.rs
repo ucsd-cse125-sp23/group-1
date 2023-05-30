@@ -4,6 +4,7 @@ use shared::*;
 use shared::shared_components::*;
 
 pub struct UI {
+    // ========================== lobby ui elements ===========================
     pub p1_lobby: Sprite,
     pub p2_lobby: Sprite,
     pub p3_lobby: Sprite,
@@ -29,6 +30,7 @@ pub struct UI {
     pub p3_ready_me: Sprite,
     pub p4_ready_me: Sprite,
 
+    // =========================== game ui elements ===========================
     pub crosshair: Sprite,
     pub full_healthbar: Sprite,
     pub empty_healthbar: Sprite,
@@ -39,6 +41,14 @@ pub struct UI {
     pub ammo_4: Sprite,
     pub ammo_5: Sprite,
     pub ammo_6: Sprite,
+    // pub p1_alive: Sprite,
+    // pub p2_alive: Sprite,
+    // pub p3_alive: Sprite,
+    // pub p4_alive: Sprite,
+    // pub p1_dead: Sprite,
+    // pub p2_dead: Sprite,
+    // pub p3_dead: Sprite,
+    // pub p4_dead: Sprite
 }
 
 impl UI {
@@ -295,7 +305,55 @@ impl UI {
                 "resources/ui_textures/ammo6.png",
                 vec2(width - 5.0, height - 5.0), 
                 Anchor::TopRight, BAR_SCALE
-            )
+            ), 
+
+            // p1_alive: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p2_alive: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p3_alive: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p4_alive: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p1_dead: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p2_dead: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p3_dead: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // ),
+
+            // p4_dead: init_sprite(
+            //     screen_size, shader_id,
+            //     path,
+            //     position, scale
+            // )
         }
     }
 
@@ -316,6 +374,30 @@ impl UI {
                 6 => self.ammo_6.draw(),
                 _ => ()
             }
+
+            // for (i, player) in client_ecs.players.enumerate() {
+            //     match i {
+            //         0 => self.p1_alive.draw(),
+            //         1 => self.p2_alive.draw(),
+            //         2 => self.p3_alive.draw(),
+            //         3 => self.p4_alive.draw(),
+            //     }
+            //     if client_ecs.health_components[player].alive {
+            //         match i {
+            //             0 => self.p1_alive.draw(),
+            //             1 => self.p2_alive.draw(),
+            //             2 => self.p3_alive.draw(),
+            //             3 => self.p4_alive.draw(),
+            //         }
+            //     } else {
+            //         match i {
+            //             0 => self.p1_dead.draw(),
+            //             1 => self.p2_dead.draw(),
+            //             2 => self.p3_dead.draw(),
+            //             3 => self.p4_dead.draw(),
+            //         }
+            //     }
+            // }
         }
     }
 
@@ -448,26 +530,29 @@ impl UI {
 }
 
 fn init_sprite(screen_size: Vector2<f32>, shader_id: u32, path: &str, 
-    position: Vector2<f32>, scale: f32) -> Sprite
+    position: Vector2<f32>, percentage: f32) -> Sprite
 {
     unsafe {
         let mut sprite = Sprite::new(screen_size, shader_id);
         sprite.set_texture(path);
         sprite.set_position(position);
-        sprite.set_scale(Vector2::from_value(scale));
+        sprite.set_percentage_width(screen_size, percentage);
+        // sprite.set_scale(Vector2::from_value(scale));
         sprite
     }
 }
 
 fn init_sprite_with_anchor(screen_size: Vector2<f32>, shader_id: u32, path: &str, 
-    position: Vector2<f32>, anchor: Anchor, scale: f32) -> Sprite
+    position: Vector2<f32>, anchor: Anchor, percentage: f32) -> Sprite
 {
     unsafe {
         let mut sprite = Sprite::new(screen_size, shader_id);
         sprite.set_texture(path);
         sprite.set_position(position);
         sprite.set_anchor(anchor);
-        sprite.set_scale(Vector2::from_value(scale));
+        // sprite.set_percentage_height(screen_size, percentage);
+        sprite.set_percentage_width(screen_size, percentage);
+        // sprite.set_scale(Vector2::from_value(scale));
         sprite
     }
 }
