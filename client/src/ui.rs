@@ -1,5 +1,5 @@
 use crate::sprite_renderer::{Anchor, Sprite};
-use cgmath::{vec2, Array, Vector2};
+use cgmath::{vec2, Vector2};
 use shared::*;
 use shared::shared_components::*;
 
@@ -55,329 +55,93 @@ pub struct UI {
     pub p2_dead: Sprite,
     pub p3_dead: Sprite,
     pub p4_dead: Sprite
+
+    // ======================== game over ui elements =========================
 }
 
 impl UI {
-    pub fn initialize(s_size: Vector2<f32>, shader_id: u32, width: f32, height: f32) -> UI {
+    pub fn initialize(s_size: Vector2<f32>, id: u32, width: f32, height: f32) -> UI {
+
+        // set up UI element positions
+        let bg_pos = vec2(width / 2.0, height / 2.0);
+        let p1_pos = vec2(width / 5.0, height / 2.0);
+        let p2_pos = vec2(width / 2.5, height / 2.0);
+        let p3_pos = vec2(width / 1.67, height / 2.0);
+        let p4_pos = vec2(width / 1.25, height / 2.0);
+        let c1_pos = vec2(width / 5.0, height - 5.0);
+        let c2_pos = vec2(width / 2.5, height - 5.0);
+        let c3_pos = vec2(width / 1.67, height - 5.0);
+        let c4_pos = vec2(width / 1.25, height - 5.0);
+        let health_pos = vec2(5.0, 5.0);
+        let ammo_pos = vec2(width - 5.0, 10.0);
+
         UI {
-
-            // ===== lobby background =====
-
-            p1_lobby: init_sprite(
-                s_size, shader_id, LOBBY_BG_1_PATH,
-                vec2(width / 2.0, height / 2.0),
-                LOBBY_BG_SCALE
-            ),
-
-            p2_lobby: init_sprite(
-                s_size, shader_id, LOBBY_BG_2_PATH,
-                vec2(width / 2.0, height / 2.0),
-                LOBBY_BG_SCALE
-            ),
-
-            p3_lobby: init_sprite(
-                s_size, shader_id, LOBBY_BG_3_PATH,
-                vec2(width / 2.0, height / 2.0),
-                LOBBY_BG_SCALE
-            ),
-
-            p4_lobby: init_sprite(
-                s_size, shader_id, LOBBY_BG_4_PATH,
-                vec2(width / 2.0, height / 2.0),
-                LOBBY_BG_SCALE
-            ),
+            // =========================== lobby background ===========================
+            p1_lobby: init_sprite(s_size, id, LOBBY_BG_1_PATH, bg_pos, LOBBY_BG_SCALE),
+            p2_lobby: init_sprite(s_size, id, LOBBY_BG_2_PATH, bg_pos, LOBBY_BG_SCALE),
+            p3_lobby: init_sprite(s_size, id, LOBBY_BG_3_PATH, bg_pos, LOBBY_BG_SCALE),
+            p4_lobby: init_sprite(s_size, id, LOBBY_BG_4_PATH, bg_pos, LOBBY_BG_SCALE),
             
-            // ===== gray player cards ======
+            // =========================== gray player cards ==========================
+            p1: init_sprite(s_size, id, P1_PATH, p1_pos, PLAYER_SCALE),
+            p2: init_sprite(s_size, id, P2_PATH, p2_pos, PLAYER_SCALE),
+            p3: init_sprite(s_size, id, P3_PATH, p3_pos, PLAYER_SCALE),
+            p4: init_sprite(s_size, id, P4_PATH, p4_pos, PLAYER_SCALE),
 
-            p1: init_sprite(
-                s_size, shader_id, P1_PATH,
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_SCALE
-            ),
+            // ====================== client joined player cards ======================
+            p1_joined: init_sprite(s_size, id, P1_JOINED_PATH, p1_pos, PLAYER_SCALE),
+            p2_joined: init_sprite(s_size, id, P2_JOINED_PATH, p2_pos, PLAYER_SCALE),
+            p3_joined: init_sprite(s_size, id, P3_JOINED_PATH, p3_pos, PLAYER_SCALE),
+            p4_joined: init_sprite(s_size, id, P4_JOINED_PATH, p4_pos, PLAYER_SCALE),
 
-            p2: init_sprite(
-                s_size, shader_id, P2_PATH,
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_SCALE
-            ),
+            // ========================== ready player cards ==========================
+            p1_ready: init_sprite(s_size, id, P1_READY_PATH, p1_pos, PLAYER_SCALE),
+            p2_ready: init_sprite(s_size, id, P2_READY_PATH, p2_pos, PLAYER_SCALE),
+            p3_ready: init_sprite(s_size, id, P3_READY_PATH, p3_pos, PLAYER_SCALE),
+            p4_ready: init_sprite(s_size, id, P4_READY_PATH, p4_pos, PLAYER_SCALE),
 
-            p3: init_sprite(
-                s_size, shader_id, P3_PATH,
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_SCALE
-            ),
+            // ========================= colored player cards =========================
+            p1_me: init_sprite(s_size, id, P1_ME_PATH, p1_pos, PLAYER_SCALE),
+            p2_me: init_sprite(s_size, id, P2_ME_PATH, p2_pos, PLAYER_SCALE),
+            p3_me: init_sprite(s_size, id, P3_ME_PATH, p3_pos, PLAYER_SCALE),
+            p4_me: init_sprite(s_size, id, P4_ME_PATH, p4_pos, PLAYER_SCALE),
 
-            p4: init_sprite(
-                s_size, shader_id, P4_PATH,
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_SCALE
-            ),
+            // ====================== colored ready player cards ======================
+            p1_ready_me: init_sprite(s_size, id, P1_READY_ME_PATH, p1_pos, PLAYER_SCALE),
+            p2_ready_me: init_sprite(s_size, id, P2_READY_ME_PATH, p2_pos, PLAYER_SCALE),
+            p3_ready_me: init_sprite(s_size, id, P3_READY_ME_PATH, p3_pos, PLAYER_SCALE),
+            p4_ready_me: init_sprite(s_size, id, P4_READY_ME_PATH, p4_pos, PLAYER_SCALE),
 
-            // ===== client joined player cards =====
+            // ================================ HUD ===================================
+            crosshair: init_sprite(s_size, id, CROSSHAIR_PATH, bg_pos, CROSSHAIR_SCALE),
 
-            p1_joined: init_sprite(
-                s_size, shader_id, P1_JOINED_PATH,
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_SCALE
-            ),
+            p1_healthbar: init_with_anchor(s_size, id, P1_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p2_healthbar: init_with_anchor(s_size, id, P2_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p3_healthbar: init_with_anchor(s_size, id, P3_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p4_healthbar: init_with_anchor(s_size, id, P4_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
 
-            p2_joined: init_sprite(
-                s_size, shader_id, P2_JOINED_PATH,
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p3_joined: init_sprite(
-                s_size, shader_id, P3_JOINED_PATH,
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p4_joined: init_sprite(
-                s_size, shader_id, P4_JOINED_PATH,
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            // ===== ready player cards =====
-
-            p1_ready: init_sprite(
-                s_size, shader_id, P1_READY_PATH,
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p2_ready: init_sprite(
-                s_size, shader_id, P2_READY_PATH,
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p3_ready: init_sprite(
-                s_size, shader_id, P3_READY_PATH,
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p4_ready: init_sprite(
-                s_size, shader_id, P4_READY_PATH,
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            // ===== colored player cards =====
-
-            p1_me: init_sprite(
-                s_size, shader_id, P1_ME_PATH,
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p2_me: init_sprite(
-                s_size, shader_id, P2_ME_PATH,
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p3_me: init_sprite(
-                s_size, shader_id, P3_ME_PATH,
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p4_me: init_sprite(
-                s_size, shader_id, P4_ME_PATH,
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            // ===== colored ready player cards =====
-
-            p1_ready_me: init_sprite(
-                s_size, shader_id, P1_READY_ME_PATH,
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p2_ready_me: init_sprite(
-                s_size, shader_id, P2_READY_ME_PATH,
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p3_ready_me: init_sprite(
-                s_size, shader_id, P3_READY_ME_PATH,
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            p4_ready_me: init_sprite(
-                s_size, shader_id, P4_READY_ME_PATH,
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_SCALE
-            ),
-
-            // ===== HUD =====
-
-            crosshair: init_sprite(
-                s_size, shader_id, CROSSHAIR_PATH,
-                vec2(width / 2.0, height / 2.0),
-                CROSSHAIR_SCALE
-            ),
-
-            p1_healthbar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p1-health-full.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p2_healthbar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p2-health-full.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p3_healthbar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p3-health-full.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p4_healthbar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p4-health-full.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p1_emptybar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p1-health-empty.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p2_emptybar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p2-health-empty.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p3_emptybar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p3-health-empty.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
-
-            p4_emptybar: init_with_anchor(
-                s_size, shader_id,
-                "resources/ui_textures/health_bar/p4-health-empty.png",
-                vec2(5.0, 5.0), 
-                Anchor::BotLeft, BAR_SCALE
-            ),
+            p1_emptybar: init_with_anchor(s_size, id, P1_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p2_emptybar: init_with_anchor(s_size, id, P2_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p3_emptybar: init_with_anchor(s_size, id, P3_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p4_emptybar: init_with_anchor(s_size, id, P4_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
         
-            ammo_0: init_with_anchor(
-                s_size, shader_id, AMMO_0_PATH,
-                vec2(width - 5.0, 10.0),
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_1: init_with_anchor(
-                s_size, shader_id, AMMO_1_PATH,
-                vec2(width - 5.0, 10.0),
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_2: init_with_anchor(
-                s_size, shader_id, AMMO_2_PATH,
-                vec2(width - 5.0, 10.0), 
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_3: init_with_anchor(
-                s_size, shader_id, AMMO_3_PATH,
-                vec2(width - 5.0, 10.0), 
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_4: init_with_anchor(
-                s_size, shader_id, AMMO_4_PATH,
-                vec2(width - 5.0, 10.0), 
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_5: init_with_anchor(
-                s_size, shader_id, AMMO_5_PATH,
-                vec2(width - 5.0, 10.0), 
-                Anchor::BotRight, BAR_SCALE
-            ),
-        
-            ammo_6: init_with_anchor(
-                s_size, shader_id, AMMO_6_PATH,
-                vec2(width - 5.0, 10.0), 
-                Anchor::BotRight, BAR_SCALE
-            ), 
+            ammo_0: init_with_anchor(s_size, id, AMMO_0_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_1: init_with_anchor(s_size, id, AMMO_1_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_2: init_with_anchor(s_size, id, AMMO_2_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_3: init_with_anchor(s_size, id, AMMO_3_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_4: init_with_anchor(s_size, id, AMMO_4_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_5: init_with_anchor(s_size, id, AMMO_5_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+            ammo_6: init_with_anchor(s_size, id, AMMO_6_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE), 
 
-            p1_alive: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p1-circle.png",
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
+            p1_alive: init_sprite(s_size, id, P1_ALIVE_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
+            p2_alive: init_sprite(s_size, id, P2_ALIVE_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
+            p3_alive: init_sprite(s_size, id, P3_ALIVE_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
+            p4_alive: init_sprite(s_size, id, P4_ALIVE_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
 
-            p2_alive: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p2-circle.png",
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p3_alive: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p3-circle.png",
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p4_alive: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p4-circle.png",
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p1_dead: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p1-circle-gray.png",
-                vec2(width / 5.0, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p2_dead: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p2-circle-gray.png",
-                vec2(width / 2.5, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p3_dead: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p3-circle-gray.png",
-                vec2(width / 1.67, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            ),
-
-            p4_dead: init_sprite(
-                s_size, shader_id,
-                "resources/ui_textures/player_circles/p4-circle-gray.png",
-                vec2(width / 1.25, height / 2.0),
-                PLAYER_CIRCLE_SCALE
-            )
+            p1_dead: init_sprite(s_size, id, P1_DEAD_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
+            p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
+            p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
+            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE)
         }
     }
 
@@ -443,8 +207,6 @@ impl UI {
     }
 
     pub fn draw_lobby(&mut self, l: &mut LobbyECS, client_id: usize) {
-        // TODO: optimize this !!!!
-
         unsafe {
             match l.players.len() {
                 0 => {

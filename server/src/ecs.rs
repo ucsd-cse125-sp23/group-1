@@ -137,7 +137,6 @@ impl ECS {
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
-        self.ready_players.clear();
         self.dynamics.clear();
         self.renderables.clear();
 

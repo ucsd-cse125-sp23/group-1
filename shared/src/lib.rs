@@ -20,6 +20,7 @@ pub const AMMO_COUNT: u8 = 6;
 
 // graphics settings
 pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
+
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.1;
@@ -58,6 +59,26 @@ pub const P3_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p3_ready_
 pub const P4_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p4_ready_me.png";
 
 pub const CROSSHAIR_PATH: &str = "resources/ui_textures/crosshair.png";
+
+pub const P1_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p1-health-full.png";
+pub const P2_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p2-health-full.png";
+pub const P3_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p3-health-full.png";
+pub const P4_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p4-health-full.png";
+
+pub const P1_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p1-health-empty.png";
+pub const P2_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p2-health-empty.png";
+pub const P3_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p3-health-empty.png";
+pub const P4_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p4-health-empty.png";
+
+pub const P1_ALIVE_PATH: &str = "resources/ui_textures/player_circles/p1-circle.png";
+pub const P2_ALIVE_PATH: &str = "resources/ui_textures/player_circles/p2-circle.png";
+pub const P3_ALIVE_PATH: &str = "resources/ui_textures/player_circles/p3-circle.png";
+pub const P4_ALIVE_PATH: &str = "resources/ui_textures/player_circles/p4-circle.png";
+
+pub const P1_DEAD_PATH: &str = "resources/ui_textures/player_circles/p1-circle-gray.png";
+pub const P2_DEAD_PATH: &str = "resources/ui_textures/player_circles/p2-circle-gray.png";
+pub const P3_DEAD_PATH: &str = "resources/ui_textures/player_circles/p3-circle-gray.png";
+pub const P4_DEAD_PATH: &str = "resources/ui_textures/player_circles/p4-circle-gray.png";
 
 pub const AMMO_0_PATH: &str = "resources/ui_textures/ammo/ammo0.png";
 pub const AMMO_1_PATH: &str = "resources/ui_textures/ammo/ammo1.png";
