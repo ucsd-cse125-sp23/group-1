@@ -47,14 +47,14 @@ pub struct UI {
     pub ammo_4: Sprite,
     pub ammo_5: Sprite,
     pub ammo_6: Sprite,
-    // pub p1_alive: Sprite,
-    // pub p2_alive: Sprite,
-    // pub p3_alive: Sprite,
-    // pub p4_alive: Sprite,
-    // pub p1_dead: Sprite,
-    // pub p2_dead: Sprite,
-    // pub p3_dead: Sprite,
-    // pub p4_dead: Sprite
+    pub p1_alive: Sprite,
+    pub p2_alive: Sprite,
+    pub p3_alive: Sprite,
+    pub p4_alive: Sprite,
+    pub p1_dead: Sprite,
+    pub p2_dead: Sprite,
+    pub p3_dead: Sprite,
+    pub p4_dead: Sprite
 }
 
 impl UI {
@@ -253,159 +253,167 @@ impl UI {
             p1_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p1-health-full.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p2_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p2-health-full.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p3_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p3-health-full.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p4_healthbar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p4-health-full.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p1_emptybar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p1-health-empty.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p2_emptybar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p2-health-empty.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p3_emptybar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p3-health-empty.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
 
             p4_emptybar: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/p4-health-empty.png",
-                vec2(5.0, height - 5.0), 
-                Anchor::TopLeft, BAR_SCALE
+                vec2(5.0, 5.0), 
+                Anchor::BotLeft, BAR_SCALE
             ),
         
             ammo_0: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo0.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_1: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo1.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_2: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo2.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_3: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo3.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_4: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo4.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_5: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo5.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ),
         
             ammo_6: init_sprite_with_anchor(
                 screen_size, shader_id,
                 "resources/ui_textures/ammo6.png",
-                vec2(width - 5.0, height - 5.0), 
-                Anchor::TopRight, BAR_SCALE
+                vec2(width - 5.0, 10.0), 
+                Anchor::BotRight, BAR_SCALE
             ), 
 
-            // p1_alive: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p1_alive: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1-circle.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p2_alive: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p2_alive: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2-circle.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p3_alive: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p3_alive: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3-circle.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p4_alive: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p4_alive: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4-circle.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p1_dead: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p1_dead: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p1-circle-gray.png",
+                vec2(width / 5.0, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p2_dead: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p2_dead: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p2-circle-gray.png",
+                vec2(width / 2.5, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p3_dead: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // ),
+            p3_dead: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p3-circle-gray.png",
+                vec2(width / 1.67, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            ),
 
-            // p4_dead: init_sprite(
-            //     screen_size, shader_id,
-            //     path,
-            //     position, scale
-            // )
+            p4_dead: init_sprite(
+                screen_size, shader_id,
+                "resources/ui_textures/p4-circle-gray.png",
+                vec2(width / 1.25, height / 2.0),
+                PLAYER_CIRCLE_SCALE
+            )
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>) {
         unsafe {
             self.crosshair.draw();
 
@@ -439,29 +447,30 @@ impl UI {
                 _ => ()
             }
 
-            // for (i, player) in client_ecs.players.enumerate() {
-            //     match i {
-            //         0 => self.p1_alive.draw(),
-            //         1 => self.p2_alive.draw(),
-            //         2 => self.p3_alive.draw(),
-            //         3 => self.p4_alive.draw(),
-            //     }
-            //     if client_ecs.health_components[player].alive {
-            //         match i {
-            //             0 => self.p1_alive.draw(),
-            //             1 => self.p2_alive.draw(),
-            //             2 => self.p3_alive.draw(),
-            //             3 => self.p4_alive.draw(),
-            //         }
-            //     } else {
-            //         match i {
-            //             0 => self.p1_dead.draw(),
-            //             1 => self.p2_dead.draw(),
-            //             2 => self.p3_dead.draw(),
-            //             3 => self.p4_dead.draw(),
-            //         }
-            //     }
-            // }
+            match c_ecs {
+                Some(ecs) => {
+                    for (i, player) in ecs.players.iter().enumerate() {
+                        if ecs.health_components[*player].alive {
+                            match i {
+                                0 => self.p1_alive.draw(),
+                                1 => self.p2_alive.draw(),
+                                2 => self.p3_alive.draw(),
+                                3 => self.p4_alive.draw(),
+                                _ => ()
+                            }
+                        } else {
+                            match i {
+                                0 => self.p1_dead.draw(),
+                                1 => self.p2_dead.draw(),
+                                2 => self.p3_dead.draw(),
+                                3 => self.p4_dead.draw(),
+                                _ => ()
+                            }
+                        }
+                    }
+                }, 
+                None => ()
+            }
         }
     }
 

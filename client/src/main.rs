@@ -453,7 +453,7 @@ fn main() -> io::Result<()> {
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
