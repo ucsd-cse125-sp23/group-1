@@ -44,6 +44,7 @@ enum GameState {
     EnteringLobby,
     InLobby,
     InGame,
+    GameOver
 }
 
 fn main() -> io::Result<()> {
@@ -54,6 +55,7 @@ fn main() -> io::Result<()> {
     };
     let mut first_mouse = true;
     let mut first_click = false;
+    let mut first_enter = false;
     let mut last_x: f32; let mut last_y: f32;
 
     // glfw: initialize and configure
@@ -185,7 +187,7 @@ fn main() -> io::Result<()> {
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
-                process_inputs_lobby(&mut window, &mut ready_sent, &mut stream);
+                process_inputs_lobby(&mut window, &mut ready_sent, &mut first_enter, &mut stream);
 
                 // events
                 // ------
@@ -436,7 +438,7 @@ fn main() -> io::Result<()> {
                                         println!("The winner is player {}!", i);
                                     }
                                 }
-                                game_state = GameState::EnteringLobby;
+                                game_state = GameState::GameOver;
                             }
                         }
                         None => {
@@ -459,6 +461,16 @@ fn main() -> io::Result<()> {
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
+                }
+            }
+            GameState::GameOver => {
+                unsafe{
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+                    process_events_game_over(&events);
+                    if process_inputs_game_over(&mut window, &mut first_enter) {
+                        game_state = GameState::EnteringLobby;
+                    }
                 }
             }
         }
