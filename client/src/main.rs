@@ -76,12 +76,12 @@ fn main() -> io::Result<()> {
     let mut refresh_rate = 0;
     let (mut window, events) = glfw
         .with_primary_monitor(|glfw, m| {
-            width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32 * 2;
-            height = glfw::Monitor::get_physical_size(m.expect("access monitor for height")).1 as u32 * 2;
+            width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32;
+            height = glfw::Monitor::get_physical_size(m.expect("access monitor for height")).1 as u32;
             refresh_rate = glfw::Monitor::get_video_mode(m.expect("access monitor for video mode")).expect("failed to get video mode").refresh_rate;
             glfw.create_window(
-                width,
-                height,
+                width * 2,
+                height * 2,
                 WINDOW_TITLE,
                 glfw::WindowMode::Windowed,
             )

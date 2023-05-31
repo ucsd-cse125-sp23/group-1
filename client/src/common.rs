@@ -176,7 +176,7 @@ pub fn set_fullscreen(fullscreen: bool, glfw: &mut Glfw, window: &mut Window, wi
         window.set_monitor(glfw::WindowMode::Windowed, 0, 0, *width, *height, Some(refresh_rate));
     } else {
         window.set_decorated(true);
-        window.set_monitor(glfw::WindowMode::Windowed, *saved_xpos, *saved_ypos, *saved_width, *saved_height, Some(refresh_rate));
+        window.set_monitor(glfw::WindowMode::Windowed, *saved_xpos, *saved_ypos, *saved_width * 2, *saved_height * 2, Some(refresh_rate));
         *height = *saved_height;
         *width = *saved_width;
     }
