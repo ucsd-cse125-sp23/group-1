@@ -5,7 +5,7 @@ use std::ffi::{CStr};
 use std::net::TcpStream;
 use std::process;
 use std::sync::mpsc::Receiver;
-use glfw::{Action, Key};
+use glfw::{Action, Key, Window, Glfw};
 use shared::shared_components::{PlayerInputComponent, ReadyECS};
 use crate::shader::Shader;
 
@@ -159,4 +159,25 @@ pub fn process_inputs_game(
     }
 
     // TODO: add additional quit hotkey?
+}
+
+pub fn set_fullscreen(fullscreen: bool, glfw: &mut Glfw, window: &mut Window, width: &mut u32, height: &mut u32, saved_xpos: &mut i32, saved_ypos: &mut i32, saved_width: &mut u32, saved_height: &mut u32, refresh_rate: u32) {
+    if fullscreen {
+        *saved_height = *height;
+        *saved_width = *width;
+        *saved_xpos = window.get_pos().0;
+        *saved_ypos = window.get_pos().1;
+        glfw.with_primary_monitor(|_, m| {
+            let mode = glfw::Monitor::get_video_mode(m.expect("access monitor for video mode")).expect("failed to get video mode");
+            *width = mode.width as u32;
+            *height = mode.height as u32;
+        });
+        window.set_decorated(false);
+        window.set_monitor(glfw::WindowMode::Windowed, 0, 0, *width, *height, Some(refresh_rate));
+    } else {
+        window.set_decorated(true);
+        window.set_monitor(glfw::WindowMode::Windowed, *saved_xpos, *saved_ypos, *saved_width, *saved_height, Some(refresh_rate));
+        *height = *saved_height;
+        *width = *saved_width;
+    }
 }
