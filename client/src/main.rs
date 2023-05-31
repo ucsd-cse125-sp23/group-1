@@ -136,7 +136,10 @@ fn main() -> io::Result<()> {
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
-    models.insert("character".to_string(), Model::new("resources/character/characterGreen.obj"));
+    models.insert("characterPink".to_string(), Model::new("resources/character/characterPink.obj"));
+    models.insert("characterBlue".to_string(), Model::new("resources/character/characterBlue.obj"));
+    models.insert("characterYellow".to_string(), Model::new("resources/character/characterYellow.obj"));
+    models.insert("characterGreen".to_string(), Model::new("resources/character/characterGreen.obj"));
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [

@@ -493,7 +493,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "character".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "characterPink".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
@@ -555,6 +555,15 @@ impl ECS {
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
 
+    }
+
+    pub fn update_player_models(&mut self) {
+        let names = ["Il Rosso", "Il Blu", "Il Giallo", "Il Verde"];
+        let models = ["characterPink", "characterBlue", "characterYellow", "characterGreen"];
+        for (index, &player) in self.players.iter().enumerate() {
+            self.name_components[player] = names[index % names.len()].to_string();
+            self.model_components[player].modelname = models[index % names.len()].to_string();
+        }
     }
 
     /**
