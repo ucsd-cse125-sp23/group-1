@@ -64,16 +64,16 @@ impl UI {
 
         // set up UI element positions
         let bg_pos = vec2(width / 2.0, height / 2.0);
-        let p1_pos = vec2(width / 5.0, height / 2.0);
-        let p2_pos = vec2(width / 2.5, height / 2.0);
+        let p1_pos = vec2(width / 5.00, height / 2.0);
+        let p2_pos = vec2(width / 2.50, height / 2.0);
         let p3_pos = vec2(width / 1.67, height / 2.0);
         let p4_pos = vec2(width / 1.25, height / 2.0);
-        let c1_pos = vec2(width / 5.0, height - 5.0);
-        let c2_pos = vec2(width / 2.5, height - 5.0);
-        let c3_pos = vec2(width / 1.67, height - 5.0);
-        let c4_pos = vec2(width / 1.25, height - 5.0);
-        let health_pos = vec2(5.0, 5.0);
-        let ammo_pos = vec2(width - 5.0, 10.0);
+        let c1_pos = vec2(width / 2.60, height - PLAYER_CIRCLE_BORDER);
+        let c2_pos = vec2(width / 2.15, height - PLAYER_CIRCLE_BORDER);
+        let c3_pos = vec2(width / 1.85, height - PLAYER_CIRCLE_BORDER);
+        let c4_pos = vec2(width / 1.60, height - PLAYER_CIRCLE_BORDER);
+        let health_pos = vec2(BAR_BORDER, BAR_BORDER);
+        let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
 
         UI {
             // =========================== lobby background ===========================

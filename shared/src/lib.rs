@@ -21,11 +21,15 @@ pub const AMMO_COUNT: u8 = 6;
 // graphics settings
 pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
 
+pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
+pub const BAR_BORDER: f32 = 9.0;
+pub const AMMO_BAR_BORDER: f32 = BAR_BORDER + 5.5;
+
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.1;
 pub const LOBBY_BG_SCALE: f32 = 1.0;
-pub const PLAYER_CIRCLE_SCALE: f32 = 0.03;
+pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 
 // UI element paths
 pub const LOBBY_BG_1_PATH: &str = "resources/ui_textures/lobby_bg/p1_bg.png";

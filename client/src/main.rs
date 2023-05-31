@@ -217,6 +217,7 @@ fn main() -> io::Result<()> {
                                 camera.UpdateVecs();
                                 client_ecs = None;
                                 first_mouse = true;
+                                lobby_ecs.ready_players.clear();
                                 game_state = GameState::InGame;
                             }
                         }
