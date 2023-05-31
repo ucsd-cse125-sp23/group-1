@@ -224,12 +224,6 @@ impl ECS {
         for &player in &self.players {
             let mut connected = true;
 
-            // do not receive inputs from dead players
-            let health = & self.player_health_components[player].alive;
-            if !health {
-                continue;
-            }
-
             let mut input_temp = PlayerInputComponent::default();
             input_temp.camera_qw = self.player_input_components[player].camera_qw;
             input_temp.camera_qx = self.player_input_components[player].camera_qx;
@@ -296,6 +290,12 @@ impl ECS {
                 input_temp = self.player_input_components[player].clone();
                 input_temp.lmb_clicked = false;
                 input_temp.r_pressed = false;
+            }
+
+            // do not receive inputs from dead players
+            let health = & self.player_health_components[player].alive;
+            if !health {
+                continue;
             }
 
             // once all inputs have been aggregated for this player
