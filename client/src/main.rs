@@ -133,10 +133,11 @@ fn main() -> io::Result<()> {
 
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
-    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
+    
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
