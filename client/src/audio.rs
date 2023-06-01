@@ -13,6 +13,7 @@ use kira::{
 };
 use mint::{Vector3, Quaternion};
 use std::collections::HashMap;
+use std::time::{Duration};
 pub struct AudioPlayer {
     manager: AudioManager,
     listener: ListenerHandle,
@@ -36,11 +37,21 @@ impl AudioPlayer {
         player
     }
     pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32) {
-        println!("playing sound!");
-        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default()).unwrap();
+        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default().persist_until_sounds_finish(true)).unwrap();
         self.manager.play(self.sound_map[name].with_settings(StaticSoundSettings::new().output_destination(&emitter))).unwrap();
     }
+
+    // called once per frame
     pub fn move_listener(&mut self, x: f32, y: f32, z: f32) {
-        self.listener.set_position(Vector3{x:x, y:y, z:z}, Tween::default()).unwrap();
+        self.listener.set_position(Vector3{x:x, y:y, z:z}, 
+            Tween::default()
+            /*
+            Tween {
+                start_time:kira::StartTime::Immediate,
+                // duration of a frame(ish)
+                duration:Duration::from_secs_f32((1/60) as f32),
+                easing:Linear
+            }*/
+        ).unwrap();
     }
 }
