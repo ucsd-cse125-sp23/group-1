@@ -146,6 +146,10 @@ fn main() -> io::Result<()> {
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+    models.insert("characterPink".to_string(), Model::new("resources/character/characterPink.obj"));
+    models.insert("characterBlue".to_string(), Model::new("resources/character/characterBlue.obj"));
+    models.insert("characterYellow".to_string(), Model::new("resources/character/characterYellow.obj"));
+    models.insert("characterGreen".to_string(), Model::new("resources/character/characterGreen.obj"));
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
@@ -155,7 +159,7 @@ fn main() -> io::Result<()> {
         vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0)
     ];
     let mut tracker = unsafe {
-        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
 
@@ -421,7 +425,12 @@ fn main() -> io::Result<()> {
                                     let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                     // draw lasso
-                                    let lasso_p1 = model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                    let lasso_origin = if player == player_key {
+                                        Point3::new(-0.5, 0.0, 0.0)
+                                    } else {
+                                        Point3::new(-0.5, -0.4, 0.0)
+                                    };
+                                    let lasso_p1 = model.transform_point(lasso_origin);
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                     lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                                 }

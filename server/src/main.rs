@@ -54,6 +54,7 @@ fn main() {
             }
         }
         poller.delete(&listener).unwrap();
+        ecs.update_player_models();
         // GAME LOOP
         println!("[SERVER]: Starting game");
         while !ecs.game_ended {

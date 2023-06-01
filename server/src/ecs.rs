@@ -169,7 +169,7 @@ impl ECS {
             };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+            let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
@@ -492,7 +492,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "characterPink".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
@@ -512,7 +512,7 @@ impl ECS {
         });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+        let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).build();
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
@@ -556,6 +556,15 @@ impl ECS {
 
     }
 
+    pub fn update_player_models(&mut self) {
+        let names = ["Il Rosso", "Il Blu", "Il Giallo", "Il Verde"];
+        let models = ["characterPink", "characterBlue", "characterYellow", "characterGreen"];
+        for (index, &player) in self.players.iter().enumerate() {
+            self.name_components[player] = names[index % names.len()].to_string();
+            self.model_components[player].modelname = models[index % names.len()].to_string();
+        }
+    }
+
     /**
      * Updates position components of all objects in the game
      */
@@ -594,8 +603,9 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
+                let halfheight = 0.5;
 
-                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
@@ -649,7 +659,7 @@ impl ECS {
      */
     pub fn player_lasso(&mut self) {
         for &player in &self.players {
-            let slack = 0.01;
+            let slack = 0.5;
             let input = &self.player_input_components[player];
             if self.player_lasso_phys_components.contains_key(player) {
                 let lasso_phys = &mut self.player_lasso_phys_components[player];
@@ -688,8 +698,9 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];
                 let player_handle = &self.physics_components[player].handle;
+                let halfheight = 0.5;
 
-                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(*player_handle);
