@@ -54,9 +54,15 @@ pub struct UI {
     pub p1_dead: Sprite,
     pub p2_dead: Sprite,
     pub p3_dead: Sprite,
-    pub p4_dead: Sprite
+    pub p4_dead: Sprite,
 
     // ======================== game over ui elements =========================
+    pub game_over_bg: Sprite,
+    pub winner_txt: Sprite,
+    pub p1_winner: Sprite,
+    pub p2_winner: Sprite,
+    pub p3_winner: Sprite,
+    pub p4_winner: Sprite
 }
 
 impl UI {
@@ -73,6 +79,9 @@ impl UI {
         let c2_pos = vec2(width * (9.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
         let c3_pos = vec2(width * (11.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
         let c4_pos = vec2(width * (13.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
+
+        let winner_pos = vec2(width / 4.00, height / 2.4);
+        let winner_txt_pos = vec2(width / 4.00, height / 1.16);
 
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
@@ -143,7 +152,15 @@ impl UI {
             p1_dead: init_sprite(s_size, id, P1_DEAD_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
             p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
             p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
-            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE)
+            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+
+            // =========================== game over elements ===========================
+            game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
+            winner_txt: init_sprite(s_size, id, WINNER_TXT_PATH, winner_txt_pos, WINNER_SCALE),
+            p1_winner: init_sprite(s_size, id, P1_JOINED_PATH, winner_pos, WINNER_SCALE),
+            p2_winner: init_sprite(s_size, id, P2_JOINED_PATH, winner_pos, WINNER_SCALE),
+            p3_winner: init_sprite(s_size, id, P3_JOINED_PATH, winner_pos, WINNER_SCALE),
+            p4_winner: init_sprite(s_size, id, P4_JOINED_PATH, winner_pos, WINNER_SCALE)
         }
     }
 
@@ -210,6 +227,14 @@ impl UI {
 
     pub fn draw_lobby(&mut self, l: &mut LobbyECS, client_id: usize) {
         unsafe {
+            match client_id {
+                0 => self.p1_lobby.draw(),
+                1 => self.p2_lobby.draw(),
+                2 => self.p3_lobby.draw(),
+                3 => self.p4_lobby.draw(),
+                _ => ()
+            }
+
             match l.players.len() {
                 0 => {
                     self.p1.draw();
@@ -322,39 +347,33 @@ impl UI {
                 },
                 _ => ()
             }
-            
-            match client_id {
-                0 => { self.p1_lobby.draw(); },
-                1 => { self.p2_lobby.draw(); },
-                2 => { self.p3_lobby.draw(); },
-                3 => { self.p4_lobby.draw(); },
-                _ => ()
-            }
         }
     }
 
     pub fn draw_game_over(&mut self, client_id: usize, c_ecs: &Option<ClientECS>) {
-        match c_ecs {
-            Some(ecs) => {
-                for (i, player) in ecs.ids.iter().enumerate() {
-                    if  ecs.players.contains(player) &&
-                        ecs.health_components[*player].alive &&
-                        ecs.health_components[*player].health > 0
-                    {
-                        println!("The winner is player {}!", i);
-                        unsafe {
+        unsafe{
+            self.game_over_bg.draw();
+            match c_ecs {
+                Some(ecs) => {
+                    for (i, player) in ecs.players.iter().enumerate() {
+                        if  ecs.players.contains(player) &&
+                            ecs.health_components[*player].alive &&
+                            ecs.health_components[*player].health > 0
+                        {
+                            println!("The winner is player {}!", i);
                             match i {
-                                0 => { self.p1_joined.draw(); },
-                                1 => { self.p2_joined.draw(); },
-                                2 => { self.p3_joined.draw(); },
-                                3 => { self.p4_joined.draw(); },
+                                0 => self.p1_winner.draw(),
+                                1 => self.p2_winner.draw(),
+                                2 => self.p3_winner.draw(),
+                                3 => self.p4_winner.draw(),
                                 _ => ()
                             }
                         }
                     }
                 }
+                None => ()
             }
-            None => ()
+            self.winner_txt.draw();
         }
     }
 }

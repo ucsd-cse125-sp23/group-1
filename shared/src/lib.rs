@@ -30,12 +30,16 @@ pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.1;
 pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
+pub const WINNER_SCALE: f32 = 0.3;
 
 // UI element paths
 pub const LOBBY_BG_1_PATH: &str = "resources/ui_textures/lobby_bg/p1_bg.png";
 pub const LOBBY_BG_2_PATH: &str = "resources/ui_textures/lobby_bg/p2_bg.png";
 pub const LOBBY_BG_3_PATH: &str = "resources/ui_textures/lobby_bg/p3_bg.png";
 pub const LOBBY_BG_4_PATH: &str = "resources/ui_textures/lobby_bg/p4_bg.png";
+
+pub const GAME_OVER_BG_PATH: &str = "resources/ui_textures/game_over/space_bg.png";
+pub const WINNER_TXT_PATH: &str = "resources/ui_textures/game_over/winner.png";
 
 pub const P1_PATH: &str = "resources/ui_textures/player_cards/p1.png";
 pub const P2_PATH: &str = "resources/ui_textures/player_cards/p2.png";
