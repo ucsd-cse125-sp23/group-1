@@ -281,13 +281,6 @@ fn main() -> io::Result<()> {
                     // do nothing
                 }
             }
-            // handle audio
-            if !input_component.lmb_clicked {
-                shot_taken = false;
-            } else if !shot_taken && client_ammo != 0{
-                audio.play(sound_data.clone()).unwrap();
-                shot_taken = true;
-            }
 
             // set camera front of input_component
             input_component.camera_qx = camera.RotQuat.v.x;
