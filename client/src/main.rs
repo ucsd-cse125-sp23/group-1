@@ -203,7 +203,9 @@ fn main() -> io::Result<()> {
                     if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
+                    gl::DepthMask(gl::FALSE);
                     ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                    gl::DepthMask(gl::TRUE);
                 }
 
                 // poll server for ready message or ready-player updates
@@ -446,10 +448,9 @@ fn main() -> io::Result<()> {
                         100.0
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
-
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
-
+                    
                     gl::DepthMask(gl::FALSE);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
                 }
@@ -463,8 +464,9 @@ fn main() -> io::Result<()> {
                     if process_inputs_game_over(&mut window, &mut first_enter) {
                         game_state = GameState::EnteringLobby;
                     }
-
+                    gl::DepthMask(gl::FALSE);
                     ui_elems.draw_game_over(curr_id, &client_ecs);
+                    gl::DepthMask(gl::TRUE);
                 }
             }
         }
