@@ -7,7 +7,7 @@ type Entity = DefaultKey;
 
 // client -> server component
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerInputComponent {
     pub lmb_clicked: bool,
     pub rmb_clicked: bool,
@@ -54,6 +54,7 @@ pub struct ClientECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
+    pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
@@ -70,6 +71,7 @@ impl ClientECS {
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
             audio_components: SecondaryMap::new(),
+            player_lasso_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -79,13 +81,27 @@ impl ClientECS {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LobbyECS {
     pub name_components: SlotMap<Entity, String>,
     pub position_components: SecondaryMap<Entity, PositionComponent>,
+    pub ready_players: SecondaryMap<Entity, bool>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub start_game: bool
+}
+
+impl LobbyECS {
+    pub fn new() -> LobbyECS{
+        LobbyECS {
+            name_components: SlotMap::new(),
+            position_components: SecondaryMap::new(),
+            ready_players: SecondaryMap::new(),
+            players: vec![],
+            ids: vec![],
+            start_game: false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -144,14 +160,16 @@ impl PlayerWeaponComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerHealthComponent {
     pub alive: bool,
-    pub health: u8
+    pub health: u8,
+    pub hits: u8
 }
 
 impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 1
+            health : 1,
+            hits: 0
         }
     }
 }
@@ -162,4 +180,11 @@ pub struct AudioComponent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PlayerLassoComponent {
+    pub anchor_x: f32,
+    pub anchor_y: f32,
+    pub anchor_z: f32
 }
