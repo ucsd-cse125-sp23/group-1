@@ -10,6 +10,7 @@ mod lasso;
 mod tracker;
 mod common;
 mod ui;
+mod particle_emitter;
 
 use std::collections::HashMap;
 
@@ -26,6 +27,8 @@ use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::skybox::Skybox;
+use crate::particle_emitter::Particle;
+use crate::particle_emitter::ParticleEmitter;
 
 // network
 use std::io::{self, Read};
@@ -151,6 +154,9 @@ fn main() -> io::Result<()> {
 
     // create lasso
     let lasso = Lasso::new();
+
+    // list of particle emitters
+    let mut particle_emitters = Vec::<ParticleEmitter>::new();
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
@@ -344,13 +350,14 @@ fn main() -> io::Result<()> {
                                 client_health.health = c_ecs.health_components[player_key].health;
                             }
 
-                        // setup player camera
-                        let player_pos = vec3(
-                            c_ecs.position_components[player_key].x,
-                            c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z
-                        );
-                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                            // setup player camera
+                            let player_pos = vec3(
+                                c_ecs.position_components[player_key].x,
+                                c_ecs.position_components[player_key].y,
+                                c_ecs.position_components[player_key].z
+                            );
+                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
@@ -423,6 +430,22 @@ fn main() -> io::Result<()> {
                                 i += 1;
                             }
 
+                            // if mouse click add particle here
+                            if (window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press){
+                                println!("create a particle emitter!");
+                                particle_emitters.push(ParticleEmitter::new(
+                                    models["cube"], 50, vec3(0.,0.,0.), 120
+                                ));
+                            }
+
+                            // render particle effects
+                            for i in (0..particle_emitters.len()).rev(){
+                                let keep = particle_emitters[i].draw(&shader_program);
+                                if (!keep){
+                                    particle_emitters.remove(i);
+                                }
+                            }
+                            
                             // game has ended
                             if c_ecs.game_ended {
                                 for (i, player) in c_ecs.ids.iter().enumerate() {
