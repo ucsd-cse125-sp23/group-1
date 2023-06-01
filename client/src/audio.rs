@@ -8,7 +8,8 @@ use kira::{
 		listener::{ListenerSettings, ListenerHandle},
 		emitter::EmitterSettings,
 	},
-	sound::static_sound::{StaticSoundData, StaticSoundSettings},
+	sound::static_sound::{StaticSoundData, StaticSoundSettings}, 
+    tween::{Tween, Easing::Linear, self},
 };
 use mint::{Vector3, Quaternion};
 use std::collections::HashMap;
@@ -30,11 +31,16 @@ impl AudioPlayer {
             listener: listener,
             sound_map: HashMap::new(),
         };
+        // TODO: load from config file
         player.sound_map.insert("fire".to_string(), StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default()).unwrap());
         player
     }
-    pub fn play_sound(&mut self, name: String, x: f32, y: f32, z: f32) {
-        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default());
-        self.manager.play(self.sound_map[&name].clone());
+    pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32) {
+        println!("playing sound!");
+        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default()).unwrap();
+        self.manager.play(self.sound_map[name].with_settings(StaticSoundSettings::new().output_destination(&emitter))).unwrap();
+    }
+    pub fn move_listener(&mut self, x: f32, y: f32, z: f32) {
+        self.listener.set_position(Vector3{x:x, y:y, z:z}, Tween::default()).unwrap();
     }
 }

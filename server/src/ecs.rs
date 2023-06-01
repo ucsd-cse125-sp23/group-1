@@ -95,9 +95,7 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
-
             events: vec![],
-
             spawnpoints: vec![],
             active_players: 0,
             game_ended: false,
@@ -148,7 +146,6 @@ impl ECS {
         self.renderables.clear();
 
         self.audio_components.clear();
-        self.events.clear();
         
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
@@ -603,9 +600,15 @@ impl ECS {
             }
             if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
                 println!("firing!");
+
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
+
+                // add audio event to server tick
+                println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
+                let event_key = self.name_components.insert("fire_event".to_string());
+                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:position.x, y:position.y, z:position.z});
 
                 let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
