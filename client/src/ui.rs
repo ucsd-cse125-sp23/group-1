@@ -68,10 +68,12 @@ impl UI {
         let p2_pos = vec2(width / 2.50, height / 2.0);
         let p3_pos = vec2(width / 1.67, height / 2.0);
         let p4_pos = vec2(width / 1.25, height / 2.0);
-        let c1_pos = vec2(width / 2.60, height - PLAYER_CIRCLE_BORDER);
-        let c2_pos = vec2(width / 2.15, height - PLAYER_CIRCLE_BORDER);
-        let c3_pos = vec2(width / 1.85, height - PLAYER_CIRCLE_BORDER);
-        let c4_pos = vec2(width / 1.60, height - PLAYER_CIRCLE_BORDER);
+
+        let c1_pos = vec2(width * (7.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
+        let c2_pos = vec2(width * (9.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
+        let c3_pos = vec2(width * (11.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
+        let c4_pos = vec2(width * (13.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
+
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
 
