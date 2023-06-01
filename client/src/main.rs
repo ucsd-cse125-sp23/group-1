@@ -429,14 +429,6 @@ fn main() -> io::Result<()> {
 
                             // game has ended
                             if c_ecs.game_ended {
-                                for (i, player) in c_ecs.ids.iter().enumerate() {
-                                    if  c_ecs.players.contains(player) &&
-                                        c_ecs.health_components[*player].alive &&
-                                        c_ecs.health_components[*player].health > 0
-                                    {
-                                        println!("The winner is player {}!", i);
-                                    }
-                                }
                                 game_state = GameState::GameOver;
                             }
                         }
