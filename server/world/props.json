@@ -289,7 +289,7 @@
             -20.0
         ],
         "shape": {
-            "ConvexDecomp": "../client/resources/cactus/cactus.obj"
+            "Convex": "../client/resources/cactus/cactus.obj"
         }   
     }
 ]
