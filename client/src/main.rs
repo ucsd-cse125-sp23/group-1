@@ -187,10 +187,13 @@ fn main() -> io::Result<()> {
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
-                process_inputs_lobby(&mut window, &mut ready_sent, &mut first_enter, &mut stream);
-
-                // events
-                // ------
+                process_inputs_lobby(
+                    &mut window,
+                    &mut ready_sent,
+                    &mut first_enter,
+                    &mut stream
+                );
+                
                 process_events_lobby(&events);
 
                 unsafe {
@@ -237,8 +240,6 @@ fn main() -> io::Result<()> {
 
                 let mut roll = false;
 
-                // process inputs
-                // --------------
                 process_inputs_game(
                     &mut window,
                     &mut input_component,
@@ -247,8 +248,6 @@ fn main() -> io::Result<()> {
                     is_focused
                 );
 
-                // events
-                // ------
                 process_events_game(
                     &events,
                     &mut first_mouse,
@@ -468,9 +467,12 @@ fn main() -> io::Result<()> {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
                     process_events_game_over(&events);
+
                     if process_inputs_game_over(&mut window, &mut first_enter) {
                         game_state = GameState::EnteringLobby;
                     }
+
+                    ui_elems.draw_game_over(curr_id, &client_ecs);
                 }
             }
         }

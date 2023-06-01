@@ -330,6 +330,31 @@ impl UI {
             }
         }
     }
+
+    pub fn draw_game_over(&mut self, client_id: usize, c_ecs: &Option<ClientECS>) {
+        match c_ecs {
+            Some(ecs) => {
+                for (i, player) in ecs.ids.iter().enumerate() {
+                    if  ecs.players.contains(player) &&
+                        ecs.health_components[*player].alive &&
+                        ecs.health_components[*player].health > 0
+                    {
+                        println!("The winner is player {}!", i);
+                        unsafe {
+                            match i {
+                                0 => { self.p1_joined.draw(); },
+                                1 => { self.p2_joined.draw(); },
+                                2 => { self.p3_joined.draw(); },
+                                3 => { self.p4_joined.draw(); },
+                                _ => ()
+                            }
+                        }
+                    }
+                }
+            }
+            None => ()
+        }
+    }
 }
 
 fn init_sprite(s_size: Vector2<f32>, shader_id: u32, path: &str, 
