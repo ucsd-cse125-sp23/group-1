@@ -173,6 +173,18 @@ impl Sprite {
         self.transform.scale.y = size.y / self.texture.size.y;
     }
 
+    pub fn set_percentage_width(&mut self, screen_size: Vector2<f32>, percentage: f32) {
+        let target_width = screen_size.x * percentage;
+        let scale = target_width / self.texture.size.x;
+        self.transform.scale = Vector2::from_value(scale);
+    }
+
+    pub fn set_percentage_height(&mut self, screen_size: Vector2<f32>, percentage: f32) {
+        let target_width = screen_size.y * percentage;
+        let scale = target_width / self.texture.size.y;
+        self.transform.scale = Vector2::from_value(scale);
+    }
+
     pub unsafe fn draw_from_corners(&self, top_left: Vector2<f32>, bottom_right: Vector2<f32>) {
         let width = bottom_right.x - top_left.x;
         let height = bottom_right.y - top_left.y;
@@ -215,27 +227,27 @@ impl Sprite {
         );
     }
 
-    pub unsafe fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>) {
+    unsafe fn draw_at_center(&self, position: Vector2<f32>, size: Vector2<f32>) {
         let new_position = position + vec2(-size.x / 2.0, -size.y / 2.0);
         self.draw_at_bot_left(new_position, size);
     }
 
-    pub unsafe fn draw_at_top_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
+    unsafe fn draw_at_top_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
         let new_position = position + vec2(0.0, -size.y);
         self.draw_at_bot_left(new_position, size);
     }
 
-    pub unsafe fn draw_at_top_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
+    unsafe fn draw_at_top_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
         let new_position = position + vec2(-size.x, -size.y);
         self.draw_at_bot_left(new_position, size);
     }
 
-    pub unsafe fn draw_at_bot_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
+    unsafe fn draw_at_bot_right(&self, position: Vector2<f32>, size: Vector2<f32>) {
         let new_position = position + vec2(-size.x, 0.0);
         self.draw_at_bot_left(new_position, size);
     }
 
-    pub unsafe fn draw_at_bot_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
+    unsafe fn draw_at_bot_left(&self, position: Vector2<f32>, size: Vector2<f32>) {
         self.shader.use_program();
 
         let mut model = Matrix4::from_translation(vec3(position.x, position.y, 0.0));

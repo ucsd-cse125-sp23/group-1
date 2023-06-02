@@ -29,6 +29,7 @@ pub struct ECS {
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
     pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
+    pub player_lasso_thrown_components: SecondaryMap<Entity, PlayerLassoThrownComponent>,
 
     // physics objects
     pub rigid_body_set: RigidBodySet,
@@ -73,6 +74,7 @@ impl ECS {
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             player_lasso_phys_components: SecondaryMap::new(),
+            player_lasso_thrown_components: SecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -137,14 +139,14 @@ impl ECS {
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
-        self.ready_players.clear();
+        self.player_lasso_thrown_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
 
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
 
-        for &player in &self.players {
+        for (index, &player) in self.players.iter().enumerate() {
             if !self.network_components[player].connected {
                 panic!("a disconnected player found");
             }
@@ -168,9 +170,9 @@ impl ECS {
                 qz: player_pos.rotation.k,
                 qw: player_pos.rotation.w,
             };
-            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
+            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+            let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
@@ -223,12 +225,6 @@ impl ECS {
 
         for &player in &self.players {
             let mut connected = true;
-
-            // do not receive inputs from dead players
-            let health = & self.player_health_components[player].alive;
-            if !health {
-                continue;
-            }
 
             let mut input_temp = PlayerInputComponent::default();
             input_temp.camera_qw = self.player_input_components[player].camera_qw;
@@ -296,6 +292,12 @@ impl ECS {
                 input_temp = self.player_input_components[player].clone();
                 input_temp.lmb_clicked = false;
                 input_temp.r_pressed = false;
+            }
+
+            // do not receive inputs from dead players
+            let health = & self.player_health_components[player].alive;
+            if !health {
+                continue;
             }
 
             // once all inputs have been aggregated for this player
@@ -379,6 +381,7 @@ impl ECS {
         self.player_camera_components.remove(player);
         self.player_lasso_components.remove(player);
         self.player_lasso_phys_components.remove(player);
+        self.player_lasso_thrown_components.remove(player);
         if self.ready_players.contains_key(player) {
             self.ready_players.remove(player);
         }
@@ -490,10 +493,11 @@ impl ECS {
     pub fn new_player(&mut self, name: String) -> Entity {
         let player = self.name_components.insert(name);
         self.ids.push(player);
+        let index = self.players.len();
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "cube".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "characterPink".to_string(), scale: 1.0 });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
@@ -511,9 +515,9 @@ impl ECS {
             qz: player_pos.rotation.k,
             qw: player_pos.rotation.w,
         });
-        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().can_sleep(false).build();
+        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(1.0, 0.5).user_data(player.data().as_ffi() as u128).build();
+        let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
@@ -549,12 +553,21 @@ impl ECS {
                 ).build();
             }
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).user_data(
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).collision_groups(InteractionGroups::new(Group::all(),Group::all())).user_data(
                 entity.data().as_ffi() as u128
             ).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components.insert(entity, PhysicsComponent { handle, collider_handle });
 
+    }
+
+    pub fn update_player_models(&mut self) {
+        let names = ["Il Rosso", "Il Blu", "Il Giallo", "Il Verde"];
+        let models = ["characterPink", "characterBlue", "characterYellow", "characterGreen"];
+        for (index, &player) in self.players.iter().enumerate() {
+            self.name_components[player] = names[index % names.len()].to_string();
+            self.model_components[player].modelname = models[index % names.len()].to_string();
+        }
     }
 
     /**
@@ -595,8 +608,9 @@ impl ECS {
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
+                let halfheight = 0.5;
 
-                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
+                let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
@@ -649,12 +663,16 @@ impl ECS {
      * TODO: add description
      */
     pub fn player_lasso(&mut self) {
-        for &player in &self.players {
-            let slack = 0.01;
+        'players: for (index, &player) in self.players.iter().enumerate() {
+            let halfheight = 0.5;
+            let spawn_dist = 0.0;
+            let fire_vel = 100.0;
+            let slack = 0.5;
+            let max_dist = 500.0;
             let input = &self.player_input_components[player];
             if self.player_lasso_phys_components.contains_key(player) {
                 let lasso_phys = &mut self.player_lasso_phys_components[player];
-                if input.rmb_clicked {
+                if input.rmb_clicked && self.name_components.contains_key(lasso_phys.anchor) {
                     let position = &self.position_components[player];
                     let anchor: &mut RigidBody = self.rigid_body_set.get_mut(lasso_phys.anchor_handle).unwrap();
                     let anchor_point = anchor.position() * lasso_phys.anchor_point_local;
@@ -684,37 +702,94 @@ impl ECS {
                     self.player_lasso_phys_components.remove(player);
                     self.player_lasso_components.remove(player);
                 }
+            } else if self.player_lasso_thrown_components.contains_key(player) {
+                let position = &self.position_components[player];
+                let thrown = &self.player_lasso_thrown_components[player];
+                let thrown_phys = &self.physics_components[thrown.entity];
+                if input.rmb_clicked && self.name_components.contains_key(thrown.entity) {
+                    for contact_pair in self.narrow_phase.contacts_with(thrown_phys.collider_handle) {
+                        for manifold in &contact_pair.manifolds {
+                            if manifold.data.solver_contacts.len() > 0 {
+                                let player_handle = &self.physics_components[player].handle;
+                                let hit_point = manifold.data.solver_contacts[0].point;
+                                let target_collider_handle = if contact_pair.collider1 == thrown_phys.collider_handle {
+                                    contact_pair.collider2
+                                } else {
+                                    contact_pair.collider1
+                                };
+                                let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
+                                let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                                if target == player {
+                                    eprintln!("ERROR: Lasso hit its own player!");
+                                    continue 'players;
+                                }
+                                let target_name = & self.name_components[target];
+                                println!("Hit target {}",target_name);
+                                let dist = distance(&point![position.x, position.y, position.z],&hit_point);
+                                let limit = dist / 3.0_f32.sqrt() + slack;
+                                let target_handle = &self.physics_components[target].handle;
+                                let target_body = self.rigid_body_set.get_mut(*target_handle).unwrap();
+                                let hit_point_local = target_body.position().inverse() * hit_point;
+                                let joint = RopeJointBuilder::new().local_anchor2(hit_point_local).limits([limit,limit]).build();
+                                let joint_handle = self.impulse_joint_set.insert(*player_handle, *target_handle, joint, true);
+                                self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { anchor: target, anchor_handle: *target_handle, anchor_point_local: hit_point_local, joint_handle, limit });
+                                self.player_lasso_components[player].anchor_x = hit_point.x;
+                                self.player_lasso_components[player].anchor_y = hit_point.y;
+                                self.player_lasso_components[player].anchor_z = hit_point.z;
+                                self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
+                                self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+                                self.name_components.remove(thrown.entity);
+                                self.physics_components.remove(thrown.entity);
+                                self.position_components.remove(thrown.entity);
+                                self.player_lasso_thrown_components.remove(player);
+                                continue 'players;
+                            }
+                        }
+                    }
+                    let thrown_pos = &self.position_components[thrown.entity];
+                    let dist = distance(&point![position.x, position.y, position.z],&point![thrown_pos.x, thrown_pos.y, thrown_pos.z]);
+                    if dist > max_dist {
+                        println!("releasing lasso");
+                        self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
+                        self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+                        self.name_components.remove(thrown.entity);
+                        self.physics_components.remove(thrown.entity);
+                        self.position_components.remove(thrown.entity);
+                        self.player_lasso_thrown_components.remove(player);
+                        self.player_lasso_components.remove(player);
+                    } else {
+                        self.player_lasso_components[player].anchor_x = thrown_pos.x;
+                        self.player_lasso_components[player].anchor_y = thrown_pos.y;
+                        self.player_lasso_components[player].anchor_z = thrown_pos.z;
+                    }
+                } else {
+                    println!("releasing lasso");
+                    self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
+                    self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+                    self.name_components.remove(thrown.entity);
+                    self.physics_components.remove(thrown.entity);
+                    self.position_components.remove(thrown.entity);
+                    self.player_lasso_thrown_components.remove(player);
+                    self.player_lasso_components.remove(player);
+                }
             } else if input.rmb_clicked {
                 println!("throwing lasso");
+                let radius = 0.02;
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];
                 let player_handle = &self.physics_components[player].handle;
+                let player_body = self.rigid_body_set.get_mut(*player_handle).unwrap();
 
-                let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
-                let max_toi = 1000.0; //depends on size of map
-                let solid = true;
-                let filter = QueryFilter::new().exclude_rigid_body(*player_handle);
-                match self.query_pipeline.cast_ray(&self.rigid_body_set, &self.collider_set, &ray, max_toi, solid, filter) {
-                    Some((target_collider_handle, toi)) => {
-                        let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
-                        let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
-                        let target_name = & self.name_components[target];
-                        println!("Hit target {}",target_name);
-                        let hit_point = ray.point_at(toi);
-                        let dist = distance(&point![position.x, position.y, position.z],&hit_point);
-                        let limit = dist / 3.0_f32.sqrt() + slack;
-                        let target_handle = &self.physics_components[target].handle;
-                        let target_body = self.rigid_body_set.get_mut(*target_handle).unwrap();
-                        let hit_point_local = target_body.position().inverse() * hit_point;
-                        let joint = RopeJointBuilder::new().local_anchor2(hit_point_local).limits([limit,limit]).build();
-                        let joint_handle = self.impulse_joint_set.insert(*player_handle, *target_handle, joint, true);
-                        self.player_lasso_phys_components.insert(player, PlayerLassoPhysComponent { anchor_handle:*target_handle, anchor_point_local: hit_point_local, joint_handle, limit });
-                        self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: hit_point.x, anchor_y: hit_point.y, anchor_z: hit_point.z });
-                    },
-                    None => {
-                        println!("Miss");
-                    },
-                }
+                let thrown = self.name_components.insert("thrown lasso".to_string());
+                let thrown_body = RigidBodyBuilder::dynamic().position(Isometry3::from_parts(Translation3::from(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight) + (fire_vec * spawn_dist)), *player_body.rotation())).linvel(*player_body.linvel() + (fire_vec * fire_vel)).lock_rotations().ccd_enabled(true).can_sleep(false).build();
+                let thrown_handle = self.rigid_body_set.insert(thrown_body);
+                let thrown_collider = ColliderBuilder::ball(radius).user_data(thrown.data().as_ffi() as u128).collision_groups(InteractionGroups::new(Group::all(),(!((1 as u32) << (index + 1))).into())).build();
+                let thrown_collider_handle = self.collider_set.insert_with_parent(thrown_collider, thrown_handle, &mut self.rigid_body_set);
+                self.physics_components.insert(thrown, PhysicsComponent { handle: thrown_handle, collider_handle: thrown_collider_handle });
+                self.player_lasso_thrown_components.insert(player, PlayerLassoThrownComponent { entity: thrown });
+                self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: position.x, anchor_y: position.y, anchor_z: position.z });
+                self.position_components.insert(thrown, position.clone());
+                self.dynamics.push(thrown);
             }
         }
     }
