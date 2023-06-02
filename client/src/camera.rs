@@ -26,6 +26,7 @@ const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
 const ZOOM: f32 = 45.0;
+const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
     pub Position: Point3,
@@ -55,7 +56,7 @@ impl Default for Camera {
 impl Camera {
     /// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     pub fn GetViewMatrix(&self) -> Matrix4 {
-        Matrix4::look_at(self.Position, self.Position + self.Front, self.Up)
+        Matrix4::look_at(self.Position + (self.Up * HALFHEIGHT), self.Position + (self.Up * HALFHEIGHT) + self.Front, self.Up)
     }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
