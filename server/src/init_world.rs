@@ -1,5 +1,5 @@
 use crate::ecs::*;
-use rapier3d::{dynamics::RigidBodySet, geometry::{ColliderSet,SharedShape}};
+use rapier3d::geometry::SharedShape;
 use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3};
 use serde::Deserialize;
 use std::fs;

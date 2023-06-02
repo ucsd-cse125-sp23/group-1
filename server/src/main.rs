@@ -49,10 +49,12 @@ fn main() {
             ecs.check_ready_updates();
             if ecs.ready_players.len() >= 2 && ecs.ready_players.len() == ecs.players.len() {
                 ecs.send_ready_message(true);
+                ecs.ready_players.clear();
                 break;
             }
         }
         poller.delete(&listener).unwrap();
+        ecs.update_player_models();
         // GAME LOOP
         println!("[SERVER]: Starting game");
         while !ecs.game_ended {
