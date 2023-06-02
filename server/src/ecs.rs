@@ -730,6 +730,14 @@ impl ECS {
                                 }
                                 if self.model_components[target].border {
                                     println!("Hit border");
+                                    println!("releasing lasso");
+                                    self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
+                                    self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+                                    self.name_components.remove(thrown.entity);
+                                    self.physics_components.remove(thrown.entity);
+                                    self.position_components.remove(thrown.entity);
+                                    self.player_lasso_thrown_components.remove(player);
+                                    self.player_lasso_components.remove(player);
                                     continue 'players;
                                 }
                                 let target_name = & self.name_components[target];
