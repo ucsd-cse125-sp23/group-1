@@ -6,6 +6,8 @@ use cgmath::Deg;
 use cgmath::vec3;
 use cgmath::prelude::*;
 
+use crate::screenshake::ScreenShake;
+
 type Point3 = cgmath::Point3<f32>;
 type Vector3 = cgmath::Vector3<f32>;
 type Matrix4 = cgmath::Matrix4<f32>;
@@ -37,6 +39,7 @@ pub struct Camera {
     pub RotQuat: Quaternion,
     pub MouseSensitivity: f32,
     pub Zoom: f32,
+    pub ScreenShake: ScreenShake
 }
 impl Default for Camera {
     fn default() -> Camera {
@@ -48,6 +51,7 @@ impl Default for Camera {
             RotQuat: Quaternion::new(1.0,0.0,0.0,0.0), // initialized later
             MouseSensitivity: SENSITIVTY,
             Zoom: ZOOM,
+            ScreenShake: ScreenShake::default()
         };
         camera.initMatrix();
         camera
@@ -56,7 +60,8 @@ impl Default for Camera {
 impl Camera {
     /// Returns the view matrix calculated using Eular Angles and the LookAt Matrix
     pub fn GetViewMatrix(&self) -> Matrix4 {
-        Matrix4::look_at(self.Position + (self.Up * HALFHEIGHT), self.Position + (self.Up * HALFHEIGHT) + self.Front, self.Up)
+        let view = Matrix4::look_at(self.Position + (self.Up * HALFHEIGHT), self.Position + (self.Up * HALFHEIGHT) + self.Front, self.Up);
+        Matrix4::from(self.ScreenShake.euler) * view
     }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.

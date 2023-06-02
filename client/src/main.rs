@@ -10,6 +10,7 @@ mod lasso;
 mod tracker;
 mod common;
 mod ui;
+mod screenshake;
 
 use std::collections::HashMap;
 
@@ -58,6 +59,8 @@ fn main() -> io::Result<()> {
 
     let mut fullscreen = false;
     let mut f11_pressed = false;
+
+    let mut q_pressed = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -322,6 +325,18 @@ fn main() -> io::Result<()> {
                         }
                     }
                 }
+
+                // TEMP: screenshake testing
+                if !q_pressed && window.get_key(Key::Q) == Action::Press {
+                    camera.ScreenShake.add_trauma(0.5);
+                    q_pressed = true;
+                }
+                if window.get_key(Key::Q) == Action::Release {
+                    q_pressed = false;
+                }
+
+                // apply screenshake
+                camera.ScreenShake.shake_camera();
 
                 // render
                 // ------
