@@ -65,10 +65,7 @@ fn main() -> io::Result<()> {
 
     // initialize audio manager
     let mut audio = AudioPlayer::default();
-    let sound_data =
-        StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default())
-            .unwrap();
-
+    
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -443,8 +440,11 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-
-                            audio.move_listener(player_pos.x, player_pos.y, player_pos.z);
+                            
+                            match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                Ok(_) => (),
+                                Err(e) => eprintln!("Audio error: {e}"),
+                            };
 
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
