@@ -48,6 +48,7 @@ use slotmap::{SecondaryMap,DefaultKey};
 
 type Entity = DefaultKey;
 
+#[derive(PartialEq, Eq)]
 enum GameState {
     EnteringLobby,
     InLobby,
@@ -76,6 +77,9 @@ fn main() -> io::Result<()> {
     let mut last_x: f32;
     let mut last_y: f32;
 
+    let mut fullscreen = false;
+    let mut f11_pressed = false;
+
     // glfw: initialize and configure
     // ------------------------------
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
@@ -90,11 +94,12 @@ fn main() -> io::Result<()> {
     // --------------------
     let mut width = 0;
     let mut height = 0;
+    let mut refresh_rate = 0;
     let (mut window, events) = glfw
         .with_primary_monitor(|glfw, m| {
             width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32;
-            height =
-                glfw::Monitor::get_physical_size(m.expect("access monitor for width")).1 as u32;
+            height = glfw::Monitor::get_physical_size(m.expect("access monitor for height")).1 as u32;
+            refresh_rate = glfw::Monitor::get_video_mode(m.expect("access monitor for video mode")).expect("failed to get video mode").refresh_rate;
             glfw.create_window(
                 width * 2,
                 height * 2,
@@ -104,6 +109,10 @@ fn main() -> io::Result<()> {
         })
         .expect("Failed to create GLFW window.");
 
+    let mut saved_xpos = window.get_pos().0;
+    let mut saved_ypos = window.get_pos().1;
+    let mut saved_width = width;
+    let mut saved_height = height;
     last_x = width as f32 / 2.0;
     last_y = height as f32 / 2.0;
     let screen_size = vec2(width as f32, height as f32);
@@ -155,14 +164,12 @@ fn main() -> io::Result<()> {
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
-    models.insert(
-        "sungod".to_string(),
-        Model::new("resources/sungod/sungod.obj"),
-    );
-    models.insert(
-        "asteroid".to_string(),
-        Model::new("resources/new_asteroid/asteroid.obj"),
-    );
+    models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
+    models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+    models.insert("characterPink".to_string(), Model::new("resources/character/characterPink.obj"));
+    models.insert("characterBlue".to_string(), Model::new("resources/character/characterBlue.obj"));
+    models.insert("characterYellow".to_string(), Model::new("resources/character/characterYellow.obj"));
+    models.insert("characterGreen".to_string(), Model::new("resources/character/characterGreen.obj"));
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
@@ -172,7 +179,7 @@ fn main() -> io::Result<()> {
         vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0),
     ];
     let mut tracker = unsafe {
-        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
 
@@ -193,12 +200,13 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut curr_id = client_id;
 
     // WINDOW LOOP
     // -----------
     loop {
         // set cursor mode based on is_focused
-        if is_focused {
+        if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
         } else {
             window.set_cursor_mode(glfw::CursorMode::Normal);
@@ -220,15 +228,9 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let mut curr_id = client_id;
-                    if lobby_ecs.ids.len() > curr_id
-                        && lobby_ecs.players.contains(&lobby_ecs.ids[curr_id])
-                    {
-                        curr_id = lobby_ecs
-                            .players
-                            .iter()
-                            .position(|&r| r == lobby_ecs.ids[client_id])
-                            .unwrap();
+                    curr_id = client_id;
+                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                        curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
                     ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
                 }
@@ -256,6 +258,7 @@ fn main() -> io::Result<()> {
                                 camera.UpdateVecs();
                                 client_ecs = None;
                                 first_mouse = true;
+                                lobby_ecs.ready_players.clear();
                                 game_state = GameState::InGame;
                             }
                         }
@@ -510,8 +513,12 @@ fn main() -> io::Result<()> {
                                     let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                     // draw lasso
-                                    let lasso_p1 =
-                                        model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                    let lasso_origin = if player == player_key {
+                                        Point3::new(-0.5, 0.0, 0.0)
+                                    } else {
+                                        Point3::new(-0.5, -0.4, 0.0)
+                                    };
+                                    let lasso_p1 = model.transform_point(lasso_origin);
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                     lasso.draw_btw_points(
                                         lasso_p1.to_vec(),
@@ -562,7 +569,7 @@ fn main() -> io::Result<()> {
                         perspective(Deg(camera.Zoom), width as f32 / height as f32, 0.1, 100.0);
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(client_health.alive, client_ammo);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
@@ -580,6 +587,17 @@ fn main() -> io::Result<()> {
             is_focused = true;
             first_mouse = true;
             first_click = true;
+
+        }
+
+        //toggle fullscreen
+        if !f11_pressed && window.get_key(Key::F11) == Action::Press {
+            fullscreen = !fullscreen;
+            set_fullscreen(fullscreen, &mut glfw, &mut window, &mut width, &mut height, &mut saved_xpos, &mut saved_ypos, &mut saved_width, &mut saved_height, refresh_rate);
+            f11_pressed = true;
+        }
+        if window.get_key(Key::F11) == Action::Release {
+            f11_pressed = false;
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
