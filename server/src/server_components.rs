@@ -29,6 +29,10 @@ pub struct NetworkComponent {
     pub stream: TcpStream
 }
 
+pub struct EventComponent {
+    pub lifetime: u8,
+}
+
 pub struct PlayerLassoPhysComponent {
     pub anchor_handle: RigidBodyHandle,
     pub anchor_point_local: OPoint<f32,Const<3>>,

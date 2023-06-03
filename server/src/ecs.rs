@@ -30,6 +30,7 @@ pub struct ECS {
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
     pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
+    pub event_components: SecondaryMap<Entity, EventComponent>,
 
     // physics objects
     pub rigid_body_set: RigidBodySet,
@@ -76,6 +77,7 @@ impl ECS {
             network_components: SecondaryMap::new(),
             player_camera_components: SecondaryMap::new(),
             player_lasso_phys_components: SecondaryMap::new(),
+            event_components: SecondaryMap::new(),
 
             audio_components: SecondaryMap::new(),
 
@@ -142,6 +144,7 @@ impl ECS {
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
+        self.event_components.clear();
         self.ready_players.clear();
         self.dynamics.clear();
         self.renderables.clear();
@@ -606,11 +609,12 @@ impl ECS {
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
 
-                // add audio event to server tick
-                println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
+                // add fire event to server tick
+                // println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
-                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:position.x, y:position.y, z:position.z, lifetime:EVENT_LIFETIME});
+                self.event_components.insert(event_key, EventComponent { lifetime: EVENT_LIFETIME });
+                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:position.x, y:position.y, z:position.z});
 
                 let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
@@ -816,8 +820,11 @@ impl ECS {
      */
     pub fn clear_events(&mut self) {
         for &event in &self.events {
-            self.audio_components[event].lifetime -= 1;
+            self.event_components[event].lifetime -= 1;
         }
-        self.events.retain(|x| self.audio_components[*x].lifetime != 0);
+        for &event in self.events.iter().filter(|x| self.event_components[**x].lifetime == 0) {
+            self.name_components.remove(event);
+        }
+        self.events.retain(|x| self.event_components[*x].lifetime != 0);
     }
 }

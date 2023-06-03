@@ -180,7 +180,6 @@ pub struct AudioComponent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub lifetime: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

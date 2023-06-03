@@ -379,7 +379,6 @@ fn main() -> io::Result<()> {
                             // check event type
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
-                                println!("received audio event");
                                 let audio_event = &c_ecs.audio_components[event];
                                 audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
                             }
@@ -443,7 +442,7 @@ fn main() -> io::Result<()> {
                             
                             match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
                                 Ok(_) => (),
-                                Err(e) => eprintln!("Audio error: {e}"),
+                                Err(e) => eprintln!("Audio error moving listener: {e}"),
                             };
 
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
