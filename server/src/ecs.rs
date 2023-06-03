@@ -148,9 +148,10 @@ impl ECS {
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
         self.event_components.clear();
+        self.audio_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
-        self.audio_components.clear();
+        self.events.clear();
         
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
@@ -896,9 +897,9 @@ impl ECS {
     pub fn clear_events(&mut self) {
         for &event in &self.events {
             self.event_components[event].lifetime -= 1;
-        }
-        for &event in self.events.iter().filter(|x| self.event_components[**x].lifetime == 0) {
-            self.name_components.remove(event);
+            if self.event_components[event].lifetime == 0 {
+                self.name_components.remove(event);
+            }
         }
         self.events.retain(|x| self.event_components[*x].lifetime != 0);
     }
