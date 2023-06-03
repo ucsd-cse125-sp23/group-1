@@ -44,6 +44,10 @@ use std::net::TcpStream;
 use std::process;
 use std::str;
 
+use slotmap::{SecondaryMap,DefaultKey};
+
+type Entity = DefaultKey;
+
 enum GameState {
     EnteringLobby,
     InLobby,
@@ -56,6 +60,9 @@ use kira::{
     sound::static_sound::{StaticSoundData, StaticSoundSettings},
 };
 fn main() -> io::Result<()> {
+    // initialize event map for handled events
+    let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
+
     // initialize audio manager
     let mut audio = AudioPlayer::default();
     let sound_data =
@@ -290,21 +297,21 @@ fn main() -> io::Result<()> {
                     is_focused,
                 );
 
-                match &client_ecs {
-                    Some(ecs) => {
-                        for (k, v) in &ecs.audio_components {
-                            // only play sound in client 0 for now (TODO: remove)
-                            if client_id == 0 {
-                                println!("received audio event");
-                                let audio_event = &v;
-                                audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
-                            }
-                        }
-                    }
-                    None => {
-                        // do nothing
-                    }
-                }
+                // match &client_ecs {
+                //     Some(ecs) => {
+                //         for (_, v) in &ecs.audio_components {
+                //             // only play sound in client 0 for now (TODO: remove)
+                //             if client_id == 0 {
+                //                 println!("received audio event");
+                //                 let audio_event = &v;
+                //                 audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
+                //             }
+                //         }
+                //     }
+                //     None => {
+                //         // do nothing
+                //     }
+                // }
 
                 // set camera front of input_component
                 input_component.camera_qx = camera.RotQuat.v.x;
@@ -362,6 +369,26 @@ fn main() -> io::Result<()> {
                             process::exit(1);
                         }
                     }
+                }
+
+                match &client_ecs {
+                    Some(c_ecs) => {
+                        // make sure we haven't handled this event yet
+                        for &event in &c_ecs.events {
+                            if client_events.contains_key(event) {
+                                continue;
+                            }
+                            client_events.insert(event, ());
+                            // check event type
+                            // skip audio events for all but client 0 if we're debugging on same machine
+                            if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
+                                println!("received audio event");
+                                let audio_event = &c_ecs.audio_components[event];
+                                audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
+                            }
+                        }
+                    },
+                    None => ()
                 }
 
                 // render

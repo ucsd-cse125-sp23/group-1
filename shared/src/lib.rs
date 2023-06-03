@@ -24,3 +24,6 @@ pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.08;
 pub const CROSSHAIR_SCALE: f32 = 0.03;
 pub const LOBBY_BG_SCALE: f32 = 0.2;
+
+// audio settings
+pub const AUDIO_DEBUG: bool = true;

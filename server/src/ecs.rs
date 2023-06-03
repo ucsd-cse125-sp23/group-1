@@ -13,6 +13,7 @@ use crate::{server_components::*, init_world::*};
 
 type Entity = DefaultKey;
 
+const EVENT_LIFETIME: u8 = 5;
 pub struct ECS {
     pub name_components: SlotMap<Entity, String>,
     
@@ -608,7 +609,8 @@ impl ECS {
                 // add audio event to server tick
                 println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
                 let event_key = self.name_components.insert("fire_event".to_string());
-                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:position.x, y:position.y, z:position.z});
+                self.events.push(event_key);
+                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:position.x, y:position.y, z:position.z, lifetime:EVENT_LIFETIME});
 
                 let ray = Ray::new(point![position.x, position.y, position.z], *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
@@ -807,5 +809,15 @@ impl ECS {
         self.player_health_components[player].alive = false;
         self.player_health_components[player].health = 0;
         self.active_players -= 1;
+    }
+
+    /**
+     * Update event lifetime and prune old events.
+     */
+    pub fn clear_events(&mut self) {
+        for &event in &self.events {
+            self.audio_components[event].lifetime -= 1;
+        }
+        self.events.retain(|x| self.audio_components[*x].lifetime != 0);
     }
 }
