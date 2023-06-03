@@ -45,18 +45,20 @@ impl AudioPlayer {
     // called once per frame
     pub fn move_listener(&mut self, x: f32, y: f32, z: f32, qx: f32, qy: f32, qz: f32, qw: f32) -> Result<(),CommandError> {
         self.listener.set_position(Vector3{x:x, y:y, z:z}, 
-            Tween {
-                start_time:kira::StartTime::Immediate,
-                duration:Duration::ZERO,
-                easing:Linear
-            }
+            Tween::default()
+            // Tween {
+            //     start_time:kira::StartTime::Immediate,
+            //     duration:Duration::ZERO,
+            //     easing:Linear
+            // }
         )?;
         self.listener.set_orientation(Quaternion{v:Vector3{x:qx, y:qy, z:qz}, s:qw}, 
-            Tween {
-                start_time:kira::StartTime::Immediate,
-                duration:Duration::ZERO,
-                easing:Linear
-            }
+            Tween::default()
+            // Tween {
+            //     start_time:kira::StartTime::Immediate,
+            //     duration:Duration::ZERO,
+            //     easing:Linear
+            // }
         )?;
         
         Ok(())
