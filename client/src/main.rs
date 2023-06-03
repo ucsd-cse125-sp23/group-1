@@ -11,6 +11,7 @@ mod tracker;
 mod common;
 mod ui;
 mod screenshake;
+mod fadable;
 
 use std::collections::HashMap;
 
@@ -60,6 +61,7 @@ fn main() -> io::Result<()> {
     let mut fullscreen = false;
     let mut f11_pressed = false;
 
+    // temp effects
     let mut q_pressed = false;
 
     // glfw: initialize and configure
@@ -329,6 +331,7 @@ fn main() -> io::Result<()> {
                 // TEMP: screenshake testing
                 if !q_pressed && window.get_key(Key::Q) == Action::Press {
                     camera.ScreenShake.add_trauma(0.5);
+                    ui_elems.damage.add_alpha(0.5);
                     q_pressed = true;
                 }
                 if window.get_key(Key::Q) == Action::Release {
@@ -487,10 +490,9 @@ fn main() -> io::Result<()> {
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
-
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
             }

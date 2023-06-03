@@ -91,3 +91,5 @@ pub const AMMO_3_PATH: &str = "resources/ui_textures/ammo/ammo3.png";
 pub const AMMO_4_PATH: &str = "resources/ui_textures/ammo/ammo4.png";
 pub const AMMO_5_PATH: &str = "resources/ui_textures/ammo/ammo5.png";
 pub const AMMO_6_PATH: &str = "resources/ui_textures/ammo/ammo6.png";
+
+pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
