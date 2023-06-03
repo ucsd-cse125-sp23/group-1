@@ -53,25 +53,29 @@ pub struct ClientECS {
     pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
+    pub audio_components: SecondaryMap<Entity, AudioComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
+    pub events: Vec<Entity>,
     pub game_ended: bool
 }
 
 impl ClientECS {
     pub fn default() -> ClientECS{
-        ClientECS{
+        ClientECS {
             name_components: SlotMap::new(),
             position_components: SecondaryMap::new(),
             weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
+            audio_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
+            events: vec![],
             game_ended: false
         }
     }
@@ -168,6 +172,14 @@ impl PlayerHealthComponent {
             hits: 0
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AudioComponent {
+    pub name: String,
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
