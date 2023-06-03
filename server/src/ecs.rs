@@ -129,14 +129,6 @@ impl ECS {
 
         // clear ECS of everything but players
         self.name_components.retain(|key, _| self.players.contains(&key));
-        self.player_input_components.retain(|key, _| self.players.contains(&key));
-        self.position_components.retain(|key, _| self.players.contains(&key));
-        self.player_weapon_components.retain(|key, _| self.players.contains(&key));
-        self.model_components.retain(|key, _| self.players.contains(&key));
-        self.player_health_components.retain(|key, _| self.players.contains(&key));
-        self.physics_components.retain(|key, _| self.players.contains(&key));
-        self.network_components.retain(|key, _| self.players.contains(&key));
-        self.player_camera_components.retain(|key, _| self.players.contains(&key));
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
@@ -371,14 +363,6 @@ impl ECS {
         );
 
         self.name_components.remove(player);
-        self.player_input_components.remove(player);
-        self.position_components.remove(player);
-        self.player_weapon_components.remove(player);
-        self.model_components.remove(player);
-        self.physics_components.remove(player);
-        self.network_components.remove(player);
-        self.player_health_components.remove(player);
-        self.player_camera_components.remove(player);
         self.player_lasso_components.remove(player);
         self.player_lasso_phys_components.remove(player);
         self.player_lasso_thrown_components.remove(player);
