@@ -665,6 +665,9 @@ impl ECS {
 
                             if self.player_health_components[target].health == 0 {
                                 // handle player death
+                                let event_key = self.name_components.insert("death_event".to_string());
+                                self.events.push(event_key);
+                                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DeathEvent { player: target, killer: player }});
                                 self.player_health_components[target].alive = false;
                                 self.active_players -= 1;
                                 self.player_input_components[target] = PlayerInputComponent::default();

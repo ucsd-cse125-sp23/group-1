@@ -395,10 +395,18 @@ fn main() -> io::Result<()> {
                                     }
                                 },
                                 EventType::HitEvent { player, target } => {
-                                    if target == player_key {
+                                    if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
                                         ui_elems.damage.add_alpha(0.5);
-                                    } else if player == player_key && c_ecs.players.contains(&target) {
+                                    } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
+                                        ui_elems.hitmarker.add_alpha(1.0);
+                                    }
+                                },
+                                EventType::DeathEvent { player, killer } => {
+                                    if player == player_key {
+                                        camera.ScreenShake.add_trauma(1.0);
+                                        ui_elems.damage.add_alpha(1.0);
+                                    } else if killer == player_key {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
                                 }

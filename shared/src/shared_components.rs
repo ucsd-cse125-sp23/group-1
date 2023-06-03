@@ -170,7 +170,7 @@ impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 1,
+            health : 3,
             hits: 0
         }
     }
@@ -192,6 +192,10 @@ pub enum EventType {
     HitEvent {
         player: Entity,
         target: Entity
+    },
+    DeathEvent {
+        player: Entity,
+        killer: Entity
     }
 }
 

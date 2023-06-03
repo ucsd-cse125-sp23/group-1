@@ -149,7 +149,7 @@ impl UI {
             p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
 
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
-            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 1.0),
+            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
         }
     }
 
