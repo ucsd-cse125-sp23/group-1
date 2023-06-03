@@ -4,9 +4,9 @@ use noise::{NoiseFn, OpenSimplex};
 
 const TRAUMA_REDUCTION_RATE: f32 = 1.0;
 const NOISE_SEED: f64 = 50.0;
-const MAX_PITCH: f32 = 10.0;
-const MAX_YAW: f32 = 10.0;
-const MAX_ROLL: f32 = 5.0;
+const MAX_PITCH: f32 = 20.0;
+const MAX_YAW: f32 = 20.0;
+const MAX_ROLL: f32 = 10.0;
 
 pub struct ScreenShake {
     trauma: f32,

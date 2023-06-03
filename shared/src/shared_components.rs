@@ -55,6 +55,7 @@ pub struct ClientECS {
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
+    pub event_components: SecondaryMap<Entity, EventComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
@@ -72,6 +73,7 @@ impl ClientECS {
             health_components: SecondaryMap::new(),
             audio_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
+            event_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -175,16 +177,34 @@ impl PlayerHealthComponent {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct PlayerLassoComponent {
+    pub anchor_x: f32,
+    pub anchor_y: f32,
+    pub anchor_z: f32
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum EventType {
+    FireEvent {
+        player: Entity,
+
+    },
+    HitEvent {
+        player: Entity,
+        target: Entity
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct EventComponent {
+    pub event_type: EventType,
+    pub lifetime: u8,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AudioComponent {
     pub name: String,
     pub x: f32,
     pub y: f32,
     pub z: f32,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PlayerLassoComponent {
-    pub anchor_x: f32,
-    pub anchor_y: f32,
-    pub anchor_z: f32
 }

@@ -30,10 +30,6 @@ pub struct NetworkComponent {
     pub stream: TcpStream
 }
 
-pub struct EventComponent {
-    pub lifetime: u8,
-}
-
 pub struct PlayerLassoPhysComponent {
     pub anchor: DefaultKey,
     pub anchor_handle: RigidBodyHandle,

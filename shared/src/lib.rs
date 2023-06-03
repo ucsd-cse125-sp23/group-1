@@ -93,6 +93,7 @@ pub const AMMO_5_PATH: &str = "resources/ui_textures/ammo/ammo5.png";
 pub const AMMO_6_PATH: &str = "resources/ui_textures/ammo/ammo6.png";
 
 pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
+pub const HITMARKER_PATH: &str = "resources/ui_textures/hitmarker.png";
 
 // audio settings
 pub const AUDIO_DEBUG: bool = true;
