@@ -1,5 +1,5 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance};
+use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::str;
 use std::io::{Read, Write, self};
@@ -532,7 +532,8 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
-        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool) {
+        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool,
+        linvel: Vector3<f32>, angvel: Vector3<f32>) {
             let entity = self.name_components.insert(name);
             let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
             self.position_components.insert(
@@ -556,7 +557,7 @@ impl ECS {
                 self.dynamics.push(entity);
                 rigid_body = RigidBodyBuilder::dynamic().position(
                     Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
-                ).can_sleep(false).build();
+                ).linvel(linvel).angvel(angvel).can_sleep(false).build();
             } else {
                 rigid_body = RigidBodyBuilder::fixed().position(
                     Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)

@@ -1,6 +1,6 @@
 use crate::ecs::*;
 use rapier3d::geometry::SharedShape;
-use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3};
+use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3, Unit, vector};
 use serde::Deserialize;
 use std::fs;
 use std::path::Path;
@@ -45,6 +45,10 @@ struct Prop {
     restitution: f32,
     #[serde(default = "prop_default_border")]
     border: bool,
+    #[serde(default = "prop_default_max_linvel")]
+    max_linvel: f32,
+    #[serde(default = "prop_default_max_angvel")]
+    max_angvel: f32,
 }
 
 fn prop_default_name() -> String { "UNNAMED".to_string() }
@@ -57,6 +61,8 @@ fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
 fn prop_default_density() -> f32 { 1.0 }
 fn prop_default_restitution() -> f32 { 0.3 }
 fn prop_default_border() -> bool { false }
+fn prop_default_max_linvel() -> f32 { 0.1 }
+fn prop_default_max_angvel() -> f32 { 0.1 }
 
 #[derive(Deserialize)]
 struct SpawnPoint {
@@ -105,6 +111,12 @@ pub fn init_world(ecs: &mut ECS) {
                 SharedShape::trimesh(vertices, indices)
             }
         };
+        let mut linvel = thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0];
+        linvel *= thread_rng().gen_range(0.0..prop.max_linvel);
+        let angvel_axis = Unit::new_normalize(thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0]);
+        let angvel_angle = thread_rng().gen_range(0.0..prop.max_angvel);
+        let angvel_euler = UnitQuaternion::from_axis_angle(&angvel_axis, angvel_angle).euler_angles();
+        let angvel = vector![angvel_euler.0, angvel_euler.1, angvel_euler.2];
         ecs.spawn_prop(
             prop.name,
             prop.modelname,
@@ -119,7 +131,9 @@ pub fn init_world(ecs: &mut ECS) {
             prop.scale,
             prop.density,
             prop.restitution,
-            prop.border
+            prop.border,
+            linvel,
+            angvel
         );
     }
 }
