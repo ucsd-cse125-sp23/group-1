@@ -486,8 +486,7 @@ fn main() -> io::Result<()> {
                     // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
 
-                    // TODO: currently hard coded
-                    vel_indicator.draw(&camera, player_vel, &shader_program);
+                    vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
 
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 
