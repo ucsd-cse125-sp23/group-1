@@ -169,7 +169,7 @@ fn main() -> io::Result<()> {
     let lasso = Lasso::new();
 
     // create velocity indicator
-    let vel_indicator = VelocityIndicator::new();
+    let mut vel_indicator = VelocityIndicator::new();
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
