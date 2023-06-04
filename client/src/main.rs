@@ -479,6 +479,7 @@ fn main() -> io::Result<()> {
                     skybox.draw(camera.GetViewMatrix(), projection);
 
                     // HUD elements should always be rendered on top
+                    // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
 
                     // TODO: currently hard coded
