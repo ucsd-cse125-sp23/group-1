@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace, vec3, perspective, Deg, EuclideanSpace};
+use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace, vec3, perspective, Deg, EuclideanSpace, Array};
 use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
@@ -53,6 +53,9 @@ impl VelocityIndicator {
         );
         projection = screen_mat * projection;
         shader.set_mat4(c_str!("projection"), &projection);
+
+        let light_ambience = Vector3::from_value(0.7);
+        shader.setVector3(c_str!("lightAmb"), &light_ambience);
 
         self.model.draw(shader);
     }
