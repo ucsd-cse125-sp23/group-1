@@ -526,7 +526,6 @@ impl ECS {
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
         roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool) {
             let entity = self.name_components.insert(name);
-            self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
             self.position_components.insert(
                 entity, 
@@ -540,6 +539,9 @@ impl ECS {
                     qw: (rot.w)
                 }
             );
+            if !border {
+                self.renderables.push(entity);
+            }
             self.model_components.insert(entity,ModelComponent { modelname, scale, border });
             let rigid_body: RigidBody;
             if dynamic {
@@ -728,7 +730,7 @@ impl ECS {
                                     eprintln!("ERROR: Lasso hit its own player!");
                                     continue 'players;
                                 }
-                                if self.model_components[target].border {
+                                if self.model_components.contains_key(target) && self.model_components[target].border {
                                     println!("Hit border");
                                     println!("releasing lasso");
                                     self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));

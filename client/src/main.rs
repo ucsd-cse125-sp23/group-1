@@ -483,10 +483,9 @@ fn main() -> io::Result<()> {
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
-
                     gl::DepthMask(gl::FALSE);
                     force_field.draw(&camera, player_pos_ff);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
                 }
