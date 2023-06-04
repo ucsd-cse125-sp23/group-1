@@ -12,6 +12,7 @@ mod common;
 mod ui;
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 // graphics
 extern crate gl;
@@ -29,7 +30,7 @@ use crate::skybox::Skybox;
 
 // network
 use std::io::{self, Read};
-use std::net::{TcpStream};
+use std::net::{TcpStream, ToSocketAddrs};
 use std::process;
 use std::str;
 use shared::*;
@@ -106,21 +107,6 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-    
-    // Create network TcpStream
-    // TODO: change to connect_timeout?
-    let mut stream =
-        TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
-
-    // receive and save client id
-    let mut read_buf = [0u8, 1];
-    stream.read(&mut read_buf).unwrap();
-    let client_id = read_buf[0] as usize;
-    println!("client id: {}", client_id);
-
-    stream
-        .set_nonblocking(true)
-        .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
     let (shader_program, sprite_shader) = unsafe {
@@ -137,6 +123,14 @@ fn main() -> io::Result<()> {
 
         (shader_program, sprite_shader)
     };
+
+    // set up ui
+    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+
+    // render splash screen
+    unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+    ui_elems.draw_splash();
+    window.swap_buffers();
 
     // textures for skybox
     let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
@@ -166,9 +160,6 @@ fn main() -> io::Result<()> {
     // create lasso
     let lasso = Lasso::new();
 
-    // set up ui
-    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
-
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
@@ -179,6 +170,43 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+
+    // Create network TcpStream
+    // TODO: change to connect_timeout?
+    let mut stream = loop {
+        let addrs = (SERVER_ADDR.to_string() + ":" + &PORT.to_string()).to_socket_addrs().expect("Error loading socket address");
+        match TcpStream::connect_timeout(&addrs.last().unwrap(), Duration::from_millis(TICK_SPEED)) {
+            Ok(s) => break s,
+            Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                process_events_lobby(&events);
+                unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+                ui_elems.draw_splash();
+                window.swap_buffers();
+                glfw.poll_events();
+                //toggle fullscreen
+                if !f11_pressed && window.get_key(Key::F11) == Action::Press {
+                    fullscreen = !fullscreen;
+                    set_fullscreen(fullscreen, &mut glfw, &mut window, &mut width, &mut height, &mut saved_xpos, &mut saved_ypos, &mut saved_width, &mut saved_height, refresh_rate);
+                    f11_pressed = true;
+                }
+                if window.get_key(Key::F11) == Action::Release {
+                    f11_pressed = false;
+                }
+            },
+            Err(e) => panic!("Error connecting to server: {}",e)
+        }
+    };
+
+    // receive and save client id
+    let mut read_buf = [0u8, 1];
+    stream.read(&mut read_buf).unwrap();
+    let client_id = read_buf[0] as usize;
+    println!("client id: {}", client_id);
+
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set stream as nonblocking");
+
     let mut curr_id = client_id;
 
     // WINDOW LOOP

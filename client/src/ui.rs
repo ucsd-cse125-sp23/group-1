@@ -4,6 +4,8 @@ use shared::*;
 use shared::shared_components::*;
 
 pub struct UI {
+    // ========================== splash ui elements ==========================
+    pub splash: Sprite,
     // ========================== lobby ui elements ===========================
     pub p1_lobby: Sprite,
     pub p2_lobby: Sprite,
@@ -78,6 +80,8 @@ impl UI {
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
 
         UI {
+            // ============================ splash screen =============================
+            splash: init_sprite(s_size, id, SPLASH_PATH, bg_pos, LOBBY_BG_SCALE),
             // =========================== lobby background ===========================
             p1_lobby: init_sprite(s_size, id, LOBBY_BG_1_PATH, bg_pos, LOBBY_BG_SCALE),
             p2_lobby: init_sprite(s_size, id, LOBBY_BG_2_PATH, bg_pos, LOBBY_BG_SCALE),
@@ -331,6 +335,10 @@ impl UI {
                 _ => ()
             }
         }
+    }
+
+    pub fn draw_splash(&mut self) {
+        unsafe { self.splash.draw() };
     }
 }
 
