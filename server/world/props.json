@@ -13,7 +13,7 @@
                 1.0,
                 1.0
             ]
-        }   
+        }
     },
     {
         "name": "cube",
@@ -181,5 +181,17 @@
         "dynamic": false,
         "restitution": 1.0,
         "border": true
+    },
+    {
+        "name": "cactus",
+        "modelname": "cactus",
+        "pos": [
+            0.0,
+            20.0,
+            -20.0
+        ],
+        "shape": {
+            "Convex": "../client/resources/cactus/cactus.obj"
+        }   
     }
 ]

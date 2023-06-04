@@ -4,11 +4,10 @@ use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
-use rand::{thread_rng,seq::IteratorRandom};
 
 use shared::*;
 use shared::shared_components::*;
-use crate::{server_components::*, init_world::*};
+use crate::{server_components::*, init_world::*, common::*};
 
 
 type Entity = DefaultKey;
@@ -51,6 +50,8 @@ pub struct ECS {
     pub renderables: Vec<Entity>,
 
     pub spawnpoints: Vec<Isometry3<f32>>,
+    pub skies: Vec<usize>,
+    pub sky: usize,
     pub active_players: u8,
     pub game_ended: bool,
 }
@@ -95,6 +96,8 @@ impl ECS {
             renderables: vec![],
 
             spawnpoints: vec![],
+            skies: vec![],
+            sky: 0,
             active_players: 0,
             game_ended: false,
         }
@@ -145,6 +148,10 @@ impl ECS {
 
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
+        if self.skies.is_empty() {
+            self.skies = (0..init_num_skies()).collect();
+        }
+        self.sky = get_rand_from_vec(&mut self.skies);
 
         for (index, &player) in self.players.iter().enumerate() {
             if !self.network_components[player].connected {
@@ -160,7 +167,7 @@ impl ECS {
                 eprintln!("Ran out of player spawnpoints, reusing");
                 init_player_spawns(&mut self.spawnpoints);
             }
-            let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+            let player_pos = get_rand_from_vec(&mut self.spawnpoints);
             self.position_components[player] = PositionComponent{
                 x: player_pos.translation.x,
                 y: player_pos.translation.y,
@@ -479,6 +486,7 @@ impl ECS {
             ready_players: self.ready_players.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
+            sky: self.sky.clone(),
             start_game: start_game,
         }
     }
@@ -505,7 +513,7 @@ impl ECS {
             eprintln!("Ran out of player spawnpoints, reusing");
             init_player_spawns(&mut self.spawnpoints);
         }
-        let player_pos = self.spawnpoints.swap_remove((0..self.spawnpoints.len()).choose(&mut thread_rng()).unwrap());
+        let player_pos = get_rand_from_vec(&mut self.spawnpoints);
         self.position_components.insert(player, PositionComponent{
             x: player_pos.translation.x,
             y: player_pos.translation.y,

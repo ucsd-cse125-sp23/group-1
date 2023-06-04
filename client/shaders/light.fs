@@ -2,6 +2,9 @@
 
 in vec2 TexCoords;
 in vec3 Normal;
+in vec3 LightPos;
+in vec3 ViewPos;
+in vec3 FragPos;
 in vec3 TangentLightPos;
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
@@ -18,8 +21,8 @@ uniform vec3 lightDif;
 
 void main()
 {
-    vec3 normal = Normal;
-    vec3 lightDir = vec3(0.f, 0.f, 1.f);
+    vec3 normal = normalize(Normal);
+    vec3 lightDir = normalize(LightPos - FragPos);
 
     if (load_normal == 1) {
         vec3 tnormal = texture(texture_normal1, TexCoords).rgb;

@@ -11,6 +11,7 @@ mod tracker;
 mod ui;
 mod util;
 mod force_field;
+mod init_skies;
 
 use std::collections::HashMap;
 
@@ -26,7 +27,6 @@ use std::ffi::{CStr};
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::skybox::Skybox;
 
 // network
 use std::io::{self, Read};
@@ -141,10 +141,12 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
+    let skies = init_skies::init_skyboxes();
+    let mut sky: usize = 0;
 
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
@@ -230,6 +232,7 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
+                                sky = lobby_ecs.sky;
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
@@ -337,12 +340,9 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    let light_dir = vec3(0., 0., 1.);
-                    let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.set_vector3(c_str!("lightDir"), &light_dir);
-                    shader_program.set_vector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.set_vector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
@@ -405,6 +405,8 @@ fn main() -> io::Result<()> {
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
+                                let model_scaleless = pos_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
                                 models[model_name].draw(&shader_program);
                             }
 
@@ -481,7 +483,8 @@ fn main() -> io::Result<()> {
                         0.1,
                         100.0
                     );
-                    skybox.draw(camera.GetViewMatrix(), projection);
+                    // println!("{:?}",camera.Front);
+                    skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
                     gl::DepthMask(gl::FALSE);
                     force_field.draw(&camera, player_pos_ff);
