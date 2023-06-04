@@ -23,6 +23,7 @@ pub struct ECS {
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
+    pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
@@ -69,6 +70,7 @@ impl ECS {
             player_lasso_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             player_health_components: SecondaryMap::new(),
+            velocity_components: SecondaryMap::new(),
 
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
@@ -134,6 +136,7 @@ impl ECS {
         self.player_weapon_components.retain(|key, _| self.players.contains(&key));
         self.model_components.retain(|key, _| self.players.contains(&key));
         self.player_health_components.retain(|key, _| self.players.contains(&key));
+        self.velocity_components.retain(|key, _| self.players.contains(&key));
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.network_components.retain(|key, _| self.players.contains(&key));
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
@@ -170,6 +173,7 @@ impl ECS {
                 qz: player_pos.rotation.k,
                 qw: player_pos.rotation.w,
             };
+            self.velocity_components[player] = VelocityComponent::default();
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
             let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
@@ -377,6 +381,7 @@ impl ECS {
         self.model_components.remove(player);
         self.physics_components.remove(player);
         self.network_components.remove(player);
+        self.velocity_components.remove(player);
         self.player_health_components.remove(player);
         self.player_camera_components.remove(player);
         self.player_lasso_components.remove(player);
@@ -460,6 +465,7 @@ impl ECS {
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
+            velocity_components: self.velocity_components.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
             renderables: self.renderables.clone(),
@@ -515,6 +521,7 @@ impl ECS {
             qz: player_pos.rotation.k,
             qw: player_pos.rotation.w,
         });
+        self.velocity_components.insert(player, VelocityComponent::default());
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
         let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
@@ -540,6 +547,7 @@ impl ECS {
                     qw: (rot.w)
                 }
             );
+            self.velocity_components.insert(entity, VelocityComponent::default());
             self.model_components.insert(entity,ModelComponent { modelname, scale });
             let rigid_body: RigidBody;
             if dynamic {
@@ -584,6 +592,10 @@ impl ECS {
             position.qy = rigid_body.rotation().j;
             position.qz = rigid_body.rotation().k;
             position.qw = rigid_body.rotation().w;
+            let mut velocity = &mut self.velocity_components[dynamic];
+            velocity.vel_x = rigid_body.linvel().x;
+            velocity.vel_y = rigid_body.linvel().y;
+            velocity.vel_z = rigid_body.linvel().z;
         }
     }
 
@@ -741,6 +753,7 @@ impl ECS {
                                 self.name_components.remove(thrown.entity);
                                 self.physics_components.remove(thrown.entity);
                                 self.position_components.remove(thrown.entity);
+                                self.velocity_components.remove(thrown.entity);
                                 self.player_lasso_thrown_components.remove(player);
                                 continue 'players;
                             }
@@ -755,6 +768,7 @@ impl ECS {
                         self.name_components.remove(thrown.entity);
                         self.physics_components.remove(thrown.entity);
                         self.position_components.remove(thrown.entity);
+                        self.velocity_components.remove(thrown.entity);
                         self.player_lasso_thrown_components.remove(player);
                         self.player_lasso_components.remove(player);
                     } else {
@@ -769,6 +783,7 @@ impl ECS {
                     self.name_components.remove(thrown.entity);
                     self.physics_components.remove(thrown.entity);
                     self.position_components.remove(thrown.entity);
+                    self.velocity_components.remove(thrown.entity);
                     self.player_lasso_thrown_components.remove(player);
                     self.player_lasso_components.remove(player);
                 }
@@ -789,6 +804,7 @@ impl ECS {
                 self.player_lasso_thrown_components.insert(player, PlayerLassoThrownComponent { entity: thrown });
                 self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: position.x, anchor_y: position.y, anchor_z: position.z });
                 self.position_components.insert(thrown, position.clone());
+                self.velocity_components.insert(thrown, VelocityComponent::default());
                 self.dynamics.push(thrown);
             }
         }

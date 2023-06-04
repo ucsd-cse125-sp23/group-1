@@ -346,6 +346,7 @@ fn main() -> io::Result<()> {
                     shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
 
                     let mut trackers = vec![];
+                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -373,6 +374,9 @@ fn main() -> io::Result<()> {
                         );
                         set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+
+                            let velocity = &c_ecs.velocity_components[player_key];
+                            player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
 
                             for &renderable in &c_ecs.renderables {
                                 if renderable == player_key {
@@ -483,7 +487,7 @@ fn main() -> io::Result<()> {
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
 
                     // TODO: currently hard coded
-                    vel_indicator.draw(&camera, vec3(10.0, 0.0, 0.0), &shader_program);
+                    vel_indicator.draw(&camera, player_vel, &shader_program);
 
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 

@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3};
+use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace};
 use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
@@ -23,7 +23,8 @@ impl VelocityIndicator {
         let loc = mat.transform_point(Point3::new(-0.28, -0.115, -0.5));
         let mut rot_mat = Matrix4::look_at_dir(loc, velocity, Vector3::unit_y());
         rot_mat = rot_mat.invert().expect("Velocity indicator rotation matrix not invertible");
-        let model = rot_mat;
+        let sca_mat = Matrix4::from_scale((velocity.magnitude() / 5.0).min(1.0));
+        let model = rot_mat * sca_mat;
         shader.set_mat4(c_str!("model"), &model);
 
         self.model.draw(shader);

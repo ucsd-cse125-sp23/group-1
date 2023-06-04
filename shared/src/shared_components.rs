@@ -54,6 +54,7 @@ pub struct ClientECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
+    pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
@@ -69,6 +70,7 @@ impl ClientECS {
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
+            velocity_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -175,4 +177,21 @@ pub struct PlayerLassoComponent {
     pub anchor_x: f32,
     pub anchor_y: f32,
     pub anchor_z: f32
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VelocityComponent {
+    pub vel_x: f32,
+    pub vel_y: f32,
+    pub vel_z: f32,
+}
+
+impl VelocityComponent {
+    pub fn default() -> VelocityComponent{
+        VelocityComponent {
+            vel_x: 0.0,
+            vel_y: 0.0,
+            vel_z: 0.0,
+        }
+    }
 }
