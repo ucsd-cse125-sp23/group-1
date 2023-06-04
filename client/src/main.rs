@@ -19,12 +19,9 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{
-    perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, InnerSpace, Matrix4, Point3,
-    Quaternion, Transform, Vector2, Vector3, Vector4, Zero,
-};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace};
 
-use std::ffi::CStr;
+use std::ffi::{CStr};
 
 use crate::camera::*;
 use crate::model::Model;
@@ -32,18 +29,18 @@ use crate::shader::Shader;
 use crate::skybox::Skybox;
 
 // network
-use crate::common::*;
-use crate::force_field::ForceField;
-use crate::lasso::Lasso;
-use crate::tracker::Tracker;
-use shared::shared_components::*;
-use shared::shared_functions::*;
-use shared::*;
 use std::io::{self, Read};
-use std::net::TcpStream;
+use std::net::{TcpStream};
 use std::process;
 use std::str;
+use shared::*;
+use shared::shared_components::*;
+use shared::shared_functions::*;
+use crate::common::*;
+use crate::lasso::Lasso;
+use crate::tracker::Tracker;
 
+#[derive(PartialEq, Eq)]
 enum GameState {
     EnteringLobby,
     InLobby,
@@ -58,8 +55,10 @@ fn main() -> io::Result<()> {
     };
     let mut first_mouse = true;
     let mut first_click = false;
-    let mut last_x: f32;
-    let mut last_y: f32;
+    let mut last_x: f32; let mut last_y: f32;
+
+    let mut fullscreen = false;
+    let mut f11_pressed = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -75,11 +74,12 @@ fn main() -> io::Result<()> {
     // --------------------
     let mut width = 0;
     let mut height = 0;
+    let mut refresh_rate = 0;
     let (mut window, events) = glfw
         .with_primary_monitor(|glfw, m| {
             width = glfw::Monitor::get_physical_size(m.expect("access monitor for width")).0 as u32;
-            height =
-                glfw::Monitor::get_physical_size(m.expect("access monitor for width")).1 as u32;
+            height = glfw::Monitor::get_physical_size(m.expect("access monitor for height")).1 as u32;
+            refresh_rate = glfw::Monitor::get_video_mode(m.expect("access monitor for video mode")).expect("failed to get video mode").refresh_rate;
             glfw.create_window(
                 width * 2,
                 height * 2,
@@ -89,6 +89,10 @@ fn main() -> io::Result<()> {
         })
         .expect("Failed to create GLFW window.");
 
+    let mut saved_xpos = window.get_pos().0;
+    let mut saved_ypos = window.get_pos().1;
+    let mut saved_width = width;
+    let mut saved_height = height;
     last_x = width as f32 / 2.0;
     last_y = height as f32 / 2.0;
     let screen_size = vec2(width as f32, height as f32);
@@ -103,10 +107,11 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-
+    
     // Create network TcpStream
     // TODO: change to connect_timeout?
-    let mut stream = TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
+    let mut stream =
+        TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
 
     // receive and save client id
     let mut read_buf = [0u8, 1];
@@ -135,29 +140,27 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe { Skybox::new("resources/skybox/space", ".png") };
+    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
 
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
-    models.insert(
-        "sungod".to_string(),
-        Model::new("resources/sungod/sungod.obj"),
-    );
-    models.insert(
-        "asteroid".to_string(),
-        Model::new("resources/new_asteroid/asteroid.obj"),
-    );
+    models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
+    models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+    models.insert("characterPink".to_string(), Model::new("resources/character/characterPink.obj"));
+    models.insert("characterBlue".to_string(), Model::new("resources/character/characterBlue.obj"));
+    models.insert("characterYellow".to_string(), Model::new("resources/character/characterYellow.obj"));
+    models.insert("characterGreen".to_string(), Model::new("resources/character/characterGreen.obj"));
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
         vec4(222.0 / 255.0, 135.0 / 255.0, 135.0 / 255.0, 1.0),
         vec4(135.0 / 255.0, 205.0 / 255.0, 222.0 / 255.0, 1.0),
         vec4(255.0 / 255.0, 230.0 / 255.0, 128.0 / 255.0, 1.0),
-        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0),
+        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0)
     ];
     let mut tracker = unsafe {
-        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
 
@@ -168,8 +171,7 @@ fn main() -> io::Result<()> {
     let lasso = Lasso::new();
 
     // set up ui
-    let mut ui_elems =
-        ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -181,12 +183,13 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut curr_id = client_id;
 
     // WINDOW LOOP
     // -----------
     loop {
         // set cursor mode based on is_focused
-        if is_focused {
+        if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
         } else {
             window.set_cursor_mode(glfw::CursorMode::Normal);
@@ -208,15 +211,9 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    let mut curr_id = client_id;
-                    if lobby_ecs.ids.len() > curr_id
-                        && lobby_ecs.players.contains(&lobby_ecs.ids[curr_id])
-                    {
-                        curr_id = lobby_ecs
-                            .players
-                            .iter()
-                            .position(|&r| r == lobby_ecs.ids[client_id])
-                            .unwrap();
+                    curr_id = client_id;
+                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                        curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
                     ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
                 }
@@ -225,29 +222,23 @@ fn main() -> io::Result<()> {
                 let received = read_data(&mut stream);
                 if received.len() > 0 {
                     // ignore malformed input (probably leftover game state)
-                    let res: Result<LobbyECS, serde_json::Error> =
-                        serde_json::from_str(received.as_str());
+                    let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
                     match res {
                         Ok(l_ecs) => {
                             lobby_ecs = l_ecs.clone();
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
-                                let start_pos =
-                                    &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
-                                camera.RotQuat = Quaternion::new(
-                                    start_pos.qw,
-                                    start_pos.qx,
-                                    start_pos.qy,
-                                    start_pos.qz,
-                                );
+                                let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
+                                camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
                                 client_ecs = None;
                                 first_mouse = true;
+                                lobby_ecs.ready_players.clear();
                                 game_state = GameState::InGame;
                             }
                         }
-                        _ => (),
+                        _ => ()
                     }
                 }
             }
@@ -267,7 +258,7 @@ fn main() -> io::Result<()> {
                     &mut input_component,
                     &mut roll,
                     &mut first_click,
-                    is_focused,
+                    is_focused
                 );
 
                 // events
@@ -279,7 +270,7 @@ fn main() -> io::Result<()> {
                     &mut last_y,
                     &mut camera,
                     roll,
-                    is_focused,
+                    is_focused
                 );
 
                 // set camera front of input_component
@@ -290,8 +281,7 @@ fn main() -> io::Result<()> {
 
                 // send client data if player is still alive
                 if client_health.alive {
-                    let j = serde_json::to_string(&input_component)
-                        .expect("Input component serialization error");
+                    let j = serde_json::to_string(&input_component).expect("Input component serialization error");
                     write_data(&mut stream, j);
                 } // TODO: support spectator movement
 
@@ -311,7 +301,7 @@ fn main() -> io::Result<()> {
                             break;
                         }
                         Err(e) => {
-                            eprintln!("Failed to read message size from server: {}", e);
+                            eprintln!("Failed to read message size from server: {}",e);
                             process::exit(1);
                         }
                     }
@@ -320,21 +310,17 @@ fn main() -> io::Result<()> {
                     match stream.peek(&mut read_buf) {
                         Ok(bytes_read) if bytes_read == s_size => {
                             // if this throws an error we deserve to crash tbh
-                            stream
-                                .read_exact(&mut read_buf)
-                                .expect("read_exact did not read the same amount of bytes as peek");
-                            let message: &str = str::from_utf8(&read_buf[4..])
-                                .expect("Error converting buffer to string");
+                            stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
+                            let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
                             // TODO: handle this throwing an error. Occasionally crashes ^
-                            let value: ClientECS = serde_json::from_str(message)
-                                .expect("Error converting string to ClientECS");
+                            let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
                             client_ecs = Some(value);
                         }
                         Ok(_) => {
                             break;
                         }
                         Err(e) => {
-                            eprintln!("Failed to read message from server: {}", e);
+                            eprintln!("Failed to read message from server: {}",e);
                             process::exit(1);
                         }
                     }
@@ -367,19 +353,10 @@ fn main() -> io::Result<()> {
                             client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                             // handle changes in client health
-                            if c_ecs.health_components[player_key].alive
-                                && c_ecs.health_components[player_key].health
-                                    != client_health.health
-                            {
+                            if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
                                 client_health.health = c_ecs.health_components[player_key].health;
-                                println!(
-                                    "Player {} is still alive, with {} lives left",
-                                    client_id, client_health.health
-                                );
-                            } else if c_ecs.health_components[player_key].alive
-                                != client_health.alive
-                                && client_health.alive
-                            {
+                                println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
+                            } else if c_ecs.health_components[player_key].alive != client_health.alive && client_health.alive {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
                                 println!("Player {} is no longer alive x_x", client_id);
                             } else {
@@ -420,13 +397,10 @@ fn main() -> io::Result<()> {
                                 let model_qy = c_ecs.position_components[renderable].qy;
                                 let model_qz = c_ecs.position_components[renderable].qz;
                                 let model_qw = c_ecs.position_components[renderable].qw;
-                                let rot_mat = Matrix4::from(Quaternion::new(
-                                    model_qw, model_qx, model_qy, model_qz,
-                                ));
+                                let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
 
                                 // setup scale matrix
-                                let scale_mat =
-                                    Matrix4::from_scale(c_ecs.model_components[renderable].scale);
+                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
@@ -449,13 +423,10 @@ fn main() -> io::Result<()> {
                                     let player_qy = c_ecs.position_components[player].qy;
                                     let player_qz = c_ecs.position_components[player].qz;
                                     let player_qw = c_ecs.position_components[player].qw;
-                                    let rot_mat = Matrix4::from(Quaternion::new(
-                                        player_qw, player_qx, player_qy, player_qz,
-                                    ));
+                                    let rot_mat = Matrix4::from(Quaternion::new(player_qw, player_qx, player_qy, player_qz));
 
                                     // setup scale matrix
-                                    let scale_mat =
-                                        Matrix4::from_scale(c_ecs.model_components[player].scale);
+                                    let scale_mat = Matrix4::from_scale(c_ecs.model_components[player].scale);
 
                                     let model = pos_mat * scale_mat * rot_mat;
 
@@ -464,26 +435,21 @@ fn main() -> io::Result<()> {
                                     let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                     // draw lasso
-                                    let lasso_p1 =
-                                        model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                    let lasso_origin = if player == player_key {
+                                        Point3::new(-0.5, 0.0, 0.0)
+                                    } else {
+                                        Point3::new(-0.5, -0.4, 0.0)
+                                    };
+                                    let lasso_p1 = model.transform_point(lasso_origin);
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
-                                    lasso.draw_btw_points(
-                                        lasso_p1.to_vec(),
-                                        lasso_p2,
-                                        &shader_program,
-                                    );
+                                    lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                                 }
 
                                 // draw trackers
                                 if player != player_key && c_ecs.health_components[player].alive {
                                     let pos = &c_ecs.position_components[player];
                                     let pos = vec3(pos.x, pos.y, pos.z);
-                                    tracker.draw_tracker(
-                                        &camera,
-                                        pos,
-                                        tracker_colors[i % tracker_colors.len()],
-                                        &mut trackers,
-                                    );
+                                    tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
                                 }
                                 i += 1;
                             }
@@ -491,9 +457,9 @@ fn main() -> io::Result<()> {
                             // game has ended
                             if c_ecs.game_ended {
                                 for (i, player) in c_ecs.ids.iter().enumerate() {
-                                    if c_ecs.players.contains(player)
-                                        && c_ecs.health_components[*player].alive
-                                        && c_ecs.health_components[*player].health > 0
+                                    if  c_ecs.players.contains(player) &&
+                                        c_ecs.health_components[*player].alive &&
+                                        c_ecs.health_components[*player].health > 0
                                     {
                                         println!("The winner is player {}!", i);
                                     }
@@ -501,27 +467,26 @@ fn main() -> io::Result<()> {
                                 game_state = GameState::EnteringLobby;
                             }
                         }
-                        None => set_camera_pos(
-                            &mut camera,
-                            vec3(0.0, 0.0, 0.0),
-                            &shader_program,
-                            width,
-                            height,
-                        ),
+                        None => {
+                            set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height)
+                        }
                     }
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
-                    let projection: Matrix4<f32> =
-                        perspective(Deg(camera.Zoom), width as f32 / height as f32, 0.1, 100.0);
+                    let projection: Matrix4<f32> = perspective(
+                        Deg(camera.Zoom),
+                        width as f32 / height as f32,
+                        0.1,
+                        100.0
+                    );
                     skybox.draw(camera.GetViewMatrix(), projection);
 
-                    // beware that the following objects use their own shaders
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 
                     gl::DepthMask(gl::FALSE);
                     force_field.draw(&camera, player_pos_ff);
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(client_health.alive, client_ammo);
                     gl::DepthMask(gl::TRUE);
                 }
             }
@@ -536,6 +501,17 @@ fn main() -> io::Result<()> {
             is_focused = true;
             first_mouse = true;
             first_click = true;
+
+        }
+
+        //toggle fullscreen
+        if !f11_pressed && window.get_key(Key::F11) == Action::Press {
+            fullscreen = !fullscreen;
+            set_fullscreen(fullscreen, &mut glfw, &mut window, &mut width, &mut height, &mut saved_xpos, &mut saved_ypos, &mut saved_width, &mut saved_height, refresh_rate);
+            f11_pressed = true;
+        }
+        if window.get_key(Key::F11) == Action::Release {
+            f11_pressed = false;
         }
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
