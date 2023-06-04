@@ -1,0 +1,38 @@
+[
+    {
+        "modelname": "cube",
+        "path": "resources/cube/cube.obj"
+    },
+    {
+        "modelname": "sungod",
+        "path": "resources/sungod/sungod.obj"
+    },
+    {
+        "modelname": "asteroid",
+        "path": "resources/new_asteroid/asteroid.obj"
+    },
+    {
+        "modelname": "characterPink",
+        "path": "resources/character/characterPink.obj"
+    },
+    {
+        "modelname": "characterBlue",
+        "path": "resources/character/characterBlue.obj"
+    },
+    {
+        "modelname": "characterYellow",
+        "path": "resources/character/characterYellow.obj"
+    },
+    {
+        "modelname": "characterGreen",
+        "path": "resources/character/characterGreen.obj"
+    },
+    {
+        "modelname": "cactus",
+        "path": "resources/cactus/cactus.obj"
+    },
+    {
+        "modelname": "wheel",
+        "path": "resources/wheel/new-wheel.obj"
+    }
+]

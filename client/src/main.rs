@@ -12,6 +12,7 @@ mod ui;
 mod util;
 mod force_field;
 mod init_skies;
+mod init_models;
 
 use std::collections::HashMap;
 
@@ -145,15 +146,7 @@ fn main() -> io::Result<()> {
     let mut sky: usize = 0;
 
     // add all models to hashmap
-    let mut models: HashMap<String, Model> = HashMap::new();
-    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
-    models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
-    models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
-    models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
-    models.insert("characterPink".to_string(), Model::new("resources/character/characterPink.obj"));
-    models.insert("characterBlue".to_string(), Model::new("resources/character/characterBlue.obj"));
-    models.insert("characterYellow".to_string(), Model::new("resources/character/characterYellow.obj"));
-    models.insert("characterGreen".to_string(), Model::new("resources/character/characterGreen.obj"));
+    let models: HashMap<String, Model> = init_models::init_models();
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [

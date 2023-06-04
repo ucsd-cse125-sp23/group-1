@@ -193,5 +193,14 @@
         "shape": {
             "Convex": "../client/resources/cactus/cactus.obj"
         }   
+    },
+    {
+        "name": "wheel",
+        "modelname": "wheel",
+        "shape": {
+            "Trimesh": "../client/resources/wheel/new-wheel.obj"
+        },
+        "dynamic": false,
+        "scale": 40.0
     }
 ]
