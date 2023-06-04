@@ -10,6 +10,7 @@ mod lasso;
 mod tracker;
 mod common;
 mod ui;
+mod velocity_indicator;
 
 use std::collections::HashMap;
 
@@ -38,6 +39,7 @@ use shared::shared_functions::*;
 use crate::common::*;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
+use crate::velocity_indicator::VelocityIndicator;
 
 #[derive(PartialEq, Eq)]
 enum GameState {
@@ -165,6 +167,9 @@ fn main() -> io::Result<()> {
 
     // create lasso
     let lasso = Lasso::new();
+
+    // create velocity indicator
+    let vel_indicator = VelocityIndicator::new();
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
@@ -434,6 +439,8 @@ fn main() -> io::Result<()> {
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                     lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                                 }
+                                // TODO: currently hard coded
+                                vel_indicator.draw(&camera, vec3(10.0, 0.0, 0.0), &shader_program);
 
                                 // draw trackers
                                 if player != player_key && c_ecs.health_components[player].alive {
