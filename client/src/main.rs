@@ -439,8 +439,7 @@ fn main() -> io::Result<()> {
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
                                     lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
                                 }
-                                // TODO: currently hard coded
-                                vel_indicator.draw(&camera, vec3(10.0, 0.0, 0.0), &shader_program);
+                                
 
                                 // draw trackers
                                 if player != player_key && c_ecs.health_components[player].alive {
@@ -478,6 +477,12 @@ fn main() -> io::Result<()> {
                         100.0
                     );
                     skybox.draw(camera.GetViewMatrix(), projection);
+
+                    // HUD elements should always be rendered on top
+                    gl::Clear(gl::DEPTH_BUFFER_BIT);
+
+                    // TODO: currently hard coded
+                    vel_indicator.draw(&camera, vec3(10.0, 0.0, 0.0), &shader_program);
 
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 

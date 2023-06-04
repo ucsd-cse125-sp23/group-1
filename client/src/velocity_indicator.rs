@@ -18,6 +18,7 @@ impl VelocityIndicator {
     }
 
     pub unsafe fn draw(&self, camera: &Camera, velocity: Vector3<f32>, shader: &Shader) {
+        shader.use_program();
         let mat = camera.GetViewMatrix().invert().expect("Camera view matrix not invertible");
         let loc = mat.transform_point(Point3::new(-0.28, -0.115, -0.5));
         let mut rot_mat = Matrix4::look_at_dir(loc, velocity, Vector3::unit_y());
