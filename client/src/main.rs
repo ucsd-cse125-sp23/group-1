@@ -18,8 +18,8 @@ use std::collections::HashMap;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace};
+use self::glfw::{Action, Context, Key};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace, Zero};
 
 use std::ffi::{CStr};
 
@@ -37,6 +37,7 @@ use shared::*;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use crate::common::*;
+use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 
