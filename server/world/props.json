@@ -13,7 +13,7 @@
                 1.0,
                 1.0
             ]
-        }   
+        }
     },
     {
         "name": "cube",
@@ -279,5 +279,17 @@
             "ConvexDecomp": "../client/resources/new_asteroid/asteroid.obj"
         },
         "scale": 2.0
+    },
+    {
+        "name": "cactus",
+        "modelname": "cactus",
+        "pos": [
+            0.0,
+            20.0,
+            -20.0
+        ],
+        "shape": {
+            "Convex": "../client/resources/cactus/cactus.obj"
+        }   
     }
 ]

@@ -11,6 +11,7 @@ mod tracker;
 mod common;
 mod ui;
 mod velocity_indicator;
+mod init_skies;
 
 use std::collections::HashMap;
 
@@ -19,14 +20,13 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace};
 
 use std::ffi::{CStr};
 
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::skybox::Skybox;
 
 // network
 use std::io::{self, Read};
@@ -141,10 +141,12 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
+    let skies = init_skies::init_skyboxes();
+    let mut sky: usize = 0;
 
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
@@ -230,6 +232,7 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
+                                sky = lobby_ecs.sky;
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
@@ -338,12 +341,9 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    let light_dir = vec3(0., 0., 1.);
-                    let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.setVector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.setVector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.setVector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
                     let mut player_vel = vec3(0.0, 0.0, 0.0);
@@ -366,13 +366,13 @@ fn main() -> io::Result<()> {
                                 client_health.health = c_ecs.health_components[player_key].health;
                             }
 
-                        // setup player camera
-                        let player_pos = vec3(
-                            c_ecs.position_components[player_key].x,
-                            c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z
-                        );
-                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                            // setup player camera
+                            let player_pos = vec3(
+                                c_ecs.position_components[player_key].x,
+                                c_ecs.position_components[player_key].y,
+                                c_ecs.position_components[player_key].z
+                            );
+                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             let velocity = &c_ecs.velocity_components[player_key];
@@ -402,6 +402,8 @@ fn main() -> io::Result<()> {
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
+                                let model_scaleless = pos_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
@@ -480,7 +482,8 @@ fn main() -> io::Result<()> {
                         0.1,
                         100.0
                     );
-                    skybox.draw(camera.GetViewMatrix(), projection);
+                    // println!("{:?}",camera.Front);
+                    skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
                     // HUD elements should always be rendered on top
                     // TODO: call gl::Clear only after rendering forcefield
