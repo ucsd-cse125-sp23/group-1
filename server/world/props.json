@@ -202,5 +202,18 @@
         },
         "dynamic": false,
         "scale": 40.0
+    },
+    {
+        "name": "wagon",
+        "modelname": "wagon",
+        "pos": [
+            0.0,
+            20.0,
+            0.0
+        ],
+        "shape": {
+            "ConvexDecomp": "../client/resources/wagon/wagon.obj"
+        },
+        "scale": 1.3
     }
 ]

@@ -55,7 +55,7 @@ fn prop_default_scale() -> f32 { 1.0 }
 fn prop_default_dynamic() -> bool { true }
 fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
 fn prop_default_density() -> f32 { 1.0 }
-fn prop_default_restitution() -> f32 { 0.0 }
+fn prop_default_restitution() -> f32 { 0.3 }
 fn prop_default_border() -> bool { false }
 
 #[derive(Deserialize)]

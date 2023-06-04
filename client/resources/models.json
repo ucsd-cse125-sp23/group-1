@@ -35,4 +35,9 @@
         "modelname": "wheel",
         "path": "resources/wheel/new-wheel.obj"
     }
+    ,
+    {
+        "modelname": "wagon",
+        "path": "resources/wagon/wagon.obj"
+    }
 ]
