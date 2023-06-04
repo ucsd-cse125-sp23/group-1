@@ -1,5 +1,4 @@
 use crate::camera::Camera;
-use crate::common::set_camera_pos;
 use crate::model::Model;
 use crate::shader::Shader;
 use cgmath::{Deg, InnerSpace, Matrix4, perspective, SquareMatrix, Vector2, Vector3};

@@ -19,7 +19,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace, Zero};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, EuclideanSpace, Transform, Vector4, vec4, Zero};
 
 use std::ffi::{CStr};
 
@@ -340,9 +340,9 @@ fn main() -> io::Result<()> {
                     let light_dir = vec3(0., 0., 1.);
                     let light_ambience = vec3(0.2, 0.2, 0.2);
                     let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &light_diffuse);
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
@@ -374,7 +374,7 @@ fn main() -> io::Result<()> {
                             // player position used for force field
                             player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
