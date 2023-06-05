@@ -189,7 +189,11 @@ impl ECS {
             };
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
+            let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
+            let local_com = collider.mass_properties().local_com;
+            let mass = collider.mass_properties().mass();
+            let principal_inertia = collider.mass_properties().principal_inertia();
+            collider.set_mass_properties(MassProperties::new(local_com, mass, principal_inertia * 10.0));
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
             self.physics_components[player] = PhysicsComponent{handle, collider_handle};
             self.dynamics.push(player);
@@ -478,6 +482,7 @@ impl ECS {
             health_components: self.player_health_components.clone(),
             audio_components: self.audio_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
+            event_components: self.event_components.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
             events: self.events.clone(),
@@ -537,7 +542,11 @@ impl ECS {
         });
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
-        let collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
+        let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
+        let local_com = collider.mass_properties().local_com;
+        let mass = collider.mass_properties().mass();
+        let principal_inertia = collider.mass_properties().principal_inertia();
+        collider.set_mass_properties(MassProperties::new(local_com, mass, principal_inertia * 10.0));
         let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
         self.physics_components.insert(player,PhysicsComponent{handle, collider_handle});
         player
@@ -643,7 +652,7 @@ impl ECS {
                 // println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
-                self.event_components.insert(event_key, EventComponent { lifetime: EVENT_LIFETIME });
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
                 self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:fire_point.x, y:fire_point.y, z:fire_point.z});
 
                 let ray = Ray::new(fire_point, *fire_vec);
@@ -658,6 +667,12 @@ impl ECS {
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
 
+                        let event_key = self.name_components.insert("hit_event".to_string());
+                        self.events.push(event_key);
+                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target}});
+
+                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {
                             self.player_health_components[target].health -= 1;
@@ -665,14 +680,17 @@ impl ECS {
 
                             if self.player_health_components[target].health == 0 {
                                 // handle player death
+                                let event_key = self.name_components.insert("death_event".to_string());
+                                self.events.push(event_key);
+                                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DeathEvent { player: target, killer: player }});
                                 self.player_health_components[target].alive = false;
                                 self.active_players -= 1;
                                 self.player_input_components[target] = PlayerInputComponent::default();
+                                target_body.set_locked_axes(LockedAxes::empty(), true);
                             }
                         }
 
                         let hit_point = ray.point_at(toi);
-                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
@@ -847,6 +865,9 @@ impl ECS {
      */
     pub fn player_move(&mut self) {
         for &player in &self.players {
+            if !self.player_health_components[player].alive {
+                continue;
+            }
             let input = &self.player_input_components[player];
             let camera = &self.player_camera_components[player];
             let impulse = 0.05;

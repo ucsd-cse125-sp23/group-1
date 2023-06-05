@@ -1,3 +1,4 @@
+use crate::fadable::Fadable;
 use crate::sprite_renderer::{Anchor, Sprite};
 use cgmath::{vec2, Vector2};
 use shared::*;
@@ -54,7 +55,9 @@ pub struct UI {
     pub p1_dead: Sprite,
     pub p2_dead: Sprite,
     pub p3_dead: Sprite,
-    pub p4_dead: Sprite
+    pub p4_dead: Sprite,
+    pub damage: Fadable,
+    pub hitmarker: Fadable,
 
     // ======================== game over ui elements =========================
 }
@@ -143,13 +146,17 @@ impl UI {
             p1_dead: init_sprite(s_size, id, P1_DEAD_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
             p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
             p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
-            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE)
+            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+
+            damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
+            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
         }
     }
 
     pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>) {
         unsafe {
             self.crosshair.draw();
+            self.hitmarker.draw();
 
             if client_alive {
                 match client_id {
@@ -205,6 +212,7 @@ impl UI {
                 }, 
                 None => ()
             }
+            self.damage.draw();
         }
     }
 

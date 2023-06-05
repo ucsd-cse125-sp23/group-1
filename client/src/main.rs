@@ -13,6 +13,8 @@ mod sprite_renderer;
 mod tracker;
 mod ui;
 mod util;
+mod screenshake;
+mod fadable;
 
 mod force_field;
 mod init_skies;
@@ -380,6 +382,7 @@ fn main() -> io::Result<()> {
 
                 match &client_ecs {
                     Some(c_ecs) => {
+                        let player_key = c_ecs.ids[client_id];
                         // make sure we haven't handled this event yet
                         for &event in &c_ecs.events {
                             if client_events.contains_key(event) {
@@ -390,12 +393,51 @@ fn main() -> io::Result<()> {
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
                                 let audio_event = &c_ecs.audio_components[event];
-                                audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
+                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                    Ok(_) => (),
+                                    Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                };
                             }
+                            match c_ecs.event_components[event].event_type {
+                                EventType::FireEvent { player } => {
+                                    if player == player_key {
+                                        camera.ScreenShake.add_trauma(0.3);
+                                    }
+                                },
+                                EventType::HitEvent { player, target } => {
+                                    if target == player_key && c_ecs.health_components[player_key].alive {
+                                        camera.ScreenShake.add_trauma(0.5);
+                                        ui_elems.damage.add_alpha(0.5);
+                                    } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
+                                        ui_elems.hitmarker.add_alpha(1.0);
+                                    }
+                                },
+                                EventType::DeathEvent { player, killer } => {
+                                    if player == player_key {
+                                        camera.ScreenShake.add_trauma(1.0);
+                                        ui_elems.damage.add_alpha(1.0);
+                                    } else if killer == player_key {
+                                        ui_elems.hitmarker.add_alpha(1.0);
+                                    }
+                                }
+                            }
+                        }
+
+                        // dead player camera
+                        if !c_ecs.health_components[player_key].alive {
+                            camera.RotQuat = Quaternion::new(
+                                c_ecs.position_components[player_key].qw,
+                                c_ecs.position_components[player_key].qx,
+                                c_ecs.position_components[player_key].qy,
+                                c_ecs.position_components[player_key].qz,
+                            );
+                            camera.UpdateVecs();
                         }
                     },
                     None => ()
                 }
+
+                camera.ScreenShake.shake_camera();
 
                 // render
                 // ------
@@ -578,6 +620,7 @@ fn main() -> io::Result<()> {
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
+
                     let projection: Matrix4<f32> = perspective(
                         Deg(camera.Zoom),
                         width as f32 / height as f32,
@@ -591,6 +634,7 @@ fn main() -> io::Result<()> {
                     force_field.draw(&camera, player_pos_ff);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
                 frame_count += 1;
