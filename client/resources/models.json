@@ -9,7 +9,19 @@
     },
     {
         "modelname": "asteroid",
-        "path": "resources/new_asteroid/asteroid.obj"
+        "path": "resources/asteroids/asteroid.obj"
+    },
+    {
+        "modelname": "rough_asteroid_small",
+        "path": "resources/asteroids/rough_asteroid_small.obj"
+    },
+    {
+        "modelname": "round_asteroid_small",
+        "path": "resources/asteroids/round_asteroid_small.obj"
+    },
+    {
+        "modelname": "round_asteroid_big",
+        "path": "resources/asteroids/round_asteroid_big.obj"
     },
     {
         "modelname": "characterPink",

@@ -1,6 +1,7 @@
 use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
+use std::collections::HashMap;
 use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
@@ -49,6 +50,7 @@ pub struct ECS {
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
 
+    pub decomps: HashMap<(String, i32),SharedShape>,
     pub spawnpoints: Vec<Isometry3<f32>>,
     pub skies: Vec<usize>,
     pub sky: usize,
@@ -95,6 +97,7 @@ impl ECS {
             dynamics: vec![],
             renderables: vec![],
 
+            decomps: HashMap::new(),
             spawnpoints: vec![],
             skies: vec![],
             sky: 0,
@@ -532,10 +535,10 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
-        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool,
+        qx: f32, qy: f32, qz: f32, qw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool,
         linvel: Vector3<f32>, angvel: Vector3<f32>) {
             let entity = self.name_components.insert(name);
-            let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
+            let rot = UnitQuaternion::from_quaternion(Quaternion::new(qw,qx,qy,qz));
             self.position_components.insert(
                 entity, 
                 PositionComponent {

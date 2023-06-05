@@ -1,5 +1,6 @@
 // use nalgebra::*;
 use rapier3d::prelude::*;
+use std::collections::HashMap;
 use std::{time::Duration, time::Instant};
 use std::net::{TcpListener};
 use polling::{Event, Poller};
@@ -20,6 +21,7 @@ fn main() {
 
     let mut ecs = ecs::ECS::new();
 
+    ecs.decomps = HashMap::new();
     init_world::init_world(&mut ecs);
     init_world::init_player_spawns(&mut ecs.spawnpoints);
     ecs.skies = (0..init_world::init_num_skies()).collect();

@@ -2,7 +2,7 @@ use crate::ecs::*;
 use rapier3d::geometry::SharedShape;
 use nalgebra::{Isometry3, Translation3, UnitQuaternion, point, Point3, Unit, vector};
 use serde::Deserialize;
-use std::fs;
+use std::{fs};
 use std::path::Path;
 use rand::{thread_rng, Rng};
 use tobj;
@@ -14,6 +14,14 @@ enum Shape {
     Convex(String),
     ConvexDecomp(String),
     Trimesh(String),
+}
+
+#[derive(Deserialize)]
+struct Quat {
+    w: f32,
+    x: f32,
+    y: f32,
+    z: f32
 }
 
 #[derive(Deserialize)]
@@ -32,7 +40,7 @@ struct Prop {
     #[serde(default = "prop_default_pos")]
     pos: (f32, f32, f32),
     #[serde(default = "prop_default_rot")]
-    rot: EulerRot,
+    rot: Quat,
     #[serde(default = "prop_default_scale")]
     scale: f32,
     #[serde(default = "prop_default_dynamic")]
@@ -54,7 +62,7 @@ struct Prop {
 fn prop_default_name() -> String { "UNNAMED".to_string() }
 fn prop_default_modelname() -> String { "cube".to_string() }
 fn prop_default_pos() -> (f32,f32,f32) { (0.0,0.0,0.0) }
-fn prop_default_rot() -> EulerRot { EulerRot { roll: 0.0, pitch: 0.0, yaw: 0.0 } }
+fn prop_default_rot() -> Quat { Quat { w: 1.0, x: 0.0, y: 0.0, z: 0.0 } }
 fn prop_default_scale() -> f32 { 1.0 }
 fn prop_default_dynamic() -> bool { true }
 fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
@@ -73,8 +81,8 @@ struct SpawnPoint {
 
 fn spawnpoint_default_rot() -> Option<EulerRot> { None }
 
-fn load_scaled_model(path: String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
-    let path = Path::new(&path);
+fn load_scaled_model(path: &String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
+    let path = Path::new(path);
     let obj = tobj::load_obj(path);
     let (models, _) = obj.unwrap();
     let mesh = &models[0].mesh;
@@ -99,33 +107,51 @@ pub fn init_world(ecs: &mut ECS) {
             Shape::Ball(r) => SharedShape::ball(r * prop.scale),
             Shape::Cuboid(hx, hy, hz) => SharedShape::cuboid(hx * prop.scale, hy * prop.scale, hz * prop.scale),
             Shape::Convex(path) => {
-                let (vertices, _) = load_scaled_model(path, prop.scale);
+                let (vertices, _) = load_scaled_model(&path, prop.scale);
                 SharedShape::convex_hull(&vertices).expect("failed to generate convex hull")
             },
             Shape::ConvexDecomp(path) => {
-                let (vertices, indices) = load_scaled_model(path, prop.scale);
-                SharedShape::convex_decomposition(&vertices, &indices)
+                // NOTE: It is assumed that scale only needs to be accurate to one decimal place
+                let scale_int = (prop.scale * 10.0) as i32;
+                if ecs.decomps.contains_key(&(path.clone(), scale_int)) {
+                    // println!("Using previously loaded convex decomposition for {} with scale {}", path, prop.scale);
+                    ecs.decomps[&(path, scale_int)].clone()
+                } else {
+                    let (vertices, indices) = load_scaled_model(&path, prop.scale);
+                    let shape = SharedShape::convex_decomposition(&vertices, &indices);
+                    ecs.decomps.insert((path, scale_int), shape.clone());
+                    shape
+                }
             },
             Shape::Trimesh(path) => {
-                let (vertices, indices) = load_scaled_model(path, prop.scale);
+                let (vertices, indices) = load_scaled_model(&path, prop.scale);
                 SharedShape::trimesh(vertices, indices)
             }
         };
-        let mut linvel = thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0];
-        linvel *= thread_rng().gen_range(0.0..prop.max_linvel);
-        let angvel_axis = Unit::new_normalize(thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0]);
-        let angvel_angle = thread_rng().gen_range(0.0..prop.max_angvel);
-        let angvel_euler = UnitQuaternion::from_axis_angle(&angvel_axis, angvel_angle).euler_angles();
-        let angvel = vector![angvel_euler.0, angvel_euler.1, angvel_euler.2];
+        let linvel = if prop.max_linvel > 0.0 {
+            let dir = thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0];
+            dir * thread_rng().gen_range(0.0..prop.max_linvel)
+        } else {
+            vector![0.0,0.0,0.0]
+        };
+        let angvel = if prop.max_angvel > 0.0 {
+            let angvel_axis = Unit::new_normalize(thread_rng().gen::<UnitQuaternion<f32>>() * vector![0.0, 0.0, 1.0]);
+            let angvel_angle = thread_rng().gen_range(0.0..prop.max_angvel);
+            let angvel_euler = UnitQuaternion::from_axis_angle(&angvel_axis, angvel_angle).euler_angles();
+            vector![angvel_euler.0, angvel_euler.1, angvel_euler.2]
+        } else {
+            vector![0.0,0.0,0.0]
+        };
         ecs.spawn_prop(
             prop.name,
             prop.modelname,
             prop.pos.0,
             prop.pos.1,
             prop.pos.2,
-            prop.rot.roll,
-            prop.rot.pitch,
-            prop.rot.yaw,
+            prop.rot.x,
+            prop.rot.y,
+            prop.rot.z,
+            prop.rot.w,
             prop.dynamic,
             sharedshape,
             prop.scale,
