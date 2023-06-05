@@ -46,7 +46,7 @@ impl ForceField {
         // alpha will be 0 at inner radius
         let inner_radius = 150.0;
         let mut alpha = (player_pos.magnitude() - inner_radius) / (self.radius - inner_radius);
-        alpha = clamp(alpha, 0.0, 1.0);
+        alpha = clamp(alpha, 0.0, 1.0).powi(2);
         self.shader.set_float(c_str!("alpha"), alpha);
 
         self.model.draw(&self.shader);
