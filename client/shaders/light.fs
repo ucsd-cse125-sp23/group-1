@@ -24,7 +24,6 @@ void main()
     if (load_normal == 1) {
         vec3 tnormal = texture(texture_normal1, TexCoords).rgb;
         tnormal = normalize(tnormal * 2.0 - 1.0);
-        // normal =  normalize(TBN * tnormal);
         normal = tnormal;
 
         lightDir = normalize(TangentLightPos - TangentFragPos);

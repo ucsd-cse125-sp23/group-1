@@ -4,7 +4,6 @@ use std::ffi::{CStr, CString};
 use std::{fs, ptr, str};
 use gl::types::*;
 use cgmath::{Matrix4, Matrix, Vector3, Array, Vector4};
-use cgmath::prelude::*;
 
 pub struct Shader {
     pub id: u32,

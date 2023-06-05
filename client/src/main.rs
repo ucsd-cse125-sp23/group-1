@@ -431,17 +431,17 @@ fn main() -> io::Result<()> {
                             }
 
                             // if mouse click add particle here
-                            if (window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press){
+                            if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press{
                                 println!("create a particle emitter!");
                                 particle_emitters.push(ParticleEmitter::new(
-                                    models["cube"], 50, vec3(0.,0.,0.), 120
+                                    50, vec3(0.,0.,0.), 120
                                 ));
                             }
 
                             // render particle effects
                             for i in (0..particle_emitters.len()).rev(){
-                                let keep = particle_emitters[i].draw(&shader_program);
-                                if (!keep){
+                                let keep = particle_emitters[i].draw(&models["cube"], &shader_program);
+                                if !keep{
                                     particle_emitters.remove(i);
                                 }
                             }
