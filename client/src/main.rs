@@ -650,6 +650,9 @@ fn main() -> io::Result<()> {
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
+
+                    frame_count += 1;
+                    frame_count %= AUDIO_FRAMES;
                 }
             }
             GameState::GameOver => {
@@ -665,8 +668,7 @@ fn main() -> io::Result<()> {
                     ui_elems.draw_game_over(curr_id, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
-                frame_count += 1;
-                frame_count %= AUDIO_FRAMES;
+                
             }
         }
 
