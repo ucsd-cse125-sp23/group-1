@@ -1,5 +1,7 @@
+
 mod macros; // this needs to stay at the top
 mod audio;
+
 mod camera;
 mod common;
 mod lasso;
@@ -11,6 +13,8 @@ mod sprite_renderer;
 mod tracker;
 mod ui;
 mod util;
+
+mod force_field;
 mod init_skies;
 
 use std::collections::HashMap;
@@ -22,7 +26,7 @@ extern crate glfw;
 use self::glfw::{Action, Context, Key, MouseButton};
 use cgmath::{
     perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector2, Vector3, Vector4, InnerSpace
+    Transform, Vector2, Vector3, Vector4, InnerSpace, Zero
 };
 
 use std::ffi::CStr;
@@ -34,6 +38,7 @@ use crate::shader::Shader;
 // network
 use crate::audio::AudioPlayer;
 use crate::common::*;
+use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use shared::shared_components::*;
@@ -184,6 +189,9 @@ fn main() -> io::Result<()> {
         let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
+
+    // create force field
+    let force_field = ForceField::new(250.0, screen_size);
 
     // create lasso
     let lasso = Lasso::new();
@@ -399,11 +407,12 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    shader_program.setVector3(c_str!("lightDir"), &skies[sky].light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &skies[sky].light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &skies[sky].light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
+                    let mut player_pos_ff = Vector3::zero();
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -444,11 +453,18 @@ fn main() -> io::Result<()> {
                                     Err(e) => eprintln!("Audio error moving listener: {e}"),
                                 };
                             }
+                            // player position used for force field
+                            player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
+                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 if renderable == player_key {
+                                    continue;
+                                }
+                                if !models.contains_key(model_name) {
+                                    println!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 
@@ -476,7 +492,6 @@ fn main() -> io::Result<()> {
                                 shader_program.set_mat4(c_str!("model"), &model);
                                 let model_scaleless = pos_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
-                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
 
@@ -572,9 +587,9 @@ fn main() -> io::Result<()> {
                     // println!("{:?}",camera.Front);
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
-
                     gl::DepthMask(gl::FALSE);
+                    force_field.draw(&camera, player_pos_ff);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
                 }

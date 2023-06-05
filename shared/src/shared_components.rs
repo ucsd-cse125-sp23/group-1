@@ -139,7 +139,8 @@ impl PositionComponent {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ModelComponent {
     pub modelname: String,
-    pub scale: f32
+    pub scale: f32,
+    pub border: bool
 }
 
 #[derive(Serialize, Deserialize, Clone)]

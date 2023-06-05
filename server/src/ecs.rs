@@ -517,7 +517,7 @@ impl ECS {
         self.players.push(player);
         self.dynamics.push(player);
         self.renderables.push(player);
-        self.model_components.insert(player, ModelComponent { modelname: "characterPink".to_string(), scale: 1.0 });
+        self.model_components.insert(player, ModelComponent { modelname: "characterPink".to_string(), scale: 1.0, border: false });
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
@@ -544,9 +544,8 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
-        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32) {
+        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool) {
             let entity = self.name_components.insert(name);
-            self.renderables.push(entity);
             let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
             self.position_components.insert(
                 entity, 
@@ -560,7 +559,10 @@ impl ECS {
                     qw: (rot.w)
                 }
             );
-            self.model_components.insert(entity,ModelComponent { modelname, scale });
+            if !border {
+                self.renderables.push(entity);
+            }
+            self.model_components.insert(entity,ModelComponent { modelname, scale, border });
             let rigid_body: RigidBody;
             if dynamic {
                 self.dynamics.push(entity);
@@ -573,7 +575,12 @@ impl ECS {
                 ).build();
             }
             let handle = self.rigid_body_set.insert(rigid_body);
-            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).collision_groups(InteractionGroups::new(Group::all(),Group::all())).user_data(
+            let combine = if border {
+                CoefficientCombineRule::Max
+            } else {
+                CoefficientCombineRule::Average
+            };
+            let collider = ColliderBuilder::new(shape).density(density).restitution(restitution).restitution_combine_rule(combine).collision_groups(InteractionGroups::new(Group::all(),Group::all())).user_data(
                 entity.data().as_ffi() as u128
             ).build();
             let collider_handle = self.collider_set.insert_with_parent(collider, handle, &mut self.rigid_body_set);
@@ -750,6 +757,18 @@ impl ECS {
                                 let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
                                 if target == player {
                                     eprintln!("ERROR: Lasso hit its own player!");
+                                    continue 'players;
+                                }
+                                if self.model_components.contains_key(target) && self.model_components[target].border {
+                                    println!("Hit border");
+                                    println!("releasing lasso");
+                                    self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
+                                    self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
+                                    self.name_components.remove(thrown.entity);
+                                    self.physics_components.remove(thrown.entity);
+                                    self.position_components.remove(thrown.entity);
+                                    self.player_lasso_thrown_components.remove(player);
+                                    self.player_lasso_components.remove(player);
                                     continue 'players;
                                 }
                                 let target_name = & self.name_components[target];
