@@ -234,7 +234,6 @@ impl ECS {
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
                 self.send_ready_message(false);
-                println!("Name: {}", name);
             },
             Err(e) => {
                 eprintln!("Failed to connect to client: {e:?}");
@@ -642,12 +641,9 @@ impl ECS {
                 if weapon.reloading && weapon.cooldown == 0 {
                     weapon.ammo = AMMO_COUNT;
                     weapon.reloading = false;
-                    println!("ammo: {}",weapon.ammo);
                 }
             }
             if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
-                println!("firing!");
-
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 12.0 * fire_vec;
                 let position = &self.position_components[player];
@@ -655,7 +651,6 @@ impl ECS {
                 let fire_point = point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight);
 
                 // add fire event to server tick
-                // println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
                 self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
@@ -700,9 +695,7 @@ impl ECS {
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
-                    None => {
-                        println!("Miss");
-                    },
+                    None => (),
                 }
 
                 let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
@@ -710,9 +703,7 @@ impl ECS {
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
                 weapon.ammo -= 1;
-                println!("ammo: {}",weapon.ammo);
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
-                println!("reloading...");
                 weapon.cooldown = 120;
                 weapon.reloading = true;
             }
@@ -758,7 +749,6 @@ impl ECS {
                     let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
                     rigid_body.apply_impulse((vector![anchor_point.x, anchor_point.y, anchor_point.z]-vector![position.x, position.y, position.z]).normalize() * impulse, true);
                 } else {
-                    println!("releasing lasso");
                     self.impulse_joint_set.remove(lasso_phys.joint_handle,true);
                     self.player_lasso_phys_components.remove(player);
                     self.player_lasso_components.remove(player);
@@ -785,8 +775,6 @@ impl ECS {
                                     continue 'players;
                                 }
                                 if self.model_components.contains_key(target) && self.model_components[target].border {
-                                    println!("Hit border");
-                                    println!("releasing lasso");
                                     self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                                     self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                                     self.name_components.remove(thrown.entity);
@@ -796,8 +784,6 @@ impl ECS {
                                     self.player_lasso_components.remove(player);
                                     continue 'players;
                                 }
-                                let target_name = & self.name_components[target];
-                                println!("Hit target {}",target_name);
                                 let dist = distance(&point![position.x, position.y, position.z],&hit_point);
                                 let limit = dist / 3.0_f32.sqrt() + slack;
                                 let target_handle = &self.physics_components[target].handle;
@@ -822,7 +808,6 @@ impl ECS {
                     let thrown_pos = &self.position_components[thrown.entity];
                     let dist = distance(&point![position.x, position.y, position.z],&point![thrown_pos.x, thrown_pos.y, thrown_pos.z]);
                     if dist > max_dist {
-                        println!("releasing lasso");
                         self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                         self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                         self.name_components.remove(thrown.entity);
@@ -836,7 +821,6 @@ impl ECS {
                         self.player_lasso_components[player].anchor_z = thrown_pos.z;
                     }
                 } else {
-                    println!("releasing lasso");
                     self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                     self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                     self.name_components.remove(thrown.entity);
@@ -846,7 +830,6 @@ impl ECS {
                     self.player_lasso_components.remove(player);
                 }
             } else if input.rmb_clicked {
-                println!("throwing lasso");
                 let radius = 0.02;
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];

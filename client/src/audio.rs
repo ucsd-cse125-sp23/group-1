@@ -9,12 +9,11 @@ use kira::{
 		emitter::EmitterSettings,
 	},
 	sound::static_sound::{StaticSoundData, StaticSoundSettings}, 
-    tween::{Tween, Easing::Linear, self},
+    tween::{Tween},
     CommandError
 };
 use mint::{Vector3, Quaternion};
 use std::collections::HashMap;
-use std::time::{Duration};
 
 pub struct AudioPlayer {
     manager: AudioManager,
