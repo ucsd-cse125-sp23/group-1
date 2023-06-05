@@ -12,6 +12,7 @@ use crate::{server_components::*, init_world::*, common::*};
 
 type Entity = DefaultKey;
 
+const EVENT_LIFETIME: u8 = 5;
 pub struct ECS {
     pub name_components: SlotMap<Entity, String>,
     
@@ -22,13 +23,14 @@ pub struct ECS {
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
-    
+    pub audio_components: SecondaryMap<Entity, AudioComponent>,
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
     pub player_camera_components: SecondaryMap<Entity, PlayerCameraComponent>,
     pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
     pub player_lasso_thrown_components: SecondaryMap<Entity, PlayerLassoThrownComponent>,
+    pub event_components: SecondaryMap<Entity, EventComponent>,
 
     // physics objects
     pub rigid_body_set: RigidBodySet,
@@ -48,6 +50,8 @@ pub struct ECS {
     pub players: Vec<Entity>,
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
+
+    pub events: Vec<Entity>,
 
     pub spawnpoints: Vec<Isometry3<f32>>,
     pub skies: Vec<usize>,
@@ -76,6 +80,9 @@ impl ECS {
             player_camera_components: SecondaryMap::new(),
             player_lasso_phys_components: SecondaryMap::new(),
             player_lasso_thrown_components: SecondaryMap::new(),
+            event_components: SecondaryMap::new(),
+
+            audio_components: SecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -94,7 +101,7 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
-
+            events: vec![],
             spawnpoints: vec![],
             skies: vec![],
             sky: 0,
@@ -143,9 +150,12 @@ impl ECS {
         self.player_lasso_components.clear();
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
+        self.event_components.clear();
+        self.audio_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
-
+        self.events.clear();
+        
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
         if self.skies.is_empty() {
@@ -466,9 +476,11 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
+            audio_components: self.audio_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
+            events: self.events.clone(),
             renderables: self.renderables.clone(),
             game_ended: self.game_ended,
         }
@@ -620,12 +632,21 @@ impl ECS {
             }
             if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
                 println!("firing!");
+
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 10.0 * fire_vec;
                 let position = &self.position_components[player];
                 let halfheight = 0.5;
+                let fire_point = point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight);
 
-                let ray = Ray::new(point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight), *fire_vec);
+                // add fire event to server tick
+                // println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
+                let event_key = self.name_components.insert("fire_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent { lifetime: EVENT_LIFETIME });
+                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:fire_point.x, y:fire_point.y, z:fire_point.z});
+
+                let ray = Ray::new(fire_point, *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
@@ -895,5 +916,18 @@ impl ECS {
         self.player_health_components[player].alive = false;
         self.player_health_components[player].health = 0;
         self.active_players -= 1;
+    }
+
+    /**
+     * Update event lifetime and prune old events.
+     */
+    pub fn clear_events(&mut self) {
+        for &event in &self.events {
+            self.event_components[event].lifetime -= 1;
+            if self.event_components[event].lifetime == 0 {
+                self.name_components.remove(event);
+            }
+        }
+        self.events.retain(|x| self.event_components[*x].lifetime != 0);
     }
 }

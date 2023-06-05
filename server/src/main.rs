@@ -92,6 +92,9 @@ fn main() {
 
             ecs.update_clients();
 
+            // avoid playing sounds infinitely
+            ecs.clear_events();
+
             // END SERVER TICK
             let end = Instant::now();
             // pad tick time by spin sleeping
