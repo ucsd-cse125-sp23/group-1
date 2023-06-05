@@ -363,7 +363,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game_over(&mut self, client_id: usize, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game_over(&mut self, c_ecs: &Option<ClientECS>) {
         unsafe{
             self.game_over_bg.draw();
             match c_ecs {

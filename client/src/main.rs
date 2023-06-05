@@ -27,10 +27,10 @@ use std::time::Duration;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Action, Context, Key, MouseButton};
+use self::glfw::{Action, Context, Key};
 use cgmath::{
-    perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector2, Vector3, Vector4, InnerSpace, Zero
+    perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
+    Transform, Vector3, Vector4, Zero
 };
 
 use std::ffi::CStr;
@@ -65,11 +65,6 @@ enum GameState {
     GameOver
 }
 
-// audio
-use kira::{
-    manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
-    sound::static_sound::{StaticSoundData, StaticSoundSettings},
-};
 fn main() -> io::Result<()> {
     // initialize event map for handled events
     let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
@@ -642,7 +637,7 @@ fn main() -> io::Result<()> {
                         game_state = GameState::EnteringLobby;
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game_over(curr_id, &client_ecs);
+                    ui_elems.draw_game_over(&client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
                 

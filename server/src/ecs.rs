@@ -784,7 +784,6 @@ impl ECS {
                                     self.player_lasso_components.remove(player);
                                     continue 'players;
                                 }
-                                let target_name = & self.name_components[target];
                                 let dist = distance(&point![position.x, position.y, position.z],&hit_point);
                                 let limit = dist / 3.0_f32.sqrt() + slack;
                                 let target_handle = &self.physics_components[target].handle;
