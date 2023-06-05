@@ -39,7 +39,6 @@ use std::ffi::CStr;
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::particle_emitter::Particle;
 use crate::particle_emitter::ParticleEmitter;
 
 // network
@@ -78,7 +77,7 @@ fn main() -> io::Result<()> {
 
     // initialize audio manager
     let mut audio = AudioPlayer::default();
-    
+
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -428,6 +427,8 @@ fn main() -> io::Result<()> {
                                     Err(e) => eprintln!("Audio error playing sound: {e}"),
                                 };
                             }
+
+
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -441,6 +442,10 @@ fn main() -> io::Result<()> {
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                    let particle_component = &c_ecs.particle_components[event];
+                                    particle_emitters.push(ParticleEmitter::new(
+                                        50, vec3(particle_component.x,particle_component.y,particle_component.z), 30
+                                    ));
                                 },
                                 EventType::DeathEvent { player, killer } => {
                                     if player == player_key {
@@ -625,21 +630,16 @@ fn main() -> io::Result<()> {
                                 }
                                 i += 1;
                             }
-                            // if mouse click add particle here
-                            if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Press{
-                                println!("create a particle emitter!");
-                                particle_emitters.push(ParticleEmitter::new(
-                                    50, vec3(0.,0.,0.), 120
-                                ));
-                            }
 
-                            // render particle effects
+                            // render particle effects                
+                            shader_program.set_bool(c_str!("use_color"), true);
                             for i in (0..particle_emitters.len()).rev(){
                                 let keep = particle_emitters[i].draw(&models["cube"], &shader_program);
                                 if !keep{
                                     particle_emitters.remove(i);
                                 }
-                            }
+                            }                
+                            shader_program.set_bool(c_str!("use_color"), false); 
                             
                             // game has ended
                             if c_ecs.game_ended {

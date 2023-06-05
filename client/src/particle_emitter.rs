@@ -50,13 +50,13 @@ impl ParticleEmitter{
         // to think about: only generate particles going the same direction as the surface normal of the object face that it hit
         return Particle::new(
             if self.frames_to_live == 0 {0} else {
-                rand::thread_rng().gen_range(30..60)},               // frames to live 
+                rand::thread_rng().gen_range(45..60)},               // frames to live 
             vec3(
-                rand::thread_rng().gen_range(-100..100) as f32/100., 
-                rand::thread_rng().gen_range(-100..100) as f32/100., 
-                rand::thread_rng().gen_range(-100..100) as f32/100.),         // velocity vec3
+                rand::thread_rng().gen_range(-100..100) as f32/500., 
+                rand::thread_rng().gen_range(-100..100) as f32/500., 
+                rand::thread_rng().gen_range(-100..100) as f32/500.),         // velocity vec3
             self.position,                                       // position vec3, all particles emitted from the same place
-            rand::thread_rng().gen_range(0..50) as f32/100.,                    // scaling factor
+            rand::thread_rng().gen_range(0..10) as f32/100.,                    // scaling factor
         );
     }
 
@@ -111,8 +111,10 @@ impl ParticleEmitter{
 
             unsafe {
                 shader.set_mat4(c_str!("model"), &model_matrix);
-                shader.set_vector4(c_str!("color"), 
-                &vec4(1., self.particles[i].frames_to_live as f32 / 60., 0., 1.)
+                shader.set_vector4(c_str!("color_overwrite"), 
+                &vec4(1., 
+                    self.particles[i].frames_to_live as f32 / 60., 
+                    0., self.particles[i].frames_to_live as f32 / 120. + 0.5)
                 );
             }
 
