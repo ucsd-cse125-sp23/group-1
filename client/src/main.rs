@@ -1,5 +1,7 @@
+
 mod macros; // this needs to stay at the top
 mod audio;
+
 mod camera;
 mod common;
 mod lasso;
@@ -14,6 +16,9 @@ mod util;
 mod screenshake;
 mod fadable;
 
+mod force_field;
+mod init_skies;
+
 use std::collections::HashMap;
 
 // graphics
@@ -23,7 +28,7 @@ extern crate glfw;
 use self::glfw::{Action, Context, Key, MouseButton};
 use cgmath::{
     perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector2, Vector3, Vector4,
+    Transform, Vector2, Vector3, Vector4, InnerSpace, Zero
 };
 
 use std::ffi::CStr;
@@ -31,11 +36,11 @@ use std::ffi::CStr;
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::skybox::Skybox;
 
 // network
 use crate::audio::AudioPlayer;
 use crate::common::*;
+use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use shared::shared_components::*;
@@ -161,10 +166,12 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe { Skybox::new("resources/skybox/space", ".png") };
-
+    let skies = init_skies::init_skyboxes();
+    let mut sky: usize = 0;
+  
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
@@ -185,6 +192,9 @@ fn main() -> io::Result<()> {
         tracker
     };
 
+    // create force field
+    let force_field = ForceField::new(250.0, screen_size);
+
     // create lasso
     let lasso = Lasso::new();
 
@@ -203,6 +213,8 @@ fn main() -> io::Result<()> {
     let mut is_focused = true;
     let mut ready_sent = false;
     let mut curr_id = client_id;
+
+    let mut frame_count = 0;
 
     // WINDOW LOOP
     // -----------
@@ -249,14 +261,9 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
-                                let start_pos =
-                                    &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
-                                camera.RotQuat = Quaternion::new(
-                                    start_pos.qw,
-                                    start_pos.qx,
-                                    start_pos.qy,
-                                    start_pos.qz,
-                                );
+                                sky = lobby_ecs.sky;
+                                let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
+                                camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
                                 client_ecs = None;
                                 first_mouse = true;
@@ -442,14 +449,12 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    let light_dir = vec3(0., 0., 1.);
-                    let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
+                    let mut player_pos_ff = Vector3::zero();
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -484,17 +489,24 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-                            
-                            match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
-                                Ok(_) => (),
-                                Err(e) => eprintln!("Audio error moving listener: {e}"),
-                            };
-
+                            if frame_count == 0 {
+                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                    Ok(_) => (),
+                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                };
+                            }
+                            // player position used for force field
+                            player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
+                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 if renderable == player_key {
+                                    continue;
+                                }
+                                if !models.contains_key(model_name) {
+                                    println!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 
@@ -520,7 +532,8 @@ fn main() -> io::Result<()> {
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
-                                let model_name = &c_ecs.model_components[renderable].modelname;
+                                let model_scaleless = pos_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
                                 models[model_name].draw(&shader_program);
                             }
 
@@ -607,15 +620,25 @@ fn main() -> io::Result<()> {
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
-                    let projection: Matrix4<f32> =
-                        perspective(Deg(camera.Zoom), width as f32 / height as f32, 0.1, 100.0);
-                    skybox.draw(camera.GetViewMatrix(), projection);
+
+                    let projection: Matrix4<f32> = perspective(
+                        Deg(camera.Zoom),
+                        width as f32 / height as f32,
+                        0.1,
+                        100.0
+                    );
+                    // println!("{:?}",camera.Front);
+                    skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
                     gl::DepthMask(gl::FALSE);
+                    force_field.draw(&camera, player_pos_ff);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
+                frame_count += 1;
+                frame_count %= AUDIO_FRAMES;
             }
         }
 
