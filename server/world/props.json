@@ -1068,5 +1068,499 @@
         "scale": 1.3,
         "max_linvel": 0.0,
         "max_angvel": 0.0
+    },
+    {
+        "name": "asteroid051",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            -58.7132,
+            33.228,
+            -61.7177
+        ],
+        "rot": {
+            "w": -0.157573,
+            "x": -0.11033,
+            "y": -0.969958,
+            "z": 0.148928
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 3.5
+    },
+    {
+        "name": "asteroid052",
+        "modelname": "asteroid",
+        "pos": [
+            0.117867,
+            36.6459,
+            109.895
+        ],
+        "rot": {
+            "w": 0.366691,
+            "x": 0.677419,
+            "y": 0.464335,
+            "z": 0.437075
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 3.0
+    },
+    {
+        "name": "asteroid053",
+        "modelname": "round_asteroid_big",
+        "pos": [
+            84.8596,
+            13.3254,
+            82.7298
+        ],
+        "rot": {
+            "w": 0.338875,
+            "x": 0.409825,
+            "y": -0.833952,
+            "z": 0.147418
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_big.obj"
+        },
+        "scale": 3.0
+    },
+    {
+        "name": "asteroid054",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            92.184,
+            4.89867,
+            27.0969
+        ],
+        "rot": {
+            "w": -0.011246,
+            "x": 0.368717,
+            "y": 0.744559,
+            "z": -0.556375
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 1.0
+    },
+    {
+        "name": "asteroid055",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            -62.7092,
+            7.05365,
+            81.7977
+        ],
+        "rot": {
+            "w": 0.558564,
+            "x": 0.205955,
+            "y": 0.803447,
+            "z": 0.007925
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 1.0
+    },
+    {
+        "name": "asteroid056",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            -56.869,
+            5.70508,
+            110.006
+        ],
+        "rot": {
+            "w": 0.818399,
+            "x": -0.243772,
+            "y": 0.520382,
+            "z": -0.001213
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 1.0
+    },
+    {
+        "name": "asteroid057",
+        "modelname": "asteroid",
+        "pos": [
+            127.497,
+            28.5197,
+            1.14794
+        ],
+        "rot": {
+            "w": -0.386701,
+            "x": -0.252912,
+            "y": 0.351031,
+            "z": -0.814416
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 5.0
+    },
+    {
+        "name": "asteroid058",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            127.497,
+            28.5197,
+            1.14794
+        ],
+        "rot": {
+            "w": -0.386701,
+            "x": -0.252912,
+            "y": 0.351031,
+            "z": -0.814416
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 5.0
+    },
+    {
+        "name": "asteroid059",
+        "modelname": "round_asteroid_big",
+        "pos": [
+            -145.976,
+            64.1706,
+            -57.5935
+        ],
+        "rot": {
+            "w": 0.338875,
+            "x": 0.409825,
+            "y": -0.833952,
+            "z": 0.147418
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_big.obj"
+        },
+        "scale": 3.0
+    },
+    {
+        "name": "asteroid060",
+        "modelname": "asteroid",
+        "pos": [
+            -20.9399,
+            34.194,
+            -18.767
+        ],
+        "rot": {
+            "w": 0.30812,
+            "x": 0.788746,
+            "y": -0.345499,
+            "z": -0.404441
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 2.0
+    },
+    {
+        "name": "asteroid061",
+        "modelname": "asteroid",
+        "pos": [
+            -11.1144,
+            101.762,
+            76.143
+        ],
+        "rot": {
+            "w": 0.509972,
+            "x": 0.787556,
+            "y": -0.277993,
+            "z": -0.205919
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 3.5
+    },
+    {
+        "name": "asteroid062",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            -143.087,
+            52.842,
+            21.8784
+        ],
+        "rot": {
+            "w": -0.20033,
+            "x": -0.507295,
+            "y": -0.066498,
+            "z": -0.835523
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 7.0
+    },
+    {
+        "name": "asteroid063",
+        "modelname": "asteroid",
+        "pos": [
+            62.6132,
+            163.325,
+            -7.57318
+        ],
+        "rot": {
+            "w": -0.944405,
+            "x": -0.005287,
+            "y": -0.189044,
+            "z": -0.268947
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 2.0
+    },
+    {
+        "name": "asteroid064",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            -13.2397,
+            130.362,
+            -139.058
+        ],
+        "rot": {
+            "w": 0.250883,
+            "x": -0.699489,
+            "y": 0.646942,
+            "z": -0.170994
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 3.0
+    },
+    {
+        "name": "asteroid065",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            46.8554,
+            62.9747,
+            -164.741
+        ],
+        "rot": {
+            "w": 0.128197,
+            "x": -0.830354,
+            "y": 0.541447,
+            "z": 0.03021
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 2.0
+    },
+    {
+        "name": "asteroid066",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            168.233,
+            64.1799,
+            80.4433
+        ],
+        "rot": {
+            "w": -0.231601,
+            "x": -0.711179,
+            "y": -0.056602,
+            "z": 0.661348
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 2.0
+    },
+    {
+        "name": "asteroid067",
+        "modelname": "asteroid",
+        "pos": [
+            -92.0446,
+            -43.9523,
+            -100.688
+        ],
+        "rot": {
+            "w": -0.366942,
+            "x": 0.127221,
+            "y": 0.853215,
+            "z": 0.348126
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 20.0
+    },
+    {
+        "name": "asteroid068",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            102.17,
+            -80.9921,
+            1.68846
+        ],
+        "rot": {
+            "w": -0.131165,
+            "x": 0.774169,
+            "y": 0.262146,
+            "z": 0.561016
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 20.0
+    },
+    {
+        "name": "asteroid069",
+        "modelname": "rough_asteroid_small",
+        "pos": [
+            -102.167,
+            -52.7626,
+            95.2032
+        ],
+        "rot": {
+            "w": -0.137423,
+            "x": 0.551526,
+            "y": -0.123696,
+            "z": -0.813409
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/rough_asteroid_small.obj"
+        },
+        "scale": 20.0
+    },
+    {
+        "name": "asteroid070",
+        "modelname": "asteroid",
+        "pos": [
+            61.6349,
+            -74.058,
+            35.0786
+        ],
+        "rot": {
+            "w": 0.347549,
+            "x": -0.623168,
+            "y": 0.696155,
+            "z": 0.078986
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 20.0
+    },
+    {
+        "name": "asteroid071",
+        "modelname": "round_asteroid_big",
+        "pos": [
+            -85.3832,
+            -63.3972,
+            28.6824
+        ],
+        "rot": {
+            "w": 0.132934,
+            "x": 0.713419,
+            "y": 0.628236,
+            "z": -0.280504
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_big.obj"
+        },
+        "scale": 10.0
+    },
+    {
+        "name": "asteroid072",
+        "modelname": "round_asteroid_big",
+        "pos": [
+            80.2971,
+            -74.4124,
+            -107.701
+        ],
+        "rot": {
+            "w": 0.320816,
+            "x": 0.005424,
+            "y": 0.785249,
+            "z": -0.529559
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_big.obj"
+        },
+        "scale": 10.0
+    },
+    {
+        "name": "asteroid073",
+        "modelname": "asteroid",
+        "pos": [
+            25.7464,
+            -20.6057,
+            -31.9996
+        ],
+        "rot": {
+            "w": -0.863373,
+            "x": 0.263189,
+            "y": 0.331739,
+            "z": 0.274349
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/asteroid.obj"
+        },
+        "scale": 10.0
+    },
+    {
+        "name": "asteroid074",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            -110.962,
+            -116.415,
+            -19.8279
+        ],
+        "rot": {
+            "w": 0.240685,
+            "x": -0.858168,
+            "y": -0.350598,
+            "z": 0.287578
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 10.0
+    },
+    {
+        "name": "asteroid075",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            53.8082,
+            -136.29,
+            -40.2287
+        ],
+        "rot": {
+            "w": 0.609352,
+            "x": -0.213023,
+            "y": -0.760229,
+            "z": 0.073237
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 10.0
+    },
+    {
+        "name": "asteroid0",
+        "modelname": "round_asteroid_small",
+        "pos": [
+            105.707,
+            -45.8906,
+            79.3612
+        ],
+        "rot": {
+            "w": 0.609352,
+            "x": -0.213023,
+            "y": -0.760229,
+            "z": 0.073237
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/asteroids/round_asteroid_small.obj"
+        },
+        "scale": 10.0
     }
 ]
