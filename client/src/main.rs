@@ -62,6 +62,7 @@ enum GameState {
     EnteringLobby,
     InLobby,
     InGame,
+    GameOver
 }
 
 // audio
@@ -83,9 +84,9 @@ fn main() -> io::Result<()> {
     };
     let mut first_mouse = true;
     let mut first_click = false;
+    let mut first_enter = false;
     let mut last_x: f32;
     let mut last_y: f32;
-
     let mut fullscreen = false;
     let mut f11_pressed = false;
 
@@ -254,10 +255,13 @@ fn main() -> io::Result<()> {
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
-                process_inputs_lobby(&mut window, &mut ready_sent, &mut stream);
-
-                // events
-                // ------
+                process_inputs_lobby(
+                    &mut window,
+                    &mut ready_sent,
+                    &mut first_enter,
+                    &mut stream
+                );
+                
                 process_events_lobby(&events);
 
                 unsafe {
@@ -267,7 +271,9 @@ fn main() -> io::Result<()> {
                     if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
+                    gl::DepthMask(gl::FALSE);
                     ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                    gl::DepthMask(gl::TRUE);
                 }
 
                 // poll server for ready message or ready-player updates
@@ -305,8 +311,6 @@ fn main() -> io::Result<()> {
 
                 let mut roll = false;
 
-                // process inputs
-                // --------------
                 process_inputs_game(
                     &mut window,
                     &mut input_component,
@@ -315,8 +319,6 @@ fn main() -> io::Result<()> {
                     is_focused,
                 );
 
-                // events
-                // ------
                 process_events_game(
                     &events,
                     &mut first_mouse,
@@ -619,15 +621,7 @@ fn main() -> io::Result<()> {
 
                             // game has ended
                             if c_ecs.game_ended {
-                                for (i, player) in c_ecs.ids.iter().enumerate() {
-                                    if c_ecs.players.contains(player)
-                                        && c_ecs.health_components[*player].alive
-                                        && c_ecs.health_components[*player].health > 0
-                                    {
-                                        println!("The winner is player {}!", i);
-                                    }
-                                }
-                                game_state = GameState::EnteringLobby;
+                                game_state = GameState::GameOver;
                             }
                         }
                         None => set_camera_pos(
@@ -648,14 +642,27 @@ fn main() -> io::Result<()> {
                         0.1,
                         100.0
                     );
-                    // println!("{:?}",camera.Front);
+                  
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
-
+                  
                     gl::DepthMask(gl::FALSE);
                     force_field.draw(&camera, player_pos_ff);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+                    gl::DepthMask(gl::TRUE);
+                }
+            }
+            GameState::GameOver => {
+                unsafe{
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+                    process_events_game_over(&events);
+
+                    if process_inputs_game_over(&mut window, &mut first_enter) {
+                        game_state = GameState::EnteringLobby;
+                    }
+                    gl::DepthMask(gl::FALSE);
+                    ui_elems.draw_game_over(curr_id, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
                 frame_count += 1;
