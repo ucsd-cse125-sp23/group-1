@@ -1,43 +1,61 @@
+
+mod macros; // this needs to stay at the top
+mod audio;
+
 mod camera;
-mod macros;
+mod common;
+mod lasso;
 mod mesh;
 mod model;
 mod shader;
 mod skybox;
 mod sprite_renderer;
-mod util;
-mod lasso;
 mod tracker;
-mod common;
 mod ui;
+mod util;
+mod screenshake;
+mod fadable;
+
+mod force_field;
+mod init_skies;
+mod init_models;
 
 use std::collections::HashMap;
+use std::time::Duration;
 
 // graphics
 extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4};
+use cgmath::{
+    perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
+    Transform, Vector2, Vector3, Vector4, InnerSpace, Zero
+};
 
-use std::ffi::{CStr};
+use std::ffi::CStr;
 
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::skybox::Skybox;
 
 // network
-use std::io::{self, Read};
-use std::net::{TcpStream};
-use std::process;
-use std::str;
-use shared::*;
-use shared::shared_components::*;
-use shared::shared_functions::*;
+use crate::audio::AudioPlayer;
 use crate::common::*;
+use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
+use shared::shared_components::*;
+use shared::shared_functions::*;
+use shared::*;
+use std::io::{self, Read};
+use std::net::{ToSocketAddrs, TcpStream};
+use std::process;
+use std::str;
+
+use slotmap::{SecondaryMap,DefaultKey};
+
+type Entity = DefaultKey;
 
 #[derive(PartialEq, Eq)]
 enum GameState {
@@ -47,7 +65,18 @@ enum GameState {
     GameOver
 }
 
+// audio
+use kira::{
+    manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
+    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+};
 fn main() -> io::Result<()> {
+    // initialize event map for handled events
+    let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
+
+    // initialize audio manager
+    let mut audio = AudioPlayer::default();
+    
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -56,8 +85,8 @@ fn main() -> io::Result<()> {
     let mut first_mouse = true;
     let mut first_click = false;
     let mut first_enter = false;
-    let mut last_x: f32; let mut last_y: f32;
-
+    let mut last_x: f32;
+    let mut last_y: f32;
     let mut fullscreen = false;
     let mut f11_pressed = false;
 
@@ -108,21 +137,6 @@ fn main() -> io::Result<()> {
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
-    
-    // Create network TcpStream
-    // TODO: change to connect_timeout?
-    let mut stream =
-        TcpStream::connect(SERVER_ADDR.to_string() + ":" + &PORT.to_string())?;
-
-    // receive and save client id
-    let mut read_buf = [0u8, 1];
-    stream.read(&mut read_buf).unwrap();
-    let client_id = read_buf[0] as usize;
-    println!("client id: {}", client_id);
-
-    stream
-        .set_nonblocking(true)
-        .expect("Failed to set stream as nonblocking");
 
     // Set up OpenGL shaders
     let (shader_program, sprite_shader) = unsafe {
@@ -140,32 +154,38 @@ fn main() -> io::Result<()> {
         (shader_program, sprite_shader)
     };
 
-    // textures for skybox
-    let skybox = unsafe{ Skybox::new("resources/skybox/space", ".png") };
+    // set up ui
+    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
+    // render splash screen
+    unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+    ui_elems.draw_splash();
+    window.swap_buffers();
+
+    // textures for skybox
+    let skies = init_skies::init_skyboxes();
+    let mut sky: usize = 0;
+  
     // add all models to hashmap
-    let mut models: HashMap<String, Model> = HashMap::new();
-    models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
-    models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
-    models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
+    let models: HashMap<String, Model> = init_models::init_models();
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
         vec4(222.0 / 255.0, 135.0 / 255.0, 135.0 / 255.0, 1.0),
         vec4(135.0 / 255.0, 205.0 / 255.0, 222.0 / 255.0, 1.0),
         vec4(255.0 / 255.0, 230.0 / 255.0, 128.0 / 255.0, 1.0),
-        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0)
+        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0),
     ];
     let mut tracker = unsafe {
-        let tracker = Tracker::new(sprite_shader.id, 1.0, vec2(width as f32, height as f32));
+        let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
 
+    // create force field
+    let force_field = ForceField::new(250.0, screen_size);
+
     // create lasso
     let lasso = Lasso::new();
-
-    // set up ui
-    let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -177,7 +197,46 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+
+    // Create network TcpStream
+    // TODO: change to connect_timeout?
+    let mut stream = loop {
+        let addrs = (SERVER_ADDR.to_string() + ":" + &PORT.to_string()).to_socket_addrs().expect("Error loading socket address");
+        match TcpStream::connect_timeout(&addrs.last().unwrap(), Duration::from_millis(TICK_SPEED)) {
+            Ok(s) => break s,
+            Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
+                process_events_lobby(&events);
+                unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
+                ui_elems.draw_splash();
+                window.swap_buffers();
+                glfw.poll_events();
+                //toggle fullscreen
+                if !f11_pressed && window.get_key(Key::F11) == Action::Press {
+                    fullscreen = !fullscreen;
+                    set_fullscreen(fullscreen, &mut glfw, &mut window, &mut width, &mut height, &mut saved_xpos, &mut saved_ypos, &mut saved_width, &mut saved_height, refresh_rate);
+                    f11_pressed = true;
+                }
+                if window.get_key(Key::F11) == Action::Release {
+                    f11_pressed = false;
+                }
+            },
+            Err(e) => panic!("Error connecting to server: {}",e)
+        }
+    };
+
+    // receive and save client id
+    let mut read_buf = [0u8, 1];
+    stream.read(&mut read_buf).unwrap();
+    let client_id = read_buf[0] as usize;
+    println!("client id: {}", client_id);
+
+    stream
+        .set_nonblocking(true)
+        .expect("Failed to set stream as nonblocking");
+
     let mut curr_id = client_id;
+
+    let mut frame_count = 0;
 
     // WINDOW LOOP
     // -----------
@@ -221,13 +280,15 @@ fn main() -> io::Result<()> {
                 let received = read_data(&mut stream);
                 if received.len() > 0 {
                     // ignore malformed input (probably leftover game state)
-                    let res : Result<LobbyECS, serde_json::Error> = serde_json::from_str(received.as_str());
+                    let res: Result<LobbyECS, serde_json::Error> =
+                        serde_json::from_str(received.as_str());
                     match res {
                         Ok(l_ecs) => {
                             lobby_ecs = l_ecs.clone();
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
+                                sky = lobby_ecs.sky;
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
@@ -237,9 +298,8 @@ fn main() -> io::Result<()> {
                                 game_state = GameState::InGame;
                             }
                         }
-                        _ => ()
+                        _ => (),
                     }
-
                 }
             }
             GameState::InGame => {
@@ -256,7 +316,7 @@ fn main() -> io::Result<()> {
                     &mut input_component,
                     &mut roll,
                     &mut first_click,
-                    is_focused
+                    is_focused,
                 );
 
                 process_events_game(
@@ -266,8 +326,24 @@ fn main() -> io::Result<()> {
                     &mut last_y,
                     &mut camera,
                     roll,
-                    is_focused
+                    is_focused,
                 );
+
+                // match &client_ecs {
+                //     Some(ecs) => {
+                //         for (_, v) in &ecs.audio_components {
+                //             // only play sound in client 0 for now (TODO: remove)
+                //             if client_id == 0 {
+                //                 println!("received audio event");
+                //                 let audio_event = &v;
+                //                 audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
+                //             }
+                //         }
+                //     }
+                //     None => {
+                //         // do nothing
+                //     }
+                // }
 
                 // set camera front of input_component
                 input_component.camera_qx = camera.RotQuat.v.x;
@@ -277,7 +353,8 @@ fn main() -> io::Result<()> {
 
                 // send client data if player is still alive
                 if client_health.alive {
-                    let j = serde_json::to_string(&input_component).expect("Input component serialization error");
+                    let j = serde_json::to_string(&input_component)
+                        .expect("Input component serialization error");
                     write_data(&mut stream, j);
                 } // TODO: support spectator movement
 
@@ -297,7 +374,7 @@ fn main() -> io::Result<()> {
                             break;
                         }
                         Err(e) => {
-                            eprintln!("Failed to read message size from server: {}",e);
+                            eprintln!("Failed to read message size from server: {}", e);
                             process::exit(1);
                         }
                     }
@@ -306,21 +383,84 @@ fn main() -> io::Result<()> {
                     match stream.peek(&mut read_buf) {
                         Ok(bytes_read) if bytes_read == s_size => {
                             // if this throws an error we deserve to crash tbh
-                            stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                            let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                            stream
+                                .read_exact(&mut read_buf)
+                                .expect("read_exact did not read the same amount of bytes as peek");
+                            let message: &str = str::from_utf8(&read_buf[4..])
+                                .expect("Error converting buffer to string");
                             // TODO: handle this throwing an error. Occasionally crashes ^
-                            let value : ClientECS = serde_json::from_str(message).expect("Error converting string to ClientECS");
+                            let value: ClientECS = serde_json::from_str(message)
+                                .expect("Error converting string to ClientECS");
                             client_ecs = Some(value);
                         }
                         Ok(_) => {
                             break;
                         }
                         Err(e) => {
-                            eprintln!("Failed to read message from server: {}",e);
+                            eprintln!("Failed to read message from server: {}", e);
                             process::exit(1);
                         }
                     }
                 }
+
+                match &client_ecs {
+                    Some(c_ecs) => {
+                        let player_key = c_ecs.ids[client_id];
+                        // make sure we haven't handled this event yet
+                        for &event in &c_ecs.events {
+                            if client_events.contains_key(event) {
+                                continue;
+                            }
+                            client_events.insert(event, ());
+                            // check event type
+                            // skip audio events for all but client 0 if we're debugging on same machine
+                            if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
+                                let audio_event = &c_ecs.audio_components[event];
+                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                    Ok(_) => (),
+                                    Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                };
+                            }
+                            match c_ecs.event_components[event].event_type {
+                                EventType::FireEvent { player } => {
+                                    if player == player_key {
+                                        camera.ScreenShake.add_trauma(0.3);
+                                    }
+                                },
+                                EventType::HitEvent { player, target } => {
+                                    if target == player_key && c_ecs.health_components[player_key].alive {
+                                        camera.ScreenShake.add_trauma(0.5);
+                                        ui_elems.damage.add_alpha(0.5);
+                                    } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
+                                        ui_elems.hitmarker.add_alpha(1.0);
+                                    }
+                                },
+                                EventType::DeathEvent { player, killer } => {
+                                    if player == player_key {
+                                        camera.ScreenShake.add_trauma(1.0);
+                                        ui_elems.damage.add_alpha(1.0);
+                                    } else if killer == player_key {
+                                        ui_elems.hitmarker.add_alpha(1.0);
+                                    }
+                                }
+                            }
+                        }
+
+                        // dead player camera
+                        if !c_ecs.health_components[player_key].alive {
+                            camera.RotQuat = Quaternion::new(
+                                c_ecs.position_components[player_key].qw,
+                                c_ecs.position_components[player_key].qx,
+                                c_ecs.position_components[player_key].qy,
+                                c_ecs.position_components[player_key].qz,
+                            );
+                            camera.UpdateVecs();
+                        }
+                    },
+                    None => ()
+                }
+
+                camera.ScreenShake.shake_camera();
 
                 // render
                 // ------
@@ -332,14 +472,12 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    let light_dir = vec3(0., 0., 1.);
-                    let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
+                    let mut player_pos_ff = Vector3::zero();
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -348,10 +486,19 @@ fn main() -> io::Result<()> {
                             client_ammo = c_ecs.weapon_components[player_key].ammo;
 
                             // handle changes in client health
-                            if c_ecs.health_components[player_key].alive && c_ecs.health_components[player_key].health != client_health.health {
+                            if c_ecs.health_components[player_key].alive
+                                && c_ecs.health_components[player_key].health
+                                    != client_health.health
+                            {
                                 client_health.health = c_ecs.health_components[player_key].health;
-                                println!("Player {} is still alive, with {} lives left", client_id, client_health.health);
-                            } else if c_ecs.health_components[player_key].alive != client_health.alive && client_health.alive {
+                                println!(
+                                    "Player {} is still alive, with {} lives left",
+                                    client_id, client_health.health
+                                );
+                            } else if c_ecs.health_components[player_key].alive
+                                != client_health.alive
+                                && client_health.alive
+                            {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
                                 println!("Player {} is no longer alive x_x", client_id);
                             } else {
@@ -359,17 +506,30 @@ fn main() -> io::Result<()> {
                                 client_health.health = c_ecs.health_components[player_key].health;
                             }
 
-                        // setup player camera
-                        let player_pos = vec3(
-                            c_ecs.position_components[player_key].x,
-                            c_ecs.position_components[player_key].y,
-                            c_ecs.position_components[player_key].z
-                        );
-                        set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            // setup player camera
+                            let player_pos = vec3(
+                                c_ecs.position_components[player_key].x,
+                                c_ecs.position_components[player_key].y,
+                                c_ecs.position_components[player_key].z,
+                            );
+                            if frame_count == 0 {
+                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                    Ok(_) => (),
+                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                };
+                            }
+                            // player position used for force field
+                            player_pos_ff = player_pos;
+                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
+                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 if renderable == player_key {
+                                    continue;
+                                }
+                                if !models.contains_key(model_name) {
+                                    println!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 
@@ -385,14 +545,18 @@ fn main() -> io::Result<()> {
                                 let model_qy = c_ecs.position_components[renderable].qy;
                                 let model_qz = c_ecs.position_components[renderable].qz;
                                 let model_qw = c_ecs.position_components[renderable].qw;
-                                let rot_mat = Matrix4::from(Quaternion::new(model_qw, model_qx, model_qy, model_qz));
+                                let rot_mat = Matrix4::from(Quaternion::new(
+                                    model_qw, model_qx, model_qy, model_qz,
+                                ));
 
                                 // setup scale matrix
-                                let scale_mat = Matrix4::from_scale(c_ecs.model_components[renderable].scale);
+                                let scale_mat =
+                                    Matrix4::from_scale(c_ecs.model_components[renderable].scale);
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
-                                let model_name = &c_ecs.model_components[renderable].modelname;
+                                let model_scaleless = pos_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
                                 models[model_name].draw(&shader_program);
                             }
 
@@ -412,10 +576,13 @@ fn main() -> io::Result<()> {
                                     let player_qy = c_ecs.position_components[player].qy;
                                     let player_qz = c_ecs.position_components[player].qz;
                                     let player_qw = c_ecs.position_components[player].qw;
-                                    let rot_mat = Matrix4::from(Quaternion::new(player_qw, player_qx, player_qy, player_qz));
+                                    let rot_mat = Matrix4::from(Quaternion::new(
+                                        player_qw, player_qx, player_qy, player_qz,
+                                    ));
 
                                     // setup scale matrix
-                                    let scale_mat = Matrix4::from_scale(c_ecs.model_components[player].scale);
+                                    let scale_mat =
+                                        Matrix4::from_scale(c_ecs.model_components[player].scale);
 
                                     let model = pos_mat * scale_mat * rot_mat;
 
@@ -424,16 +591,30 @@ fn main() -> io::Result<()> {
                                     let anchor_z = c_ecs.player_lasso_components[player].anchor_z;
 
                                     // draw lasso
-                                    let lasso_p1 = model.transform_point(Point3::new(0.5, -1.0, 0.0));
+                                    let lasso_origin = if player == player_key {
+                                        Point3::new(-0.5, 0.0, 0.0)
+                                    } else {
+                                        Point3::new(-0.5, -0.4, 0.0)
+                                    };
+                                    let lasso_p1 = model.transform_point(lasso_origin);
                                     let lasso_p2 = vec3(anchor_x, anchor_y, anchor_z);
-                                    lasso.draw_btw_points(lasso_p1.to_vec(), lasso_p2, &shader_program);
+                                    lasso.draw_btw_points(
+                                        lasso_p1.to_vec(),
+                                        lasso_p2,
+                                        &shader_program,
+                                    );
                                 }
 
                                 // draw trackers
                                 if player != player_key && c_ecs.health_components[player].alive {
                                     let pos = &c_ecs.position_components[player];
                                     let pos = vec3(pos.x, pos.y, pos.z);
-                                    tracker.draw_tracker(&camera, pos, tracker_colors[i%tracker_colors.len()], &mut trackers);
+                                    tracker.draw_tracker(
+                                        &camera,
+                                        pos,
+                                        tracker_colors[i % tracker_colors.len()],
+                                        &mut trackers,
+                                    );
                                 }
                                 i += 1;
                             }
@@ -443,24 +624,31 @@ fn main() -> io::Result<()> {
                                 game_state = GameState::GameOver;
                             }
                         }
-                        None => {
-                            set_camera_pos(&mut camera, vec3(0.0,0.0,0.0), &shader_program, width, height)
-                        }
+                        None => set_camera_pos(
+                            &mut camera,
+                            vec3(0.0, 0.0, 0.0),
+                            &shader_program,
+                            width,
+                            height,
+                        ),
                     }
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
+
                     let projection: Matrix4<f32> = perspective(
                         Deg(camera.Zoom),
                         width as f32 / height as f32,
                         0.1,
                         100.0
                     );
-                    skybox.draw(camera.GetViewMatrix(), projection);
-                    
+                  
+                    skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
+                  
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+                    force_field.draw(&camera, player_pos_ff);
                     tracker.draw_all_trackers(trackers);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
             }
@@ -477,6 +665,8 @@ fn main() -> io::Result<()> {
                     ui_elems.draw_game_over(curr_id, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
+                frame_count += 1;
+                frame_count %= AUDIO_FRAMES;
             }
         }
 

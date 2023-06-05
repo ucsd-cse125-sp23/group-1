@@ -22,6 +22,7 @@ impl Lasso {
         let sca_mat: Matrix4<f32> = Matrix4::from_nonuniform_scale(1.0, 1.0, (p2 - p1).magnitude());
         let model = rot_mat * sca_mat;
         shader.set_mat4(c_str!("model"), &model);
+        shader.set_mat4(c_str!("model_scaleless"), &rot_mat);
 
         self.model.draw(shader);
     }

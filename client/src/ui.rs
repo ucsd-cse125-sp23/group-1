@@ -1,9 +1,13 @@
+use crate::fadable::Fadable;
 use crate::sprite_renderer::{Anchor, Sprite};
 use cgmath::{vec2, Vector2};
 use shared::*;
 use shared::shared_components::*;
 
 pub struct UI {
+    // ========================== splash ui elements ==========================
+    pub splash: Sprite,
+  
     // ========================== lobby ui elements ===========================
     pub p1_lobby: Sprite,
     pub p2_lobby: Sprite,
@@ -55,6 +59,8 @@ pub struct UI {
     pub p2_dead: Sprite,
     pub p3_dead: Sprite,
     pub p4_dead: Sprite,
+    pub damage: Fadable,
+    pub hitmarker: Fadable,
 
     // ======================== game over ui elements =========================
     pub game_over_bg: Sprite,
@@ -87,6 +93,8 @@ impl UI {
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
 
         UI {
+            // ============================ splash screen =============================
+            splash: init_sprite(s_size, id, SPLASH_PATH, bg_pos, LOBBY_BG_SCALE),
             // =========================== lobby background ===========================
             p1_lobby: init_sprite(s_size, id, LOBBY_BG_1_PATH, bg_pos, LOBBY_BG_SCALE),
             p2_lobby: init_sprite(s_size, id, LOBBY_BG_2_PATH, bg_pos, LOBBY_BG_SCALE),
@@ -153,6 +161,9 @@ impl UI {
             p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
             p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
             p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+          
+            damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
+            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
 
             // =========================== game over elements ===========================
             game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
@@ -167,6 +178,7 @@ impl UI {
     pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>) {
         unsafe {
             self.crosshair.draw();
+            self.hitmarker.draw();
 
             if client_alive {
                 match client_id {
@@ -222,6 +234,7 @@ impl UI {
                 }, 
                 None => ()
             }
+            self.damage.draw();
         }
     }
 
@@ -375,6 +388,10 @@ impl UI {
             }
             self.winner_txt.draw();
         }
+    }
+
+    pub fn draw_splash(&mut self) {
+        unsafe { self.splash.draw() };
     }
 }
 
