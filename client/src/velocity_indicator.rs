@@ -1,4 +1,4 @@
-use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace, vec3, perspective, Deg, EuclideanSpace, Array};
+use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace, vec3, perspective, Deg, Array};
 use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
@@ -41,7 +41,9 @@ impl VelocityIndicator {
 
         let sca_mat = Matrix4::from_scale((self.vel.magnitude() / 5.0).min(1.0));
         let model = loc_mat * rot_mat * sca_mat;
+        let model_scaleless = loc_mat * rot_mat;
         shader.set_mat4(c_str!("model"), &model);
+        shader.set_mat4(c_str!("model_scaleless"), &model_scaleless);
 
         // offset the arrow in screen space
         let screen_mat = Matrix4::from_translation(vec3(-0.85, -0.55, 0.0));
