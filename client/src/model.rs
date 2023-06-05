@@ -58,34 +58,27 @@ impl Model {
             let mut tans: Vec<f32> = vec![0.; num_vertices * 3];
             let mut bitans: Vec<f32> = vec![0.; num_vertices * 3];
 
+            if (n.len() > 0 && n.len() < num_vertices * 3){
+                println!("missing normals for {} model, expected {} got {}. using default (0, 0, 0)", model.name, num_vertices*3, n.len());
+            }
+
+            if (t.len() > 0 && t.len() < num_vertices * 2) {
+                println!("missing textures for {} model, expected {} got {}. using default (0, 0)", model.name, num_vertices*2, t.len());
+            }
+
             // calculate tangents and bitangents
             let num_tri = mesh.indices.len() / 3;
             for i in 0..num_tri {
                 // get triangle vertex and texture coordinates
-                let i1 = mesh.indices[i*3+0];
-                let i2 = mesh.indices[i*3+1];
-                let i3 = mesh.indices[i*3+2];
-                let p1x = mesh.positions[(i1*3+0) as usize];
-                let p1y = mesh.positions[(i1*3+1) as usize];
-                let p1z = mesh.positions[(i1*3+2) as usize];
-                let p2x = mesh.positions[(i2*3+0) as usize];
-                let p2y = mesh.positions[(i2*3+1) as usize];
-                let p2z = mesh.positions[(i2*3+2) as usize];
-                let p3x = mesh.positions[(i3*3+0) as usize];
-                let p3y = mesh.positions[(i3*3+1) as usize];
-                let p3z = mesh.positions[(i3*3+2) as usize];
-                let p1u = mesh.texcoords[(i1*2+0) as usize];
-                let p1v = mesh.texcoords[(i1*2+1) as usize];
-                let p2u = mesh.texcoords[(i2*2+0) as usize];
-                let p2v = mesh.texcoords[(i2*2+1) as usize];
-                let p3u = mesh.texcoords[(i3*2+0) as usize];
-                let p3v = mesh.texcoords[(i3*2+1) as usize];
-                let p1 = vec3(p1x, p1y, p1z);
-                let p2 = vec3(p2x, p2y, p2z);
-                let p3 = vec3(p3x, p3y, p3z);
-                let uv1 = vec2(p1u, p1v);
-                let uv2 = vec2(p2u, p2v);
-                let uv3 = vec2(p3u, p3v);
+                let i1 = mesh.indices[i*3+0] as usize;
+                let i2 = mesh.indices[i*3+1] as usize;
+                let i3 = mesh.indices[i*3+2] as usize;
+                let p1 = vec3(p[i1*3+0], p[i1*3+1], p[i1*3+2]);
+                let p2 = vec3(p[i2*3+0], p[i2*3+1], p[i2*3+2]);
+                let p3 = vec3(p[i3*3+0], p[i3*3+1], p[i3*3+2]);
+                let uv1 = if i2*2+1 >= t.len() {vec2(0.,0.)} else {vec2(t[i1*2+0], t[i1*2+1])};
+                let uv2 = if i2*2+1 >= t.len() {vec2(0.,0.)} else {vec2(t[i2*2+0], t[i2*2+1])};
+                let uv3 = if i3*2+1 >= t.len() {vec2(0.,0.)} else {vec2(t[i3*2+0], t[i3*2+1])};
 
                 // calculate tangent/bitangent vectors of both triangles
                 let edge1 = p2 - p1;
@@ -99,33 +92,19 @@ impl Model {
                 let bitanx = f * (-delta_uv2.x * edge1.x + delta_uv1.x * edge2.x);
                 let bitany = f * (-delta_uv2.x * edge1.y + delta_uv1.x * edge2.y);
                 let bitanz = f * (-delta_uv2.x * edge1.z + delta_uv1.x * edge2.z);
-                tans[(i1*3+0) as usize] = tanx; 
-                tans[(i1*3+1) as usize] = tany; 
-                tans[(i1*3+2) as usize] = tanz;
-                tans[(i2*3+0) as usize] = tanx; 
-                tans[(i2*3+1) as usize] = tany; 
-                tans[(i2*3+2) as usize] = tanz;
-                tans[(i3*3+0) as usize] = tanx; 
-                tans[(i3*3+1) as usize] = tany; 
-                tans[(i3*3+2) as usize] = tanz;
-                bitans[(i1*3+0) as usize] = bitanx; 
-                bitans[(i1*3+1) as usize] = bitany; 
-                bitans[(i1*3+2) as usize] = bitanz;
-                bitans[(i2*3+0) as usize] = bitanx; 
-                bitans[(i2*3+1) as usize] = bitany; 
-                bitans[(i2*3+2) as usize] = bitanz;
-                bitans[(i3*3+0) as usize] = bitanx; 
-                bitans[(i3*3+1) as usize] = bitany; 
-                bitans[(i3*3+2) as usize] = bitanz;
+                tans[i1*3+0] = tanx; tans[i1*3+1] = tany; tans[i1*3+2] = tanz;
+                tans[i2*3+0] = tanx; tans[i2*3+1] = tany; tans[i2*3+2] = tanz;
+                tans[i3*3+0] = tanx; tans[i3*3+1] = tany; tans[i3*3+2] = tanz;
+                bitans[i1*3+0] = bitanx; bitans[i1*3+1] = bitany; bitans[i1*3+2] = bitanz;
+                bitans[i2*3+0] = bitanx; bitans[i2*3+1] = bitany; bitans[i2*3+2] = bitanz;
+                bitans[i3*3+0] = bitanx; bitans[i3*3+1] = bitany; bitans[i3*3+2] = bitanz;
             }
-
-            // println!("n_vs: {}, len(tans): {}, len(bitans): {}", num_vertices, tans.len(), bitans.len());
 
             for i in 0..num_vertices {
                 vertices.push(Vertex {
                     position:  vec3(p[i*3], p[i*3+1], p[i*3+2]),
-                    normal:    vec3(n[i*3], n[i*3+1], n[i*3+2]),
-                    tex_coords: vec2(t[i*2], t[i*2+1]),
+                    normal:    if i*3+2 >= n.len() {vec3(0.,0.,0.)} else {vec3(n[i*3], n[i*3+1], n[i*3+2])},
+                    tex_coords: if i*2+1 >= t.len() {vec2(0.,0.)} else{vec2(t[i*2], t[i*2+1])},
                     tangent:    vec3(tans[i*3], tans[i*3+1], tans[i*3+2]).normalize(),
                     bitangent:  vec3(bitans[i*3], bitans[i*3+1], bitans[i*3+2]).normalize()
                     // ..Vertex::default()

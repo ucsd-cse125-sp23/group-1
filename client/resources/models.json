@@ -1,0 +1,55 @@
+[
+    {
+        "modelname": "cube",
+        "path": "resources/cube/cube.obj"
+    },
+    {
+        "modelname": "sungod",
+        "path": "resources/sungod/sungod.obj"
+    },
+    {
+        "modelname": "asteroid",
+        "path": "resources/asteroids/asteroid.obj"
+    },
+    {
+        "modelname": "rough_asteroid_small",
+        "path": "resources/asteroids/rough_asteroid_small.obj"
+    },
+    {
+        "modelname": "round_asteroid_small",
+        "path": "resources/asteroids/round_asteroid_small.obj"
+    },
+    {
+        "modelname": "round_asteroid_big",
+        "path": "resources/asteroids/round_asteroid_big.obj"
+    },
+    {
+        "modelname": "characterPink",
+        "path": "resources/character/characterPink.obj"
+    },
+    {
+        "modelname": "characterBlue",
+        "path": "resources/character/characterBlue.obj"
+    },
+    {
+        "modelname": "characterYellow",
+        "path": "resources/character/characterYellow.obj"
+    },
+    {
+        "modelname": "characterGreen",
+        "path": "resources/character/characterGreen.obj"
+    },
+    {
+        "modelname": "cactus",
+        "path": "resources/cactus/cactus.obj"
+    },
+    {
+        "modelname": "wheel",
+        "path": "resources/wheel/new-wheel.obj"
+    }
+    ,
+    {
+        "modelname": "wagon",
+        "path": "resources/wagon/wagon.obj"
+    }
+]

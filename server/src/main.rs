@@ -1,5 +1,6 @@
 // use nalgebra::*;
 use rapier3d::prelude::*;
+use std::collections::HashMap;
 use std::{time::Duration, time::Instant};
 use std::net::{TcpListener};
 use polling::{Event, Poller};
@@ -7,8 +8,10 @@ use polling::{Event, Poller};
 mod ecs;
 mod init_world;
 mod server_components;
+mod common;
 
 use shared::*;
+use crate::common::*;
 
 fn main() {
     let gravity = vector![0.0, 0.0, 0.0];
@@ -18,8 +21,11 @@ fn main() {
 
     let mut ecs = ecs::ECS::new();
 
+    ecs.decomps = HashMap::new();
     init_world::init_world(&mut ecs);
     init_world::init_player_spawns(&mut ecs.spawnpoints);
+    ecs.skies = (0..init_world::init_num_skies()).collect();
+    ecs.sky = get_rand_from_vec(&mut ecs.skies);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
     let listener = TcpListener::bind("0.0.0.0:".to_string() + &PORT.to_string()).expect("Error binding address");
@@ -49,10 +55,12 @@ fn main() {
             ecs.check_ready_updates();
             if ecs.ready_players.len() >= 2 && ecs.ready_players.len() == ecs.players.len() {
                 ecs.send_ready_message(true);
+                ecs.ready_players.clear();
                 break;
             }
         }
         poller.delete(&listener).unwrap();
+        ecs.update_player_models();
         // GAME LOOP
         println!("[SERVER]: Starting game");
         while !ecs.game_ended {
@@ -78,12 +86,16 @@ fn main() {
                 &mut ecs.impulse_joint_set,
                 &mut ecs.multibody_joint_set,
                 &mut ecs.ccd_solver,
-                Some(&mut ecs.query_pipeline),
+                None,
                 &physics_hooks,
                 &event_handler,
             );
+            ecs.query_pipeline.update(&ecs.rigid_body_set, &ecs.collider_set);
 
             ecs.update_clients();
+
+            // avoid playing sounds infinitely
+            ecs.clear_events();
 
             // END SERVER TICK
             let end = Instant::now();
