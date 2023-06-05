@@ -1,6 +1,7 @@
 use rapier3d::prelude::*;
-use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance};
+use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
+use std::collections::HashMap;
 use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
@@ -51,6 +52,7 @@ pub struct ECS {
     pub dynamics: Vec<Entity>,
     pub renderables: Vec<Entity>,
 
+    pub decomps: HashMap<(String, i32),SharedShape>,
     pub events: Vec<Entity>,
 
     pub spawnpoints: Vec<Isometry3<f32>>,
@@ -101,7 +103,10 @@ impl ECS {
             players: vec![],
             dynamics: vec![],
             renderables: vec![],
+
+            decomps: HashMap::new(),
             events: vec![],
+
             spawnpoints: vec![],
             skies: vec![],
             sky: 0,
@@ -553,9 +558,10 @@ impl ECS {
     }
 
     pub fn spawn_prop(&mut self, name: String, modelname: String, pos_x: f32, pos_y: f32, pos_z: f32,
-        roll: f32, pitch: f32, yaw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool) {
+        qx: f32, qy: f32, qz: f32, qw: f32, dynamic: bool, shape: SharedShape, scale: f32, density: f32, restitution: f32, border: bool,
+        linvel: Vector3<f32>, angvel: Vector3<f32>) {
             let entity = self.name_components.insert(name);
-            let rot = UnitQuaternion::from_euler_angles(roll,pitch,yaw);
+            let rot = UnitQuaternion::from_quaternion(Quaternion::new(qw,qx,qy,qz));
             self.position_components.insert(
                 entity, 
                 PositionComponent {
@@ -577,7 +583,7 @@ impl ECS {
                 self.dynamics.push(entity);
                 rigid_body = RigidBodyBuilder::dynamic().position(
                     Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
-                ).can_sleep(false).build();
+                ).linvel(linvel).angvel(angvel).can_sleep(false).build();
             } else {
                 rigid_body = RigidBodyBuilder::fixed().position(
                     Isometry3::from_parts(Translation3::new(pos_x, pos_y, pos_z),rot)
@@ -643,7 +649,7 @@ impl ECS {
                 println!("firing!");
 
                 let fire_vec = &self.player_camera_components[player].camera_front;
-                let impulse = 10.0 * fire_vec;
+                let impulse = 12.0 * fire_vec;
                 let position = &self.position_components[player];
                 let halfheight = 0.5;
                 let fire_point = point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight);
@@ -707,7 +713,7 @@ impl ECS {
                 println!("ammo: {}",weapon.ammo);
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 println!("reloading...");
-                weapon.cooldown = 180;
+                weapon.cooldown = 120;
                 weapon.reloading = true;
             }
         }
@@ -720,7 +726,8 @@ impl ECS {
         'players: for (index, &player) in self.players.iter().enumerate() {
             let halfheight = 0.5;
             let spawn_dist = 0.0;
-            let fire_vel = 100.0;
+            let fire_vel = 150.0;
+            let impulse = 0.1;
             let slack = 0.5;
             let max_dist = 500.0;
             let input = &self.player_input_components[player];
@@ -747,9 +754,9 @@ impl ECS {
                     let anchor = self.rigid_body_set.get_mut(self.player_lasso_phys_components[player].anchor_handle).unwrap();
                     // let anchor_t = anchor.translation().clone();
                     // TODO: calculate impulse based on mass of objects
-                    anchor.apply_impulse_at_point((vector![position.x, position.y, position.z]-vector![anchor_point.x, anchor_point.y, anchor_point.z]).normalize() * 0.2, anchor_point, true);
+                    anchor.apply_impulse_at_point((vector![position.x, position.y, position.z]-vector![anchor_point.x, anchor_point.y, anchor_point.z]).normalize() * impulse, anchor_point, true);
                     let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
-                    rigid_body.apply_impulse((vector![anchor_point.x, anchor_point.y, anchor_point.z]-vector![position.x, position.y, position.z]).normalize() * 0.2, true);
+                    rigid_body.apply_impulse((vector![anchor_point.x, anchor_point.y, anchor_point.z]-vector![position.x, position.y, position.z]).normalize() * impulse, true);
                 } else {
                     println!("releasing lasso");
                     self.impulse_joint_set.remove(lasso_phys.joint_handle,true);
@@ -870,7 +877,7 @@ impl ECS {
             }
             let input = &self.player_input_components[player];
             let camera = &self.player_camera_components[player];
-            let impulse = 0.05;
+            let impulse = 0.03;
             let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
             rigid_body.set_rotation(camera.rot, true);
             if input.w_pressed && !input.s_pressed {
