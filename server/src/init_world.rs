@@ -43,6 +43,8 @@ struct Prop {
     density: f32,
     #[serde(default = "prop_default_restitution")]
     restitution: f32,
+    #[serde(default = "prop_default_border")]
+    border: bool,
 }
 
 fn prop_default_name() -> String { "UNNAMED".to_string() }
@@ -54,6 +56,7 @@ fn prop_default_dynamic() -> bool { true }
 fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
 fn prop_default_density() -> f32 { 1.0 }
 fn prop_default_restitution() -> f32 { 0.0 }
+fn prop_default_border() -> bool { false }
 
 #[derive(Deserialize)]
 struct SpawnPoint {
@@ -97,7 +100,10 @@ pub fn init_world(ecs: &mut ECS) {
                 let (vertices, indices) = load_scaled_model(path, prop.scale);
                 SharedShape::convex_decomposition(&vertices, &indices)
             },
-            _ => panic!("Unsupported shape"),
+            Shape::Trimesh(path) => {
+                let (vertices, indices) = load_scaled_model(path, prop.scale);
+                SharedShape::trimesh(vertices, indices)
+            }
         };
         ecs.spawn_prop(
             prop.name,
@@ -112,7 +118,8 @@ pub fn init_world(ecs: &mut ECS) {
             sharedshape,
             prop.scale,
             prop.density,
-            prop.restitution
+            prop.restitution,
+            prop.border
         );
     }
 }
@@ -130,4 +137,19 @@ pub fn init_player_spawns(spawnpoints: &mut Vec<Isometry3<f32>>) {
         };
         spawnpoints.push(Isometry3::from_parts(Translation3::new(spawn.pos.0, spawn.pos.1, spawn.pos.2), rot));
     }
+}
+
+#[derive(Deserialize)]
+#[allow(dead_code)]
+struct LoadSky {
+    path: String,
+    light_dir: (f32, f32, f32),
+    light_diffuse: (f32, f32, f32),
+    light_ambience: (f32, f32, f32)
+}
+
+pub fn init_num_skies() -> usize {
+    let j = fs::read_to_string("../client/resources/skybox/skies.json").expect("Error reading file ../client/resources/skybox/skies.json");
+    let loadskies: Vec<LoadSky> = serde_json::from_str(&j).expect("Error deserializing ../client/resources/skybox/skies.json");
+    loadskies.len()
 }

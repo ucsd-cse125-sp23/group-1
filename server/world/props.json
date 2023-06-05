@@ -13,7 +13,7 @@
                 1.0,
                 1.0
             ]
-        }   
+        }
     },
     {
         "name": "cube",
@@ -146,114 +146,6 @@
             ]
         },
         "scale": 0.5  
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            -50.0,
-            0.0,
-            0.0
-        ],
-        "shape": {
-            "Cuboid": [
-                1.0,
-                50.0,
-                50.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            50.0,
-            0.0,
-            0.0
-        ],
-        "shape": {
-            "Cuboid": [
-                1.0,
-                50.0,
-                50.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            0.0,
-            50.0,
-            0.0
-        ],
-        "shape": {
-            "Cuboid": [
-                50.0,
-                1.0,
-                50.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            0.0,
-            -50.0,
-            0.0
-        ],
-        "shape": {
-            "Cuboid": [
-                50.0,
-                1.0,
-                50.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            0.0,
-            0.0,
-            50.0
-        ],
-        "shape": {
-            "Cuboid": [
-                50.0,
-                50.0,
-                1.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
-    },
-    {
-        "name": "wall",
-        "modelname": "cube",
-        "pos": [
-            0.0,
-            0.0,
-            -50.0
-        ],
-        "shape": {
-            "Cuboid": [
-                50.0,
-                50.0,
-                1.0
-            ]
-        },
-        "dynamic": false,
-        "restitution": 1.0
     },
     {
         "name": "sungod",
@@ -279,5 +171,27 @@
             "ConvexDecomp": "../client/resources/new_asteroid/asteroid.obj"
         },
         "scale": 2.0
+    },
+    {
+        "name": "border",
+        "modelname": "forcefield",
+        "shape": {
+            "Trimesh": "../client/resources/forcefield/forcefield.obj"
+        },
+        "dynamic": false,
+        "restitution": 1.0,
+        "border": true
+    },
+    {
+        "name": "cactus",
+        "modelname": "cactus",
+        "pos": [
+            0.0,
+            20.0,
+            -20.0
+        ],
+        "shape": {
+            "Convex": "../client/resources/cactus/cactus.obj"
+        }   
     }
 ]
