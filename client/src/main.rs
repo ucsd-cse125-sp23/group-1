@@ -48,7 +48,7 @@ use shared::shared_components::*;
 use shared::shared_functions::*;
 use shared::*;
 use std::io::{self, Read};
-use std::net::TcpStream;
+use std::net::{ToSocketAddrs, TcpStream};
 use std::process;
 use std::str;
 
