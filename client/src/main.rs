@@ -1,15 +1,16 @@
-mod camera;
 mod macros;
+mod camera;
+mod common;
+mod lasso;
 mod mesh;
 mod model;
 mod shader;
 mod skybox;
 mod sprite_renderer;
-mod util;
-mod lasso;
 mod tracker;
-mod common;
 mod ui;
+mod util;
+mod force_field;
 mod init_skies;
 
 use std::collections::HashMap;
@@ -18,8 +19,8 @@ use std::collections::HashMap;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Action, Context, Key, MouseButton};
-use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, Vector2, Array, EuclideanSpace, Transform, Vector4, vec4, InnerSpace};
+use self::glfw::{Action, Context, Key};
+use cgmath::{perspective, vec2, vec3, Deg, Matrix4, Point3, Quaternion, Vector3, EuclideanSpace, Transform, Vector4, vec4, Zero};
 
 use std::ffi::{CStr};
 
@@ -36,6 +37,7 @@ use shared::*;
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use crate::common::*;
+use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 
@@ -165,6 +167,9 @@ fn main() -> io::Result<()> {
         tracker
     };
 
+    // create force field
+    let force_field = ForceField::new(250.0, screen_size);
+
     // create lasso
     let lasso = Lasso::new();
 
@@ -239,7 +244,6 @@ fn main() -> io::Result<()> {
                         }
                         _ => ()
                     }
-
                 }
             }
             GameState::InGame => {
@@ -336,11 +340,12 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    shader_program.setVector3(c_str!("lightDir"), &skies[sky].light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &skies[sky].light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &skies[sky].light_diffuse);
+                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
+                    let mut player_pos_ff = Vector3::zero();
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -364,13 +369,20 @@ fn main() -> io::Result<()> {
                             let player_pos = vec3(
                                 c_ecs.position_components[player_key].x,
                                 c_ecs.position_components[player_key].y,
-                                c_ecs.position_components[player_key].z
+                                c_ecs.position_components[player_key].z,
                             );
+                            // player position used for force field
+                            player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
                             for &renderable in &c_ecs.renderables {
+                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 if renderable == player_key {
+                                    continue;
+                                }
+                                if !models.contains_key(model_name) {
+                                    println!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 
@@ -395,7 +407,6 @@ fn main() -> io::Result<()> {
                                 shader_program.set_mat4(c_str!("model"), &model);
                                 let model_scaleless = pos_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
-                                let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
 
@@ -475,9 +486,9 @@ fn main() -> io::Result<()> {
                     // println!("{:?}",camera.Front);
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
-
                     gl::DepthMask(gl::FALSE);
+                    force_field.draw(&camera, player_pos_ff);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
                 }
