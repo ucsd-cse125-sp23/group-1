@@ -202,6 +202,8 @@ fn main() -> io::Result<()> {
     let mut ready_sent = false;
     let mut curr_id = client_id;
 
+    let mut frame_count = 0;
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -442,11 +444,12 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-                            
-                            match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
-                                Ok(_) => (),
-                                Err(e) => eprintln!("Audio error moving listener: {e}"),
-                            };
+                            if frame_count == 0 {
+                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                    Ok(_) => (),
+                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                };
+                            }
 
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
@@ -575,6 +578,8 @@ fn main() -> io::Result<()> {
                     tracker.draw_all_trackers(trackers);
                     gl::DepthMask(gl::TRUE);
                 }
+                frame_count += 1;
+                frame_count %= AUDIO_FRAMES;
             }
         }
 

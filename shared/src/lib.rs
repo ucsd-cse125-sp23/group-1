@@ -94,3 +94,4 @@ pub const AMMO_6_PATH: &str = "resources/ui_textures/ammo/ammo6.png";
 
 // audio settings
 pub const AUDIO_DEBUG: bool = true;
+pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames
