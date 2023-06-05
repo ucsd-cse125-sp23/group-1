@@ -32,6 +32,8 @@ pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 
 // UI element paths
+pub const SPLASH_PATH: &str = "resources/ui_textures/Game-poster.jpg";
+
 pub const LOBBY_BG_1_PATH: &str = "resources/ui_textures/lobby_bg/p1_bg.png";
 pub const LOBBY_BG_2_PATH: &str = "resources/ui_textures/lobby_bg/p2_bg.png";
 pub const LOBBY_BG_3_PATH: &str = "resources/ui_textures/lobby_bg/p3_bg.png";
