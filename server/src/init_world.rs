@@ -114,7 +114,6 @@ pub fn init_world(ecs: &mut ECS) {
                 // NOTE: It is assumed that scale only needs to be accurate to one decimal place
                 let scale_int = (prop.scale * 10.0) as i32;
                 if ecs.decomps.contains_key(&(path.clone(), scale_int)) {
-                    // println!("Using previously loaded convex decomposition for {} with scale {}", path, prop.scale);
                     ecs.decomps[&(path, scale_int)].clone()
                 } else {
                     let (vertices, indices) = load_scaled_model(&path, prop.scale);

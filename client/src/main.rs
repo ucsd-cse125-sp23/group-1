@@ -251,7 +251,6 @@ fn main() -> io::Result<()> {
         match game_state {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
-                println!("Press ENTER when ready to start game");
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
@@ -287,7 +286,6 @@ fn main() -> io::Result<()> {
                             lobby_ecs = l_ecs.clone();
 
                             if lobby_ecs.start_game {
-                                println!("Game starting!");
                                 sky = lobby_ecs.sky;
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
@@ -328,22 +326,6 @@ fn main() -> io::Result<()> {
                     roll,
                     is_focused,
                 );
-
-                // match &client_ecs {
-                //     Some(ecs) => {
-                //         for (_, v) in &ecs.audio_components {
-                //             // only play sound in client 0 for now (TODO: remove)
-                //             if client_id == 0 {
-                //                 println!("received audio event");
-                //                 let audio_event = &v;
-                //                 audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
-                //             }
-                //         }
-                //     }
-                //     None => {
-                //         // do nothing
-                //     }
-                // }
 
                 // set camera front of input_component
                 input_component.camera_qx = camera.RotQuat.v.x;
@@ -491,16 +473,11 @@ fn main() -> io::Result<()> {
                                     != client_health.health
                             {
                                 client_health.health = c_ecs.health_components[player_key].health;
-                                println!(
-                                    "Player {} is still alive, with {} lives left",
-                                    client_id, client_health.health
-                                );
                             } else if c_ecs.health_components[player_key].alive
                                 != client_health.alive
                                 && client_health.alive
                             {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
-                                println!("Player {} is no longer alive x_x", client_id);
                             } else {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
                                 client_health.health = c_ecs.health_components[player_key].health;
@@ -529,7 +506,7 @@ fn main() -> io::Result<()> {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
-                                    println!("Models map does not contain key: {}", model_name);
+                                    eprintln!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 

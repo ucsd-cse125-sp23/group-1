@@ -373,7 +373,6 @@ impl UI {
                             ecs.health_components[*player].alive &&
                             ecs.health_components[*player].health > 0
                         {
-                            println!("The winner is player {}!", i);
                             match i {
                                 0 => self.p1_winner.draw(),
                                 1 => self.p2_winner.draw(),

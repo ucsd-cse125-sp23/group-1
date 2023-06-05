@@ -59,11 +59,11 @@ impl Model {
             let mut bitans: Vec<f32> = vec![0.; num_vertices * 3];
 
             if (n.len() > 0 && n.len() < num_vertices * 3){
-                println!("missing normals for {} model, expected {} got {}. using default (0, 0, 0)", model.name, num_vertices*3, n.len());
+                eprintln!("missing normals for {} model, expected {} got {}. using default (0, 0, 0)", model.name, num_vertices*3, n.len());
             }
 
             if (t.len() > 0 && t.len() < num_vertices * 2) {
-                println!("missing textures for {} model, expected {} got {}. using default (0, 0)", model.name, num_vertices*2, t.len());
+                eprintln!("missing textures for {} model, expected {} got {}. using default (0, 0)", model.name, num_vertices*2, t.len());
             }
 
             // calculate tangents and bitangents
