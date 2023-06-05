@@ -11,6 +11,7 @@ mod sprite_renderer;
 mod tracker;
 mod ui;
 mod util;
+mod init_skies;
 
 use std::collections::HashMap;
 
@@ -21,7 +22,7 @@ extern crate glfw;
 use self::glfw::{Action, Context, Key, MouseButton};
 use cgmath::{
     perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector2, Vector3, Vector4,
+    Transform, Vector2, Vector3, Vector4, InnerSpace
 };
 
 use std::ffi::CStr;
@@ -29,7 +30,6 @@ use std::ffi::CStr;
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-use crate::skybox::Skybox;
 
 // network
 use crate::audio::AudioPlayer;
@@ -159,10 +159,12 @@ fn main() -> io::Result<()> {
     };
 
     // textures for skybox
-    let skybox = unsafe { Skybox::new("resources/skybox/space", ".png") };
-
+    let skies = init_skies::init_skyboxes();
+    let mut sky: usize = 0;
+  
     // add all models to hashmap
     let mut models: HashMap<String, Model> = HashMap::new();
+    models.insert("cactus".to_string(), Model::new("resources/cactus/cactus.obj"));
     models.insert("cube".to_string(), Model::new("resources/cube/cube.obj"));
     models.insert("sungod".to_string(), Model::new("resources/sungod/sungod.obj"));
     models.insert("asteroid".to_string(), Model::new("resources/new_asteroid/asteroid.obj"));
@@ -249,14 +251,9 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 println!("Game starting!");
-                                let start_pos =
-                                    &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
-                                camera.RotQuat = Quaternion::new(
-                                    start_pos.qw,
-                                    start_pos.qx,
-                                    start_pos.qy,
-                                    start_pos.qz,
-                                );
+                                sky = lobby_ecs.sky;
+                                let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
+                                camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
                                 client_ecs = None;
                                 first_mouse = true;
@@ -402,12 +399,9 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    let light_dir = vec3(0., 0., 1.);
-                    let light_ambience = vec3(0.2, 0.2, 0.2);
-                    let light_diffuse = vec3(0.5, 0.5, 0.5);
-                    shader_program.setVector3(c_str!("lightDir"), &light_dir);
-                    shader_program.setVector3(c_str!("lightAmb"), &light_ambience);
-                    shader_program.setVector3(c_str!("lightDif"), &light_diffuse);
+                    shader_program.setVector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    shader_program.setVector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    shader_program.setVector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
 
@@ -450,7 +444,6 @@ fn main() -> io::Result<()> {
                                     Err(e) => eprintln!("Audio error moving listener: {e}"),
                                 };
                             }
-
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.setVector3(c_str!("viewPos"), &camera.Position.to_vec());
 
@@ -481,6 +474,8 @@ fn main() -> io::Result<()> {
 
                                 let model = pos_mat * scale_mat * rot_mat;
                                 shader_program.set_mat4(c_str!("model"), &model);
+                                let model_scaleless = pos_mat * rot_mat;
+                                shader_program.set_mat4(c_str!("model_scaleless"), &model_scaleless);
                                 let model_name = &c_ecs.model_components[renderable].modelname;
                                 models[model_name].draw(&shader_program);
                             }
@@ -568,9 +563,14 @@ fn main() -> io::Result<()> {
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
-                    let projection: Matrix4<f32> =
-                        perspective(Deg(camera.Zoom), width as f32 / height as f32, 0.1, 100.0);
-                    skybox.draw(camera.GetViewMatrix(), projection);
+                    let projection: Matrix4<f32> = perspective(
+                        Deg(camera.Zoom),
+                        width as f32 / height as f32,
+                        0.1,
+                        100.0
+                    );
+                    // println!("{:?}",camera.Front);
+                    skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
 

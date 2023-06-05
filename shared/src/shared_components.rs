@@ -88,6 +88,7 @@ pub struct LobbyECS {
     pub ready_players: SecondaryMap<Entity, bool>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
+    pub sky: usize,
     pub start_game: bool
 }
 
@@ -99,6 +100,7 @@ impl LobbyECS {
             ready_players: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
+            sky: 0,
             start_game: false,
         }
     }
