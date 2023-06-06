@@ -70,7 +70,7 @@ fn main() -> io::Result<()> {
     let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
 
     // initialize audio manager
-    let mut audio = AudioPlayer::default();
+    let mut audio = AudioPlayer::new();
     
     // create camera and camera information
     let mut camera = Camera {
@@ -393,10 +393,15 @@ fn main() -> io::Result<()> {
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
                                 let audio_event = &c_ecs.audio_components[event];
-                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error playing sound: {e}"),
-                                };
+                                match &mut audio {
+                                    Some(audioplayer) => {
+                                        match audioplayer.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    },
+                                    None => ()
+                                }
                             }
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
@@ -484,11 +489,14 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-                            if frame_count == 0 {
-                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
-                                };
+                            match &mut audio {
+                                Some(audioplayer) if frame_count == 0 => {
+                                    match audioplayer.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                        Ok(_) => (),
+                                        Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                    };
+                                },
+                                _ => ()
                             }
                             // player position used for force field
                             player_pos_ff = player_pos;
