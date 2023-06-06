@@ -85,7 +85,7 @@ impl Tracker {
         for tracker in trackers {
             let mut color = tracker.3;
             // hardcoded alpha
-            color.w = 0.75;
+            color.w = 0.6;
             self.line.set_color(color);
             self.draw_from_vectors(tracker.1, tracker.2);
         }
