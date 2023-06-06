@@ -40,7 +40,11 @@ impl Tracker {
         let angle: Rad<f32>;
         let v1;
         let v2;
-        if vec2(projection.x, projection.y).magnitude() >= self.target_radius {
+        if projection.z > 0.0 {
+            angle = Rad(0.001);
+            v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+            v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
+        } else if vec2(projection.x, projection.y).magnitude() >= self.target_radius {
             angle = Angle::asin(self.target_radius / vec2(projection.x, projection.y).magnitude());
             v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
             v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
