@@ -98,17 +98,39 @@ pub fn process_events_game(
     }
 }
 
+pub fn process_events_game_over(
+    events: &Receiver<(f64, glfw::WindowEvent)>
+) {
+    for (_, event) in glfw::flush_messages(events) {
+        match event {
+            glfw::WindowEvent::FramebufferSize(width, height) => {
+                // make sure the viewport matches the new window dimensions; note that width and
+                // height will be significantly larger than specified on retina displays.
+                unsafe { gl::Viewport(0, 0, width, height) }
+            }
+            // Exit with code 0 upon window close
+            glfw::WindowEvent::Close => {
+                process::exit(0);
+            }
+            _ => {}
+        }
+    }
+}
+
 pub fn process_inputs_lobby(
     window: &mut glfw::Window,
     ready_sent: &mut bool,
+    first_enter: &mut bool,
     stream: &mut TcpStream
 ) {
-    if !*ready_sent && window.get_key(Key::Enter) == Action::Press {
+    if !*first_enter && !*ready_sent && window.get_key(Key::Enter) == Action::Press {
         *ready_sent = true;
         // send ready JSON (hardcoded for now)
         let ready_json = ReadyECS{ready:true};
         write_data(stream, serde_json::to_string(&ready_json).unwrap());
-        println!("Ready message sent!");
+    }
+    if window.get_key(Key::Enter) == Action::Release {
+        *first_enter = false;
     }
 }
 
@@ -159,6 +181,17 @@ pub fn process_inputs_game(
     }
 
     // TODO: add additional quit hotkey?
+}
+
+pub fn process_inputs_game_over(
+    window: &mut glfw::Window,
+    first_enter: &mut bool
+) -> bool {
+    if !*first_enter && window.get_key(Key::Enter) == Action::Press {
+        *first_enter = true;
+        return true;
+    }
+    return false;
 }
 
 pub fn set_fullscreen(fullscreen: bool, glfw: &mut Glfw, window: &mut Window, width: &mut u32, height: &mut u32, saved_xpos: &mut i32, saved_ypos: &mut i32, saved_width: &mut u32, saved_height: &mut u32, refresh_rate: u32) {
