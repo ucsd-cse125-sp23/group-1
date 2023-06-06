@@ -40,6 +40,10 @@ pub struct UI {
     pub p2_healthbar: Sprite,
     pub p3_healthbar: Sprite,
     pub p4_healthbar: Sprite,
+    pub p1_halfbar: Sprite,
+    pub p2_halfbar: Sprite,
+    pub p3_halfbar: Sprite,
+    pub p4_halfbar: Sprite,
     pub p1_emptybar: Sprite,
     pub p2_emptybar: Sprite,
     pub p3_emptybar: Sprite,
@@ -68,7 +72,65 @@ pub struct UI {
     pub p1_winner: Sprite,
     pub p2_winner: Sprite,
     pub p3_winner: Sprite,
-    pub p4_winner: Sprite
+    pub p4_winner: Sprite,
+
+    pub bar_1: Sprite,
+    pub bar_2: Sprite,
+    pub bar_3: Sprite,
+    pub bar_4: Sprite,
+
+    pub hits_0_b1: Sprite,
+    pub hits_1_b1: Sprite,
+    pub hits_2_b1: Sprite,
+    pub hits_3_b1: Sprite,
+    pub hits_4_b1: Sprite,
+    pub hits_5_b1: Sprite,
+    pub hits_6_b1: Sprite,
+    pub hits_7_b1: Sprite,
+    pub hits_8_b1: Sprite,
+    pub hits_9_b1: Sprite,
+    
+    pub hits_0_b2: Sprite,
+    pub hits_1_b2: Sprite,
+    pub hits_2_b2: Sprite,
+    pub hits_3_b2: Sprite,
+    pub hits_4_b2: Sprite,
+    pub hits_5_b2: Sprite,
+    pub hits_6_b2: Sprite,
+    pub hits_7_b2: Sprite,
+    pub hits_8_b2: Sprite,
+    pub hits_9_b2: Sprite,
+
+    pub hits_0_b3: Sprite,
+    pub hits_1_b3: Sprite,
+    pub hits_2_b3: Sprite,
+    pub hits_3_b3: Sprite,
+    pub hits_4_b3: Sprite,
+    pub hits_5_b3: Sprite,
+    pub hits_6_b3: Sprite,
+    pub hits_7_b3: Sprite,
+    pub hits_8_b3: Sprite,
+    pub hits_9_b3: Sprite,
+
+    pub hits_0_b4: Sprite,
+    pub hits_1_b4: Sprite,
+    pub hits_2_b4: Sprite,
+    pub hits_3_b4: Sprite,
+    pub hits_4_b4: Sprite,
+    pub hits_5_b4: Sprite,
+    pub hits_6_b4: Sprite,
+    pub hits_7_b4: Sprite,
+    pub hits_8_b4: Sprite,
+    pub hits_9_b4: Sprite,
+
+    pub p1_text: Sprite,
+    pub p2_text: Sprite,
+    pub p3_text: Sprite,
+    pub p4_text: Sprite,
+    pub p1_you_text: Sprite,
+    pub p2_you_text: Sprite,
+    pub p3_you_text: Sprite,
+    pub p4_you_text: Sprite
 }
 
 impl UI {
@@ -88,6 +150,10 @@ impl UI {
 
         let winner_pos = vec2(width / 4.00, height / 2.4);
         let winner_txt_pos = vec2(width / 4.00, height / 1.16);
+        let bar1_pos = vec2(width / 2.00, height / 2.4);
+        let bar2_pos = vec2(width / 2.00, height / 2.4 - LEADERBOARD_SPACING);
+        let bar3_pos = vec2(width / 2.00, height / 2.4 - LEADERBOARD_SPACING * 2.0);
+        let bar4_pos = vec2(width / 2.00, height / 2.4 - LEADERBOARD_SPACING * 3.0);
 
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
@@ -139,6 +205,11 @@ impl UI {
             p3_healthbar: init_with_anchor(s_size, id, P3_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
             p4_healthbar: init_with_anchor(s_size, id, P4_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
 
+            p1_halfbar: init_with_anchor(s_size, id, P1_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p2_halfbar: init_with_anchor(s_size, id, P2_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p3_halfbar: init_with_anchor(s_size, id, P3_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+            p4_halfbar: init_with_anchor(s_size, id, P4_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+
             p1_emptybar: init_with_anchor(s_size, id, P1_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
             p2_emptybar: init_with_anchor(s_size, id, P2_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
             p3_emptybar: init_with_anchor(s_size, id, P3_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
@@ -171,7 +242,65 @@ impl UI {
             p1_winner: init_sprite(s_size, id, P1_JOINED_PATH, winner_pos, WINNER_SCALE),
             p2_winner: init_sprite(s_size, id, P2_JOINED_PATH, winner_pos, WINNER_SCALE),
             p3_winner: init_sprite(s_size, id, P3_JOINED_PATH, winner_pos, WINNER_SCALE),
-            p4_winner: init_sprite(s_size, id, P4_JOINED_PATH, winner_pos, WINNER_SCALE)
+            p4_winner: init_sprite(s_size, id, P4_JOINED_PATH, winner_pos, WINNER_SCALE),
+
+            bar_1: init_sprite(s_size, id, BAR_1_PATH, bar1_pos, LEADERBOARD_SCALE),
+            bar_2: init_sprite(s_size, id, BAR_2_PATH, bar2_pos, LEADERBOARD_SCALE),
+            bar_3: init_sprite(s_size, id, BAR_3_PATH, bar3_pos, LEADERBOARD_SCALE),
+            bar_4: init_sprite(s_size, id, BAR_4_PATH, bar4_pos, LEADERBOARD_SCALE),
+
+            hits_0_b1: init_sprite(s_size, id, HITS_0_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_1_b1: init_sprite(s_size, id, HITS_1_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_2_b1: init_sprite(s_size, id, HITS_2_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_3_b1: init_sprite(s_size, id, HITS_3_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_4_b1: init_sprite(s_size, id, HITS_4_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_5_b1: init_sprite(s_size, id, HITS_5_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_6_b1: init_sprite(s_size, id, HITS_6_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_7_b1: init_sprite(s_size, id, HITS_7_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_8_b1: init_sprite(s_size, id, HITS_8_PATH, bar1_pos, LEADERBOARD_SCALE),
+            hits_9_b1: init_sprite(s_size, id, HITS_9_PATH, bar1_pos, LEADERBOARD_SCALE),
+
+            hits_0_b2: init_sprite(s_size, id, HITS_0_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_1_b2: init_sprite(s_size, id, HITS_1_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_2_b2: init_sprite(s_size, id, HITS_2_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_3_b2: init_sprite(s_size, id, HITS_3_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_4_b2: init_sprite(s_size, id, HITS_4_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_5_b2: init_sprite(s_size, id, HITS_5_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_6_b2: init_sprite(s_size, id, HITS_6_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_7_b2: init_sprite(s_size, id, HITS_7_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_8_b2: init_sprite(s_size, id, HITS_8_PATH, bar2_pos, LEADERBOARD_SCALE),
+            hits_9_b2: init_sprite(s_size, id, HITS_9_PATH, bar2_pos, LEADERBOARD_SCALE),
+
+            hits_0_b3: init_sprite(s_size, id, HITS_0_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_1_b3: init_sprite(s_size, id, HITS_1_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_2_b3: init_sprite(s_size, id, HITS_2_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_3_b3: init_sprite(s_size, id, HITS_3_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_4_b3: init_sprite(s_size, id, HITS_4_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_5_b3: init_sprite(s_size, id, HITS_5_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_6_b3: init_sprite(s_size, id, HITS_6_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_7_b3: init_sprite(s_size, id, HITS_7_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_8_b3: init_sprite(s_size, id, HITS_8_PATH, bar3_pos, LEADERBOARD_SCALE),
+            hits_9_b3: init_sprite(s_size, id, HITS_9_PATH, bar3_pos, LEADERBOARD_SCALE),
+
+            hits_0_b4: init_sprite(s_size, id, HITS_0_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_1_b4: init_sprite(s_size, id, HITS_1_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_2_b4: init_sprite(s_size, id, HITS_2_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_3_b4: init_sprite(s_size, id, HITS_3_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_4_b4: init_sprite(s_size, id, HITS_4_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_5_b4: init_sprite(s_size, id, HITS_5_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_6_b4: init_sprite(s_size, id, HITS_6_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_7_b4: init_sprite(s_size, id, HITS_7_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_8_b4: init_sprite(s_size, id, HITS_8_PATH, bar4_pos, LEADERBOARD_SCALE),
+            hits_9_b4: init_sprite(s_size, id, HITS_9_PATH, bar4_pos, LEADERBOARD_SCALE),
+
+            p1_text: init_sprite(s_size, id, P1_TEXT_PATH, bar1_pos, LEADERBOARD_SCALE),
+            p2_text: init_sprite(s_size, id, P2_TEXT_PATH, bar2_pos, LEADERBOARD_SCALE),
+            p3_text: init_sprite(s_size, id, P3_TEXT_PATH, bar3_pos, LEADERBOARD_SCALE),
+            p4_text: init_sprite(s_size, id, P4_TEXT_PATH, bar4_pos, LEADERBOARD_SCALE),
+            p1_you_text: init_sprite(s_size, id, P1_YOU_TEXT_PATH, bar1_pos, LEADERBOARD_SCALE),
+            p2_you_text: init_sprite(s_size, id, P2_YOU_TEXT_PATH, bar1_pos, LEADERBOARD_SCALE),
+            p3_you_text: init_sprite(s_size, id, P3_YOU_TEXT_PATH, bar1_pos, LEADERBOARD_SCALE),
+            p4_you_text: init_sprite(s_size, id, P4_YOU_TEXT_PATH, bar1_pos, LEADERBOARD_SCALE),
         }
     }
 
@@ -387,6 +516,23 @@ impl UI {
                 None => ()
             }
             self.winner_txt.draw();
+            self.bar_1.draw();
+            self.bar_2.draw();
+            self.bar_3.draw();
+            self.bar_4.draw();
+            self.p1_you_text.draw();
+            self.p2_text.draw();
+            self.p3_text.draw();
+            self.p4_text.draw();
+            self.hits_3_b1.draw();
+            self.hits_2_b2.draw();
+            self.hits_1_b3.draw();
+            self.hits_0_b4.draw();
+
+            self.hits_9_b1.set_position(vec2(0.0, 0.0));
+            self.hits_9_b1.draw();
+            self.hits_9_b1.set_position(vec2(100.0, 100.0));
+            self.hits_9_b1.draw();
         }
     }
 

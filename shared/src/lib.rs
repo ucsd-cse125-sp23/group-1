@@ -24,6 +24,7 @@ pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
 pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
 pub const BAR_BORDER: f32 = 9.0;
 pub const AMMO_BAR_BORDER: f32 = BAR_BORDER + 5.5;
+pub const LEADERBOARD_SPACING: f32 = 30.0;
 
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
@@ -31,6 +32,7 @@ pub const CROSSHAIR_SCALE: f32 = 0.015;
 pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
+pub const LEADERBOARD_SCALE: f32 = 0.1;
 
 // UI element paths
 pub const SPLASH_PATH: &str = "resources/ui_textures/Game-poster.jpg";
@@ -42,6 +44,28 @@ pub const LOBBY_BG_4_PATH: &str = "resources/ui_textures/lobby_bg/p4_bg.png";
 
 pub const GAME_OVER_BG_PATH: &str = "resources/ui_textures/game_over/space_bg.png";
 pub const WINNER_TXT_PATH: &str = "resources/ui_textures/game_over/winner.png";
+pub const BAR_1_PATH: &str = "resources/ui_textures/game_over/bar-1.png";
+pub const BAR_2_PATH: &str = "resources/ui_textures/game_over/bar-2.png";
+pub const BAR_3_PATH: &str = "resources/ui_textures/game_over/bar-3.png";
+pub const BAR_4_PATH: &str = "resources/ui_textures/game_over/bar-4.png";
+pub const HITS_0_PATH: &str = "resources/ui_textures/game_over/hits-0.png";
+pub const HITS_1_PATH: &str = "resources/ui_textures/game_over/hits-1.png";
+pub const HITS_2_PATH: &str = "resources/ui_textures/game_over/hits-2.png";
+pub const HITS_3_PATH: &str = "resources/ui_textures/game_over/hits-3.png";
+pub const HITS_4_PATH: &str = "resources/ui_textures/game_over/hits-4.png";
+pub const HITS_5_PATH: &str = "resources/ui_textures/game_over/hits-5.png";
+pub const HITS_6_PATH: &str = "resources/ui_textures/game_over/hits-6.png";
+pub const HITS_7_PATH: &str = "resources/ui_textures/game_over/hits-7.png";
+pub const HITS_8_PATH: &str = "resources/ui_textures/game_over/hits-8.png";
+pub const HITS_9_PATH: &str = "resources/ui_textures/game_over/hits-9.png";
+pub const P1_TEXT_PATH: &str = "resources/ui_textures/game_over/p1.png";
+pub const P2_TEXT_PATH: &str = "resources/ui_textures/game_over/p2.png";
+pub const P3_TEXT_PATH: &str = "resources/ui_textures/game_over/p3.png";
+pub const P4_TEXT_PATH: &str = "resources/ui_textures/game_over/p4.png";
+pub const P1_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p1-you.png";
+pub const P2_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p2-you.png";
+pub const P3_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p3-you.png";
+pub const P4_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p4-you.png";
 
 pub const P1_PATH: &str = "resources/ui_textures/player_cards/p1.png";
 pub const P2_PATH: &str = "resources/ui_textures/player_cards/p2.png";
@@ -74,6 +98,11 @@ pub const P1_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p1-health-ful
 pub const P2_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p2-health-full.png";
 pub const P3_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p3-health-full.png";
 pub const P4_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p4-health-full.png";
+
+pub const P1_HEALTH_HALF: &str = "resources/ui_textures/health_bar/p1-health-half.png";
+pub const P2_HEALTH_HALF: &str = "resources/ui_textures/health_bar/p2-health-half.png";
+pub const P3_HEALTH_HALF: &str = "resources/ui_textures/health_bar/p3-health-half.png";
+pub const P4_HEALTH_HALF: &str = "resources/ui_textures/health_bar/p4-health-half.png";
 
 pub const P1_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p1-health-empty.png";
 pub const P2_HEALTH_EMPTY: &str = "resources/ui_textures/health_bar/p2-health-empty.png";
