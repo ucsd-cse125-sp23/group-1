@@ -56,7 +56,7 @@ impl VelocityIndicator {
         projection = screen_mat * projection;
         shader.set_mat4(c_str!("projection"), &projection);
 
-        let light_ambience = Vector3::from_value(0.7);
+        let light_ambience = Vector3::from_value(0.5);
         shader.setVector3(c_str!("lightAmb"), &light_ambience);
 
         self.model.draw(shader);
