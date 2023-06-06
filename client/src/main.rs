@@ -455,7 +455,7 @@ fn main() -> io::Result<()> {
                             // change in velocity feels better
                             let delta_v = (player_vel - vel_prev).magnitude();
                             let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
-                            if delta_v > 1.0 {
+                            if delta_speed > 0.0 {
                                 camera.ScreenShake.add_trauma(delta_speed / 100.0);
                                 println!("Delta-V: {}", delta_v);
                                 println!("Delta-Speed: {}", delta_speed);
