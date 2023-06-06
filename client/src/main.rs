@@ -22,6 +22,8 @@ mod init_models;
 mod particle_emitter;
 
 use std::collections::HashMap;
+use std::f32::consts::PI;
+use std::hash::Hash;
 use std::time::Duration;
 
 // graphics
@@ -38,6 +40,7 @@ use std::ffi::CStr;
 
 use crate::camera::*;
 use crate::model::Model;
+use crate::particle_emitter::ParticleEmitterSpecifier;
 use crate::shader::Shader;
 use crate::particle_emitter::ParticleEmitter;
 
@@ -190,6 +193,27 @@ fn main() -> io::Result<()> {
 
     // list of particle emitters
     let mut particle_emitters = Vec::<ParticleEmitter>::new();
+    let mut emitter_specifiers:HashMap<String, ParticleEmitterSpecifier> = HashMap::new();
+    emitter_specifiers.insert("hit_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.5, stl_max: 1.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 2.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 1.5,
+        particles_per_100ms: 2
+    });
+    emitter_specifiers.insert("fire_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.5, stl_max: 1.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 6.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 1.5,
+        particles_per_100ms: 2
+    });
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
@@ -444,7 +468,11 @@ fn main() -> io::Result<()> {
                                     }
                                     let particle_component = &c_ecs.particle_components[event];
                                     particle_emitters.push(ParticleEmitter::new(
-                                        50, vec3(particle_component.x,particle_component.y,particle_component.z), 30.0
+                                        vec3(particle_component.x,
+                                            particle_component.y,particle_component.z), 
+                                        vec3(particle_component.normal_x,
+                                            particle_component.normal_y, particle_component.normal_z),
+                                        &emitter_specifiers["hit_spark"]
                                     ));
                                 },
                                 EventType::DeathEvent { player, killer } => {

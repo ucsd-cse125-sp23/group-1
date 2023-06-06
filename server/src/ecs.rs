@@ -25,7 +25,7 @@ pub struct ECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
-    pub particle_components: SecondaryMap<Entity, ParticleCompnent>,
+    pub particle_components: SecondaryMap<Entity, ParticleComponent>,
 
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
@@ -683,7 +683,7 @@ impl ECS {
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
                         self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target}});
-                        self.particle_components.insert(event_key, ParticleCompnent {
+                        self.particle_components.insert(event_key, ParticleComponent {
                             x: hit_point.x,
                             y: hit_point.y,
                             z: hit_point.z,

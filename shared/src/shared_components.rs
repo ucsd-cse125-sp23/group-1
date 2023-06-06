@@ -54,7 +54,7 @@ pub struct ClientECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
-    pub particle_components: SecondaryMap<Entity, ParticleCompnent>,
+    pub particle_components: SecondaryMap<Entity, ParticleComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
     pub players: Vec<Entity>,
@@ -219,7 +219,7 @@ pub struct AudioComponent {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ParticleCompnent {
+pub struct ParticleComponent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
