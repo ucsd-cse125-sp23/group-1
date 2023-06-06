@@ -55,6 +55,7 @@ pub struct ClientECS {
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
+    pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
@@ -74,6 +75,7 @@ impl ClientECS {
             audio_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
+            velocity_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -214,4 +216,21 @@ pub struct AudioComponent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VelocityComponent {
+    pub vel_x: f32,
+    pub vel_y: f32,
+    pub vel_z: f32,
+}
+
+impl VelocityComponent {
+    pub fn default() -> VelocityComponent{
+        VelocityComponent {
+            vel_x: 0.0,
+            vel_y: 0.0,
+            vel_z: 0.0,
+        }
+    }
 }
