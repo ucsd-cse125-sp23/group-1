@@ -223,4 +223,7 @@ pub struct ParticleCompnent {
     pub x: f32,
     pub y: f32,
     pub z: f32,
+    pub normal_x: f32,
+    pub normal_y: f32,
+    pub normal_z: f32
 }
