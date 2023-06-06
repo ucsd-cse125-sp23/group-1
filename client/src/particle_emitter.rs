@@ -3,14 +3,18 @@ use std::cmp::min;
 
 use std::ffi::{CStr};
 
-use cgmath::{vec3, vec4, Vector3, Vector4, Matrix4};
+use cgmath::{vec3, vec4, Vector3, Matrix4};
 use rand::Rng;
+
+use std::time::{Instant};
 
 use crate::shader::Shader;
 use crate::model::Model;
 
+const EXPECTED_FRAMES_PER_SECOND: f32 = 60.0;
+
 pub struct Particle {
-    pub frames_to_live: u8,
+    pub frames_to_live: f32,
     pub velocity: Vector3<f32>,
     pub pos: Vector3<f32>,
     pub scale: f32,
@@ -18,7 +22,7 @@ pub struct Particle {
 }
 
 impl Particle {
-    pub fn new(ftl: u8, vel: Vector3<f32>, pos: Vector3<f32>, scale: f32) -> Particle{
+    pub fn new(ftl: f32, vel: Vector3<f32>, pos: Vector3<f32>, scale: f32) -> Particle{
         Particle{
             frames_to_live: ftl,
             velocity: vel,
@@ -32,29 +36,31 @@ pub struct ParticleEmitter{
     pub particles: Vec<Particle>,
     pub particle_limit: i32,
     pub position: Vector3<f32>,
-    pub frames_to_live: u8,
+    pub frames_to_live: f32,
+    pub prev: Instant
 }
 
 impl ParticleEmitter{
 
-    pub fn new(p_limit: i32, pos: Vector3<f32>, f_tolive: u8) -> ParticleEmitter {
+    pub fn new(p_limit: i32, pos: Vector3<f32>, f_tolive: f32) -> ParticleEmitter {
         ParticleEmitter{
             particles: Vec::new(), 
             particle_limit: p_limit, 
             position: pos,
             frames_to_live: f_tolive,
+            prev: Instant::now()
         }
     }
 
     pub fn create_particle(&self) -> Particle{
         // to think about: only generate particles going the same direction as the surface normal of the object face that it hit
         return Particle::new(
-            if self.frames_to_live == 0 {0} else {
-                rand::thread_rng().gen_range(45..60)},               // frames to live 
+            if self.frames_to_live <= 0.0 {0.0} else {
+                rand::thread_rng().gen_range(45.0..60.0)},               // frames to live 
             vec3(
-                rand::thread_rng().gen_range(-100..100) as f32/500., 
-                rand::thread_rng().gen_range(-100..100) as f32/500., 
-                rand::thread_rng().gen_range(-100..100) as f32/500.),         // velocity vec3
+                rand::thread_rng().gen_range(-100.0..100.0)/500., 
+                rand::thread_rng().gen_range(-100.0..100.0)/500., 
+                rand::thread_rng().gen_range(-100.0..100.0)/500.),         // velocity vec3
             self.position,                                       // position vec3, all particles emitted from the same place
             rand::thread_rng().gen_range(0..10) as f32/100.,                    // scaling factor
         );
@@ -68,10 +74,13 @@ impl ParticleEmitter{
     // }
 
     pub fn draw(&mut self, model: &Model, shader: &Shader) -> bool {
+        let now = Instant::now();
+        let delta = now.duration_since(self.prev).as_secs_f32() * EXPECTED_FRAMES_PER_SECOND;
+        self.prev = now;
 
         // generate more particles if the particle vector isn't at full capacity
         let num_to_create = min(self.particle_limit - self.particles.len() as i32, 2);
-        for i in 0..num_to_create {
+        for _ in 0..num_to_create {
             self.particles.push(self.create_particle());
         }
         
@@ -80,17 +89,17 @@ impl ParticleEmitter{
         for i in 0..self.particles.len() {
             
             // if particle is dead, generate a new one in its stead
-            if self.particles[i].frames_to_live == 0{
+            if self.particles[i].frames_to_live <= 0.0{
                 self.particles[i] = self.create_particle();
-            } else { self.particles[i].frames_to_live -= 1;}
+            } else { self.particles[i].frames_to_live -= 1.0 * delta;}
 
-            if self.particles[i].frames_to_live == 0 {
+            if self.particles[i].frames_to_live <= 0.0 {
                 continue;
             }
 
             // update position of the particle with velocity, and the color of the particle
             let tempvel = self.particles[i].velocity;
-            self.particles[i].pos += tempvel;
+            self.particles[i].pos += tempvel * delta;
 
              // setup position matrix
             let pos_mat = Matrix4::from_translation(self.particles[i].pos);
@@ -113,8 +122,8 @@ impl ParticleEmitter{
                 shader.set_mat4(c_str!("model"), &model_matrix);
                 shader.set_vector4(c_str!("color_overwrite"), 
                 &vec4(1., 
-                    self.particles[i].frames_to_live as f32 / 60., 
-                    0., self.particles[i].frames_to_live as f32 / 120. + 0.5)
+                    self.particles[i].frames_to_live / 60., 
+                    0., self.particles[i].frames_to_live / 120. + 0.5)
                 );
             }
 
@@ -123,8 +132,8 @@ impl ParticleEmitter{
             particles_drawn += 1;
         }
 
-        if self.frames_to_live > 0 {
-            self.frames_to_live -= 1;
+        if self.frames_to_live > 0.0 {
+            self.frames_to_live = (self.frames_to_live - delta).max(0.0);
         }
 
         // return false when we should remove this particle emittor

@@ -444,7 +444,7 @@ fn main() -> io::Result<()> {
                                     }
                                     let particle_component = &c_ecs.particle_components[event];
                                     particle_emitters.push(ParticleEmitter::new(
-                                        50, vec3(particle_component.x,particle_component.y,particle_component.z), 30
+                                        50, vec3(particle_component.x,particle_component.y,particle_component.z), 30.0
                                     ));
                                 },
                                 EventType::DeathEvent { player, killer } => {
