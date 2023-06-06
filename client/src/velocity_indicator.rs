@@ -2,6 +2,7 @@ use cgmath::{Matrix4, Point3, SquareMatrix, Transform, Vector3, InnerSpace, vec3
 use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
+use shared::*;
 use std::{ffi::{CStr}, time::Instant};
 
 const LERP_RATE: f32 = 50.0;
@@ -48,7 +49,7 @@ impl VelocityIndicator {
         // offset the arrow in screen space
         let screen_mat = Matrix4::from_translation(vec3(-0.85, -0.55, 0.0));
         let mut projection: Matrix4<f32> = perspective(
-            Deg(camera.Zoom),
+            Deg(DEFAULT_VERTICAL_FOV),
             aspect_ratio,
             0.02,
             10000.0,
@@ -57,7 +58,7 @@ impl VelocityIndicator {
         shader.set_mat4(c_str!("projection"), &projection);
 
         let light_ambience = Vector3::from_value(0.5);
-        shader.setVector3(c_str!("lightAmb"), &light_ambience);
+        shader.set_vector3(c_str!("lightAmb"), &light_ambience);
 
         self.model.draw(shader);
     }

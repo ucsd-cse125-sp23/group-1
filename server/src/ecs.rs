@@ -582,7 +582,6 @@ impl ECS {
                 }
             );
             self.velocity_components.insert(entity, VelocityComponent::default());
-            self.model_components.insert(entity,ModelComponent { modelname, scale });
             if !border {
                 self.renderables.push(entity);
             }

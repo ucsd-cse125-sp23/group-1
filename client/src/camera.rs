@@ -7,6 +7,7 @@ use cgmath::vec3;
 use cgmath::prelude::*;
 
 use crate::screenshake::ScreenShake;
+use shared::*;
 
 type Point3 = cgmath::Point3<f32>;
 type Vector3 = cgmath::Vector3<f32>;
@@ -27,7 +28,7 @@ const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
-const ZOOM: f32 = 45.0;
+const ZOOM: f32 = DEFAULT_VERTICAL_FOV;
 const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
@@ -89,14 +90,14 @@ impl Camera {
 
     // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     pub fn ProcessMouseScroll(&mut self, yoffset: f32) {
-        if self.Zoom >= 1.0 && self.Zoom <= 45.0 {
+        if self.Zoom >= 1.0 && self.Zoom <= ZOOM {
             self.Zoom -= yoffset;
         }
         if self.Zoom <= 1.0 {
             self.Zoom = 1.0;
         }
-        if self.Zoom >= 45.0 {
-            self.Zoom = 45.0;
+        if self.Zoom >= ZOOM {
+            self.Zoom = ZOOM;
         }
     }
 
