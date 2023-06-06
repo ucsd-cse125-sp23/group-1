@@ -203,7 +203,7 @@ fn main() -> io::Result<()> {
         col_end: vec4(1., 1., 0., 1.),
         particle_limit: 50,
         secs_to_live: 1.5,
-        particles_per_100ms: 2
+        particles_per_100ms: 10
     });
     emitter_specifiers.insert("fire_spark".to_string(), ParticleEmitterSpecifier{
         stl_min: 0.5, stl_max: 1.2,
@@ -447,6 +447,18 @@ fn main() -> io::Result<()> {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
                                     }
+
+// TODO: muzzle flash position isn't exactly correct
+// amd iherit veloctiy
+                                    particle_emitters.push(ParticleEmitter::new(
+                                        vec3(
+                                            c_ecs.position_components[player_key].x,
+                                            c_ecs.position_components[player_key].y,
+                                            c_ecs.position_components[player_key].z,
+                                        ), 
+                                        camera.Front,
+                                        &emitter_specifiers["fire_spark"]
+                                    ));
                                 },
                                 EventType::HitEvent { player, target } => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
@@ -653,8 +665,8 @@ fn main() -> io::Result<()> {
                             // render particle effects                
                             shader_program.set_bool(c_str!("use_color"), true);
                             for i in (0..particle_emitters.len()).rev(){
-                                let keep = particle_emitters[i].draw(&models["cube"], &shader_program);
-                                if !keep{
+                                let die = particle_emitters[i].draw(&models["cube"], &shader_program);
+                                if die{
                                     particle_emitters.remove(i);
                                 }
                             }                

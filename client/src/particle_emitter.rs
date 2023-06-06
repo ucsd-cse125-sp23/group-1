@@ -40,6 +40,7 @@ pub struct ParticleEmitter{
 impl ParticleEmitter{
 
     pub fn new(pos: Vector3<f32>, s_normal: Vector3<f32>, pe_specifier: &ParticleEmitterSpecifier) -> ParticleEmitter {
+
         ParticleEmitter{
             particles: Vec::new(),  
             position: pos,
@@ -48,6 +49,7 @@ impl ParticleEmitter{
             time_alive: 0.,
             s_normal,
         }
+        
     }
 
     // returns particle with secs_to_live = 0 if emitter time is up
@@ -71,7 +73,6 @@ impl ParticleEmitter{
         let c = n.cross(b);
         let new_vel = vel.x*b + vel.y*c + vel.z*n;
 
-
         return Particle { 
             secs_to_live: if self.time_alive >= self.vars.secs_to_live {0.0} else
                 {rand::thread_rng().gen_range(self.vars.stl_min..self.vars.stl_max)}, 
@@ -87,6 +88,7 @@ impl ParticleEmitter{
         let now = Instant::now();
         let delta = now.duration_since(self.prev).as_secs_f32();
         self.time_alive += delta;
+
         if delta >= 0.1 {
             let num_to_create = min(self.vars.particles_per_100ms,
                 self.vars.particle_limit - self.particles.len() as i32);
@@ -135,8 +137,8 @@ impl ParticleEmitter{
             particles_drawn += 1;
         }
 
-        // return false when we should remove this particle emittor
-        particles_drawn > 0
+        // return true when we should remove this particle emittor
+        self.time_alive >= self.vars.secs_to_live && particles_drawn == 0
     }
 
     
