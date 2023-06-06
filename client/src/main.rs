@@ -24,7 +24,6 @@ mod particle_emitter;
 
 use std::collections::HashMap;
 use std::f32::consts::PI;
-use std::hash::Hash;
 use std::time::Duration;
 
 // graphics
@@ -457,6 +456,11 @@ fn main() -> io::Result<()> {
                                             c_ecs.position_components[player_key].z,
                                         ), 
                                         camera.Front,
+                                        vec3(
+                                            c_ecs.velocity_components[player_key].vel_x,
+                                            c_ecs.velocity_components[player_key].vel_y,
+                                            c_ecs.velocity_components[player_key].vel_z
+                                        ),
                                         &emitter_specifiers["fire_spark"]
                                     ));
                                 },
@@ -473,6 +477,8 @@ fn main() -> io::Result<()> {
                                             particle_component.y,particle_component.z), 
                                         vec3(particle_component.normal_x,
                                             particle_component.normal_y, particle_component.normal_z),
+                                        vec3(c_ecs.velocity_components[target].vel_x,
+                                            c_ecs.velocity_components[target].vel_y, c_ecs.velocity_components[target].vel_z),
                                         &emitter_specifiers["hit_spark"]
                                     ));
                                 },

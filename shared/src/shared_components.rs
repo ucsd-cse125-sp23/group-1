@@ -244,5 +244,8 @@ pub struct ParticleComponent {
     pub z: f32,
     pub normal_x: f32,
     pub normal_y: f32,
-    pub normal_z: f32
+    pub normal_z: f32,
+    pub vel_x: f32,
+    pub vel_y: f32,
+    pub vel_z: f32
 }

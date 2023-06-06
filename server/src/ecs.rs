@@ -687,6 +687,9 @@ impl ECS {
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
 
+                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+                        let target_start_vel = target_body.linvel();
+
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
                         self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target}});
@@ -696,10 +699,11 @@ impl ECS {
                             z: hit_point.z,
                             normal_x: hit_normal.x,
                             normal_y: hit_normal.y,
-                            normal_z: hit_normal.z
+                            normal_z: hit_normal.z,
+                            vel_x: target_start_vel.x,
+                            vel_y: target_start_vel.y,
+                            vel_z: target_start_vel.z
                         });
-
-                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
 
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {

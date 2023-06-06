@@ -1,18 +1,18 @@
 use std::cmp::min;
 use std::ffi::{CStr};
-use cgmath::{vec3, vec4, Vector3, Matrix4, Vector4, InnerSpace};
+use cgmath::{vec3, vec4, Vector3, Matrix4, Vector4, InnerSpace, Rad};
 use rand::Rng;
 use std::time::{Instant};
+use std::f32::consts::PI;
 
 use crate::shader::Shader;
 use crate::model::Model;
-
-// const PI: f32 = 3.1415926535;
 
 pub struct Particle {
     pub secs_to_live: f32,
     pub velocity: Vector3<f32>,
     pub position: Vector3<f32>,
+    pub rotation: Matrix4<f32>,
     pub scale: f32,
 }
 
@@ -35,11 +35,12 @@ pub struct ParticleEmitter{
     prev: Instant,                          // to count 100ms increments
     time_alive: f32,                        // to know when to stop making new particles
     s_normal: Vector3<f32>,                 // surface normal of the face that is hit
+    start_vel: Vector3<f32>
 }
 
 impl ParticleEmitter{
 
-    pub fn new(pos: Vector3<f32>, s_normal: Vector3<f32>, pe_specifier: &ParticleEmitterSpecifier) -> ParticleEmitter {
+    pub fn new(pos: Vector3<f32>, s_normal: Vector3<f32>, start_vel: Vector3<f32>, pe_specifier: &ParticleEmitterSpecifier) -> ParticleEmitter {
 
         ParticleEmitter{
             particles: Vec::new(),  
@@ -48,6 +49,7 @@ impl ParticleEmitter{
             prev: Instant::now(),
             time_alive: 0.,
             s_normal,
+            start_vel
         }
         
     }
@@ -56,7 +58,7 @@ impl ParticleEmitter{
     pub fn create_particle(&self) -> Particle{
         
         // generate around the z axis
-        let theta: f32 = rand::thread_rng().gen_range(0.0..(2.*3.1415926535));
+        let theta: f32 = rand::thread_rng().gen_range(0.0..(2.*PI));
         let phi: f32 = rand::thread_rng().gen_range(0.0..self.vars.phi_max);
         let vel = vec3(
             phi.sin()*theta.cos(), 
@@ -71,13 +73,26 @@ impl ParticleEmitter{
         }
         let b = a.cross(self.s_normal).normalize();
         let c = n.cross(b);
-        let new_vel = vel.x*b + vel.y*c + vel.z*n;
+        let mut new_vel = vel.x*b + vel.y*c + vel.z*n;
+        new_vel = new_vel + self.start_vel;
+        // println!("{}",new_vel.magnitude());
+
+        let theta: f32 = rand::thread_rng().gen_range(0.0..(2.*PI));
+        let phi: f32 = rand::thread_rng().gen_range(0.0..PI);
+        let axis = vec3(
+            phi.sin()*theta.cos(), 
+            phi.sin()*theta.sin(), 
+            phi.cos());
+        let angle = Rad(rand::thread_rng().gen_range(0.0..PI));
+
+        let rot = Matrix4::from_axis_angle(axis, angle);
 
         return Particle { 
             secs_to_live: if self.time_alive >= self.vars.secs_to_live {0.0} else
                 {rand::thread_rng().gen_range(self.vars.stl_min..self.vars.stl_max)}, 
             velocity: new_vel, 
             position: self.position, 
+            rotation: rot,
             scale: rand::thread_rng().gen_range(self.vars.scl_min..self.vars.scl_max) 
         }
     }
@@ -89,14 +104,16 @@ impl ParticleEmitter{
         let delta = now.duration_since(self.prev).as_secs_f32();
         self.time_alive += delta;
 
-        if delta >= 0.1 {
+        self.position += delta * self.start_vel;
+
+        // if delta >= 0.1 {
             let num_to_create = min(self.vars.particles_per_100ms,
                 self.vars.particle_limit - self.particles.len() as i32);
             for _ in 0..num_to_create {
                 self.particles.push(self.create_particle());
             }
             self.prev = now;
-        }
+        // }
         
         // update position/color, and draw each particle
         let mut particles_drawn = 0;
@@ -119,7 +136,7 @@ impl ParticleEmitter{
 
             // setup model matrix
             let pos_mat = Matrix4::from_translation(self.particles[i].position);
-            let rot_mat = Matrix4::from_scale(1.); // for now, the particles won't be rotating
+            let rot_mat = self.particles[i].rotation; // for now, the particles won't be rotating
             let scale_mat = Matrix4::from_scale(self.particles[i].scale);
             let model_matrix = pos_mat * scale_mat * rot_mat;
 
