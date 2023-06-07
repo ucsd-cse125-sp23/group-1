@@ -423,6 +423,12 @@ fn main() -> io::Result<()> {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
                                 },
+                                EventType::ReloadEvent { player } => {
+                                    println!("reload event");
+                                    if player == player_key {
+                                        arm.reload();
+                                    }
+                                },
                                 EventType::DeathEvent { player, killer } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);

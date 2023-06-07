@@ -192,11 +192,13 @@ pub struct PlayerLassoComponent {
 pub enum EventType {
     FireEvent {
         player: Entity,
-
     },
     HitEvent {
         player: Entity,
         target: Entity
+    },
+    ReloadEvent {
+        player: Entity,
     },
     DeathEvent {
         player: Entity,
