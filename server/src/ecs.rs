@@ -62,6 +62,7 @@ pub struct ECS {
     pub sky: usize,
     pub active_players: u8,
     pub game_ended: bool,
+    pub eor_countdown: u16,
 }
 
 impl ECS {
@@ -115,6 +116,7 @@ impl ECS {
             sky: 0,
             active_players: 0,
             game_ended: false,
+            eor_countdown: 250, // about 4 seconds
         }
     }
 
@@ -212,6 +214,7 @@ impl ECS {
 
         self.active_players = self.players.len() as u8;
         self.game_ended = false;
+        self.eor_countdown = 250; // about 4 seconds
     }
 
     /**
@@ -453,7 +456,11 @@ impl ECS {
 
         // game ends if there's 1 active player left
         if self.active_players <= 1 {
-            self.game_ended = true;
+            if self.eor_countdown == 0 {
+                self.game_ended = true;
+            } else {
+                self.eor_countdown -= 1;
+            }
         }
 
         let client_ecs = self.client_ecs();
