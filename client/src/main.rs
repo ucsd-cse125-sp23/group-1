@@ -631,13 +631,12 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    // arm.draw(&camera, &shader_program);
-
                     force_field.draw(&camera, player_pos_ff);
 
                     // HUD elements should always be rendered on top
                     // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
+                    arm.draw(&camera, &shader_program);
                     vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
 
                     gl::DepthMask(gl::FALSE);
