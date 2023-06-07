@@ -272,7 +272,8 @@ fn main() -> io::Result<()> {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                    //ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                    ui_elems.draw_game_over(curr_id, &client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
 
