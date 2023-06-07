@@ -424,7 +424,6 @@ fn main() -> io::Result<()> {
                                     }
                                 },
                                 EventType::ReloadEvent { player } => {
-                                    println!("reload event");
                                     if player == player_key {
                                         arm.reload();
                                     }

@@ -104,6 +104,8 @@ impl Arm {
 
         let model = loc_mat * rot_mat * sca_mat;
         shader.set_mat4(c_str!("model"), &model);
+        let model_scaleless = loc_mat * rot_mat;
+        shader.set_mat4(c_str!("model_scaleless"), &model_scaleless);
 
         self.model.draw(shader);
     }
