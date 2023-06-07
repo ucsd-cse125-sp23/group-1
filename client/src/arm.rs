@@ -2,11 +2,14 @@ use std::{ffi::{CStr}, time::Instant};
 use std::ops::Add;
 use std::time::Duration;
 use cgmath::{EuclideanSpace, Matrix4, Point3, Quaternion, SquareMatrix, Transform, vec3, Zero};
+use cgmath::num_traits::{abs, pow};
 use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
 
-const ANIM_DURATION: Duration = Duration::from_millis(100);
+const RECOIL_DURATION: f32 = 0.05;
+const STABLIZE_DURATION: f32 = 0.1;
+
 
 pub struct Arm {
     model: Model,
@@ -37,12 +40,15 @@ impl Arm {
         let now = Instant::now();
         let time = now.duration_since(self.start_time).as_secs_f32();
 
-        if now <= self.start_time + ANIM_DURATION {
-            let mut lerp = time / ANIM_DURATION.as_secs_f32() * 2.0;
-            if lerp < 1.0 {
+        if time < RECOIL_DURATION + STABLIZE_DURATION {
+            let mut lerp;
+            if time < RECOIL_DURATION {
+                lerp = time / RECOIL_DURATION;
+                lerp = -pow(abs(lerp-1.0), 2) + 1.0;
                 rot = rot.slerp(end_animation, lerp);
             } else {
-                rot = end_animation.slerp(rot, lerp - 1.0);
+                lerp = (time - RECOIL_DURATION) / STABLIZE_DURATION;
+                rot = end_animation.slerp(rot, lerp);
             }
         }
 
