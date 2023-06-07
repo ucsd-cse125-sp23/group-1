@@ -66,12 +66,12 @@ impl Arm {
         shader.use_program();
         let cam_mat = camera.GetViewMatrix().invert().expect("Camera view matrix not invertible");
 
-        let loc_offset = cam_mat.transform_point(Point3::new(0.5, -0.5, -0.5));
+        let loc_offset = cam_mat.transform_point(Point3::new(0.23, -0.2, -0.3));
         let loc_mat = Matrix4::from_translation(loc_offset.to_vec());
 
         let rot_mat = Matrix4::from(camera.RotQuat * rot);
 
-        let sca_mat = Matrix4::from_scale(3.0);
+        let sca_mat = Matrix4::from_scale(0.5);
 
         let model = loc_mat * rot_mat * sca_mat;
         shader.set_mat4(c_str!("model"), &model);
