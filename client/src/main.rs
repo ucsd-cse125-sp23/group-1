@@ -633,16 +633,26 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
+
+                    // enable translucency for force field
+                    gl::DepthMask(gl::FALSE);
+
                     force_field.draw(&camera, player_pos_ff);
 
+                    // disable translucency for velocity indicator and first person model
+                    gl::DepthMask(gl::TRUE);
                     // HUD elements should always be rendered on top
-                    // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
+
                     vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
 
+                    // enable translucency for 2D HUD
                     gl::DepthMask(gl::FALSE);
+
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+
+                    // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
 
                     frame_count += 1;
