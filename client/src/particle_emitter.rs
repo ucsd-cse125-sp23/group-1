@@ -32,10 +32,11 @@ pub struct ParticleEmitter{
     pub particles: Vec<Particle>,
     pub position: Vector3<f32>,
     pub vars: ParticleEmitterSpecifier,
-    prev: Instant,                          // to count 100ms increments
+    prev: Instant,                          // previous frame
+    prev_incr: Instant,                     // to count 100ms increments
     time_alive: f32,                        // to know when to stop making new particles
     s_normal: Vector3<f32>,                 // surface normal of the face that is hit
-    start_vel: Vector3<f32>
+    start_vel: Vector3<f32>                 // velocity of the object that was hit
 }
 
 impl ParticleEmitter{
@@ -47,6 +48,7 @@ impl ParticleEmitter{
             position: pos,
             vars: pe_specifier.clone(),
             prev: Instant::now(),
+            prev_incr: Instant::now(),
             time_alive: 0.,
             s_normal,
             start_vel
@@ -74,8 +76,8 @@ impl ParticleEmitter{
         let b = a.cross(self.s_normal).normalize();
         let c = n.cross(b);
         let mut new_vel = vel.x*b + vel.y*c + vel.z*n;
-        new_vel = new_vel + self.start_vel;
-        // println!("{}",new_vel.magnitude());
+        // TODO: get particle velocity magnitude from ParticleEmitterSpecifier, possibly generate random
+        new_vel = new_vel * 6.0 + self.start_vel;
 
         let theta: f32 = rand::thread_rng().gen_range(0.0..(2.*PI));
         let phi: f32 = rand::thread_rng().gen_range(0.0..PI);
@@ -102,18 +104,19 @@ impl ParticleEmitter{
         // generate more particles if the particle vector isn't at full capacity
         let now = Instant::now();
         let delta = now.duration_since(self.prev).as_secs_f32();
+        self.prev = now;
         self.time_alive += delta;
 
-        self.position += delta * self.start_vel;
-
-        // if delta >= 0.1 {
+        if now.duration_since(self.prev_incr).as_secs_f32() >= 0.1 {
             let num_to_create = min(self.vars.particles_per_100ms,
                 self.vars.particle_limit - self.particles.len() as i32);
             for _ in 0..num_to_create {
                 self.particles.push(self.create_particle());
             }
-            self.prev = now;
-        // }
+            self.prev_incr = now;
+        }
+
+        self.position += delta * self.start_vel;
         
         // update position/color, and draw each particle
         let mut particles_drawn = 0;
@@ -136,7 +139,7 @@ impl ParticleEmitter{
 
             // setup model matrix
             let pos_mat = Matrix4::from_translation(self.particles[i].position);
-            let rot_mat = self.particles[i].rotation; // for now, the particles won't be rotating
+            let rot_mat = self.particles[i].rotation;
             let scale_mat = Matrix4::from_scale(self.particles[i].scale);
             let model_matrix = pos_mat * scale_mat * rot_mat;
 

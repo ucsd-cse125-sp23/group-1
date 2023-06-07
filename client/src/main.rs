@@ -195,23 +195,23 @@ fn main() -> io::Result<()> {
     let mut particle_emitters = Vec::<ParticleEmitter>::new();
     let mut emitter_specifiers:HashMap<String, ParticleEmitterSpecifier> = HashMap::new();
     emitter_specifiers.insert("hit_spark".to_string(), ParticleEmitterSpecifier{
-        stl_min: 0.5, stl_max: 1.2,
+        stl_min: 0.08, stl_max: 0.2,
         scl_min: 0.05, scl_max: 0.1,
         phi_max: PI / 2.,
         col_start: vec4(1., 0., 0., 1.),
         col_end: vec4(1., 1., 0., 1.),
         particle_limit: 50,
-        secs_to_live: 1.5,
+        secs_to_live: 0.25,
         particles_per_100ms: 10
     });
     emitter_specifiers.insert("fire_spark".to_string(), ParticleEmitterSpecifier{
-        stl_min: 0.5, stl_max: 1.2,
+        stl_min: 0.8, stl_max: 1.2,
         scl_min: 0.05, scl_max: 0.1,
         phi_max: PI / 6.,
         col_start: vec4(1., 0., 0., 1.),
         col_end: vec4(1., 1., 0., 1.),
         particle_limit: 50,
-        secs_to_live: 1.5,
+        secs_to_live: 0.25,
         particles_per_100ms: 2
     });
 
@@ -477,8 +477,8 @@ fn main() -> io::Result<()> {
                                             particle_component.y,particle_component.z), 
                                         vec3(particle_component.normal_x,
                                             particle_component.normal_y, particle_component.normal_z),
-                                        vec3(c_ecs.velocity_components[target].vel_x,
-                                            c_ecs.velocity_components[target].vel_y, c_ecs.velocity_components[target].vel_z),
+                                        vec3(particle_component.vel_x,
+                                            particle_component.vel_y, particle_component.vel_z),
                                         &emitter_specifiers["hit_spark"]
                                     ));
                                 },
