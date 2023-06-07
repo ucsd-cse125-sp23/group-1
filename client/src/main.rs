@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod arm;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -45,6 +46,7 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::arm::Arm;
 
 // network
 use shared::shared_components::*;
@@ -186,6 +188,9 @@ fn main() -> io::Result<()> {
 
     // create velocity indicator
     let mut vel_indicator = VelocityIndicator::new();
+
+    // create first person model
+    let mut arm = Arm::new();
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -407,6 +412,7 @@ fn main() -> io::Result<()> {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
+                                        arm.shoot();
                                     }
                                 },
                                 EventType::HitEvent { player, target } => {
@@ -624,6 +630,8 @@ fn main() -> io::Result<()> {
                     );
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
+
+                    // arm.draw(&camera, &shader_program);
 
                     force_field.draw(&camera, player_pos_ff);
 
