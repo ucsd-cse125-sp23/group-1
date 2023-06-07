@@ -10,11 +10,16 @@ use crate::shader::Shader;
 const RECOIL_DURATION: f32 = 0.05;
 const STABLIZE_DURATION: f32 = 0.1;
 
+enum AnimState {
+    Idle,
+    Shoot,
+    Reload,
+}
 
 pub struct Arm {
     model: Model,
     start_time: Instant,
-    rot: Quaternion<f32>,
+    state: AnimState,
 }
 
 impl Arm {
@@ -23,12 +28,18 @@ impl Arm {
         let arm = Arm {
             model,
             start_time: Instant::now(),
-            rot: Quaternion::zero(),
+            state: AnimState::Idle,
         };
         arm
     }
 
     pub fn shoot(&mut self) {
+        self.state = AnimState::Shoot;
+        self.start_time = Instant::now();
+    }
+
+    pub fn reload(&mut self) {
+        self.state = AnimState::Reload;
         self.start_time = Instant::now();
     }
 
