@@ -23,8 +23,15 @@ pub struct AudioPlayer {
 }
 
 impl AudioPlayer {
-    pub fn default() -> AudioPlayer {
-        let mut manager = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()).unwrap();
+    pub fn new() -> Option<AudioPlayer> {
+        let mut manager: AudioManager;
+        match AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()) {
+            Ok(am) => manager = am,
+            Err(e) => {
+                eprintln!("Error loading audio manager: {e}");
+                return None;
+            } 
+        }
         let mut scene = manager.add_spatial_scene(SpatialSceneSettings::default()).unwrap();
         let listener = scene.add_listener(Vector3{x:0.,y:0.,z:0.}, Quaternion{v: Vector3{x:0., y:0., z:0.}, s:1.}, ListenerSettings::default()).unwrap();
         let mut player = AudioPlayer {
@@ -35,7 +42,7 @@ impl AudioPlayer {
         };
         // TODO: load from config file
         player.sound_map.insert("fire".to_string(), StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default()).unwrap());
-        player
+        Some(player)
     }
     pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32) -> Result<(),Box<dyn std::error::Error>> {
         let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default().persist_until_sounds_finish(true))?;
