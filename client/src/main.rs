@@ -520,7 +520,7 @@ fn main() -> io::Result<()> {
                             }
 
                             if !client_health.alive && spectator_mode {
-                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height, player_pos);
+                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height);
                                 shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
                             } else {
                                 set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
@@ -532,7 +532,7 @@ fn main() -> io::Result<()> {
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
-                                if renderable == player_key {
+                                if renderable == player_key && !spectator_mode {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
@@ -668,6 +668,8 @@ fn main() -> io::Result<()> {
                 }
             }
             GameState::GameOver => {
+                spectator_mode = false;
+
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 

@@ -69,7 +69,7 @@ impl Camera {
     }
 
     /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    pub fn ProcessKeyboard(&mut self, input: &PlayerInputComponent, deltaTime: f32, shader: &Shader, width: u32, height: u32, player_pos: Vector3) {
+    pub fn ProcessKeyboard(&mut self, input: &PlayerInputComponent, deltaTime: f32, shader: &Shader, width: u32, height: u32) {
         let velocity = 50.0 * deltaTime;
 
         let mut direction: Vector3 = Vector3::zero();
