@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod tracer;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -46,6 +47,7 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::tracer::TracerManager;
 
 // network
 use shared::shared_components::*;
@@ -178,6 +180,14 @@ fn main() -> io::Result<()> {
         let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
+
+    // set up tracers
+    let mut tracers = TracerManager::new(vec![
+        Model::new("resources/tracer/tracer_p1.obj"),
+        Model::new("resources/tracer/tracer_p2.obj"),
+        Model::new("resources/tracer/tracer_p3.obj"),
+        Model::new("resources/tracer/tracer_p4.obj"),
+    ], screen_size);
 
     // create force field
     let force_field = ForceField::new(250.0, screen_size);
@@ -421,7 +431,7 @@ fn main() -> io::Result<()> {
                                         screenshake_event = true;
                                     }
                                 },
-                                EventType::HitEvent { player, target } => {
+                                EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
                                         screenshake_event = true;
@@ -429,6 +439,8 @@ fn main() -> io::Result<()> {
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                    let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                    tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
                                 },
                                 EventType::DeathEvent { player, killer } => {
                                     if player == player_key {
@@ -659,16 +671,27 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    force_field.draw(&camera, player_pos_ff);
 
+                    // enable translucency for force field
+                    gl::DepthMask(gl::FALSE);
+
+                    force_field.draw(&camera, player_pos_ff);
+                    tracers.draw_tracers(&camera);
+
+                    // disable translucency for velocity indicator and first person model
+                    gl::DepthMask(gl::TRUE);
                     // HUD elements should always be rendered on top
-                    // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
+
                     vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
 
+                    // enable translucency for 2D HUD
                     gl::DepthMask(gl::FALSE);
+
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+
+                    // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
 
                     frame_count += 1;
