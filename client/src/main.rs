@@ -663,13 +663,15 @@ fn main() -> io::Result<()> {
 
                     // HUD elements should always be rendered on top
                     // TODO: call gl::Clear only after rendering forcefield
-                    gl::Clear(gl::DEPTH_BUFFER_BIT);
-                    arm.draw(&camera, &shader_program);
-                    vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                    if !spectator_mode {
+                        gl::Clear(gl::DEPTH_BUFFER_BIT);
+                        arm.draw(&camera, &shader_program);
+                        vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                    }
 
                     gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode);
                     gl::DepthMask(gl::TRUE);
 
                     frame_count += 1;
