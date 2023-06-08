@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod lights;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -45,6 +46,8 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::lights::Light;
+use crate::lights::Lights;
 
 // network
 use shared::shared_components::*;
@@ -162,6 +165,7 @@ fn main() -> io::Result<()> {
     // textures for skybox
     let skies = init_skies::init_skyboxes();
     let mut sky: usize = 0;
+    let mut lights = Lights::new();
 
     // add all models to hashmap
     let models: HashMap<String, Model> = init_models::init_models();
@@ -287,6 +291,17 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 sky = lobby_ecs.sky;
+                                lights.clear();
+
+                                // do i need to add clone here?
+                                println!("adding in the new light source");
+                                lights.addLight(Light::new(
+                                    skies[sky].light_dir.clone(),
+                                    skies[sky].light_ambience.clone(),
+                                    skies[sky].light_diffuse.clone(),
+                                    false, -1.
+                                ));
+
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
@@ -459,9 +474,10 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
-                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
-                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
+                    lights.init_lights(&shader_program);
+                    // shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    // shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    // shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
