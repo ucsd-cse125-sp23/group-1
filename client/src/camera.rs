@@ -28,7 +28,7 @@ const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
-const ZOOM: f32 = DEFAULT_VERTICAL_FOV;
+const FOV: f32 = DEFAULT_VERTICAL_FOV;
 const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
@@ -39,7 +39,7 @@ pub struct Camera {
     // Camera options
     pub RotQuat: Quaternion,
     pub MouseSensitivity: f32,
-    pub Zoom: f32,
+    pub Fov: f32,
     pub ScreenShake: ScreenShake
 }
 impl Default for Camera {
@@ -51,7 +51,7 @@ impl Default for Camera {
             Right: Vector3::zero(), // initialized later
             RotQuat: Quaternion::new(1.0,0.0,0.0,0.0), // initialized later
             MouseSensitivity: SENSITIVTY,
-            Zoom: ZOOM,
+            Fov: FOV,
             ScreenShake: ScreenShake::default()
         };
         camera.initMatrix();
@@ -90,14 +90,14 @@ impl Camera {
 
     // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     pub fn ProcessMouseScroll(&mut self, yoffset: f32) {
-        if self.Zoom >= 1.0 && self.Zoom <= ZOOM {
-            self.Zoom -= yoffset;
+        if self.Fov >= 1.0 && self.Fov <= FOV {
+            self.Fov -= yoffset;
         }
-        if self.Zoom <= 1.0 {
-            self.Zoom = 1.0;
+        if self.Fov <= 1.0 {
+            self.Fov = 1.0;
         }
-        if self.Zoom >= ZOOM {
-            self.Zoom = ZOOM;
+        if self.Fov >= FOV {
+            self.Fov = FOV;
         }
     }
 

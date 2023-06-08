@@ -625,7 +625,7 @@ fn main() -> io::Result<()> {
 
                     // draw skybox
                     let projection: Matrix4<f32> = perspective(
-                        Deg(camera.Zoom),
+                        Deg(camera.Fov),
                         width as f32 / height as f32,
                         0.1,
                         100.0
