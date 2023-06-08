@@ -56,7 +56,6 @@ use shared::*;
 use std::io::{self, Read};
 use std::net::{ToSocketAddrs, TcpStream};
 use std::process;
-use std::str;
 
 use slotmap::{SecondaryMap,DefaultKey};
 
@@ -292,8 +291,7 @@ fn main() -> io::Result<()> {
                 let received = read_data(&mut stream);
                 if received.len() > 0 {
                     // ignore malformed input (probably leftover game state)
-                    let res: Result<LobbyECS, serde_json::Error> =
-                        serde_json::from_str(received.as_str());
+                    let res: Result<LobbyECS, bitcode::Error> = bitcode::deserialize(&received);
                     match res {
                         Ok(l_ecs) => {
                             lobby_ecs = l_ecs.clone();
@@ -350,7 +348,7 @@ fn main() -> io::Result<()> {
 
                 // send client data if player is still alive
                 if client_health.alive {
-                    let j = serde_json::to_string(&input_component)
+                    let j = bitcode::serialize(&input_component)
                         .expect("Input component serialization error");
                     write_data(&mut stream, j);
                 } // TODO: support spectator movement
@@ -383,10 +381,10 @@ fn main() -> io::Result<()> {
                             stream
                                 .read_exact(&mut read_buf)
                                 .expect("read_exact did not read the same amount of bytes as peek");
-                            let message: &str = str::from_utf8(&read_buf[4..])
-                                .expect("Error converting buffer to string");
-                            // TODO: handle this throwing an error. Occasionally crashes ^
-                            let value: ClientECS = serde_json::from_str(message)
+                            // let message: &str = str::from_utf8(&read_buf[4..])
+                            //     .expect("Error converting buffer to string");
+                            // // TODO: handle this throwing an error. Occasionally crashes ^
+                            let value: ClientECS = bitcode::deserialize(&read_buf[4..])
                                 .expect("Error converting string to ClientECS");
                             client_ecs = Some(value);
                         }

@@ -2,7 +2,6 @@ use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::collections::HashMap;
-use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
 
@@ -294,8 +293,8 @@ impl ECS {
                     Ok(bytes_read) if bytes_read == s_size => {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        match serde_json::from_str(message) {
+                        // let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        match bitcode::deserialize(&read_buf[4..]) {
                             Ok(value) => {
                                 received_input = true;
                                 ECS::combine_input(&mut input_temp, value)
@@ -358,10 +357,10 @@ impl ECS {
         let mut disconnected_players: Vec<Entity> = vec![];
 
         let lobby_ecs = self.lobby_ecs(start_game);
-        let j = serde_json::to_string(&lobby_ecs).expect("Lobby ECS serialization error");
+        let j = bitcode::serialize(&lobby_ecs).expect("Lobby ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+            let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
@@ -457,14 +456,14 @@ impl ECS {
         }
 
         let client_ecs = self.client_ecs();
-        let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
+        let j = bitcode::serialize(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
             if self.network_components[player].connected {
-                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
                 match self.network_components[player].stream.write(&message) {
                     Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => println!("WouldBlock error while sending {size} bytes: {e}"),
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                         disconnected_players.push(player);
@@ -917,8 +916,8 @@ impl ECS {
                     let read_size = u32::from_be_bytes(size_buf) as usize;
                     let mut read_buf = vec![0 as u8; read_size];
                     stream.read(&mut read_buf).unwrap();
-                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    let ready_ecs: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                    // let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    let ready_ecs: std::result::Result<ReadyECS, bitcode::Error> = bitcode::deserialize(&read_buf[4..]);
                     match ready_ecs {
                         Ok(ecs) => {
                             if ecs.ready {
