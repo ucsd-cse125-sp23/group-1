@@ -24,7 +24,7 @@ pub struct ECS {
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
-    pub audio_components: SecondaryMap<Entity, AudioComponent>,
+
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
@@ -83,8 +83,6 @@ impl ECS {
             player_lasso_phys_components: SecondaryMap::new(),
             player_lasso_thrown_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
-
-            audio_components: SecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -156,7 +154,6 @@ impl ECS {
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
         self.event_components.clear();
-        self.audio_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
         self.events.clear();
@@ -484,7 +481,6 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
-            audio_components: self.audio_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
             event_components: self.event_components.clone(),
             players: self.players.clone(),
@@ -654,7 +650,6 @@ impl ECS {
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
                 self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
-                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), source: Some(player), x:fire_point.x, y:fire_point.y, z:fire_point.z});
 
                 let ray = Ray::new(fire_point, *fire_vec);
                 let max_toi = 1000.0; //depends on size of map

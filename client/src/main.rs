@@ -390,18 +390,7 @@ fn main() -> io::Result<()> {
                                 continue;
                             }
                             client_events.insert(event, ());
-                            // check event type
-                            // skip audio events for all but client 0 if we're debugging on same machine
-                            // if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
-                            //     let audio_event = &c_ecs.audio_components[event];
-                            //     match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z, audio_event.source) {
-                            //         Ok(_) => (),
-                            //         Err(e) => eprintln!("Audio error playing sound: {e}"),
-                            //     };
-                            //     // temporary thruster test
-                            //     // audio.play_sound(&"thruster".to_string(), audio_event.x, audio_event.y, audio_event.z, Some(player_key)).unwrap();
-                            // }
-                            
+
                             // Update emitter positions
                             audio.update_emitters(&c_ecs.position_components);
 
