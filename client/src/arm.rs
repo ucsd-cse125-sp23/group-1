@@ -8,7 +8,7 @@ use std::time::Duration;
 use std::{ffi::CStr, time::Instant};
 
 const RECOIL_DURATION: f32 = 0.05;
-const STABLIZE_DURATION: f32 = 0.1;
+const STABLIZE_DURATION: f32 = 0.45;
 
 const LOWER_ARM_DURATION: f32 = 1.0;
 const RAISE_ARM_DURATION: f32 = 1.0;
@@ -47,7 +47,7 @@ impl Arm {
     }
 
     pub unsafe fn draw(&mut self, camera: &Camera, shader: &Shader) {
-        let fire_end_rot: Quaternion<f32> = Quaternion::new(0.996, 0.087, 0.0, 0.0);
+        let fire_end_rot: Quaternion<f32> = pow(Quaternion::new(0.996, 0.087, 0.0, 0.0),5);
         let reload_end_rot: Quaternion<f32> = Quaternion::new(0.737, -0.676, 0.0, 0.0);
 
         let now = Instant::now();
