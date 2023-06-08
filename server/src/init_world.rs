@@ -69,7 +69,7 @@ fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
 fn prop_default_density() -> f32 { 1.0 }
 fn prop_default_restitution() -> f32 { 0.3 }
 fn prop_default_border() -> bool { false }
-fn prop_default_max_linvel() -> f32 { 0.5 }
+fn prop_default_max_linvel() -> f32 { 1.0 }
 fn prop_default_max_angvel() -> f32 { 0.1 }
 
 #[derive(Deserialize)]
