@@ -32,6 +32,8 @@ pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
 
+pub const DEFAULT_VERTICAL_FOV: f32 = 45.0;
+
 // UI element paths
 pub const SPLASH_PATH: &str = "resources/ui_textures/Game-poster.jpg";
 
@@ -102,5 +104,5 @@ pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
 pub const HITMARKER_PATH: &str = "resources/ui_textures/hitmarker.png";
 
 // audio settings
-pub const AUDIO_DEBUG: bool = true;
+pub const AUDIO_DEBUG: bool = false;
 pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames
