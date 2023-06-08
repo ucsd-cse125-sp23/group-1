@@ -53,9 +53,11 @@ pub struct AudioPlayer {
     listener: ListenerHandle,
     scene: SpatialSceneHandle,
     source_map: HashMap<String, StaticSoundData>,
-    sound_map: HashMap<EmitterId, StaticSoundHandle>,
+    sound_map: HashMap<EmitterId, StaticSoundHandle>, // for non-looping sounds
     e_map: HashMap<EmitterId, EmitterHandle>,
     sound_vec: Vec<VecEntry>, // for non-looping sounds
+
+    thruster: Option<StaticSoundHandle>, // for the thruster sound
 }
 
 impl AudioPlayer {
@@ -75,33 +77,46 @@ impl AudioPlayer {
             sound_map: HashMap::new(),
             e_map: HashMap::new(),
             sound_vec: vec![],
+            thruster: None,
         };
         // TODO: load from config file
         player.source_map.insert("fire".to_string(), StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default()).unwrap());
+        player.source_map.insert("thruster".to_string(), 
+            StaticSoundData::from_file("resources/audio/thruster.ogg", 
+            StaticSoundSettings::default().loop_region(2.0..6.0)).unwrap());
         player
     }
 
-    pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32, source: Option<Entity>) -> Result<EmitterId,Box<dyn std::error::Error>> {
+    pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32, source: Option<Entity>) -> Result<(),Box<dyn std::error::Error>> {
         let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default().persist_until_sounds_finish(true))?;
         let id = emitter.id();
-        let sound_handle = self.manager.play(self.source_map[name].with_settings(StaticSoundSettings::new().output_destination(&emitter)))?;
+
+        // let sound_data = self.source_map[name].clone();
+        // sound_data.settings.output_destination(&emitter);
+        // let sound_handle = self.manager.play(sound_data)?;
+
+        let sound_handle = self.manager.play(self.source_map[name]
+            .with_modified_settings(|settings| settings.output_destination(&emitter)))?;
+        
         self.e_map.insert(id, emitter);
-        self.sound_map.insert(id, sound_handle);
-        self.sound_vec.push(VecEntry::new(id, source),);
-        // println!("{}", self.manager.num_sounds());
-        Ok(id)
+
+        // thruster is only looping sound so it shouldn't get pruned
+        if name == "thruster" {
+            self.thruster = Some(sound_handle);
+        } else {
+            self.sound_map.insert(id, sound_handle);
+            self.sound_vec.push(VecEntry::new(id, source));
+        }
+        Ok(())
     }
 
-    // Stops a looped sound.
-    pub fn stop_sound(&mut self, id: EmitterId) {
-        match self.sound_map.get_mut(&id) {
+    // Stops the thruster sound.
+    pub fn stop_thruster (&mut self) {
+        match self.thruster.as_mut() {
             Some(handle) => {
                 handle.stop(Tween::default()).unwrap();
-                self.drop_sound(&id);
             }
-            None => {
-                eprintln!("Sound handle not found!") // THIS SHOULD NEVER HAPPEN
-            }
+            None => ()
         }
     }
 
@@ -132,6 +147,7 @@ impl AudioPlayer {
      */
     pub fn update_emitters(&mut self, pos_map: &SecondaryMap<Entity, PositionComponent>) {
         self.prune_emitters();
+        // println!("{}", self.manager.num_sounds());
         for sound in &self.sound_vec {
             match sound.source {
                 Some(source) => {
