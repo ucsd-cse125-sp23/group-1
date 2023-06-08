@@ -472,7 +472,6 @@ fn main() -> io::Result<()> {
                     shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
-                    let mut player_pos_ff = Vector3::zero();
                     let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
@@ -512,8 +511,6 @@ fn main() -> io::Result<()> {
                                 },
                                 _ => ()
                             }
-                            // player position used for force field
-                            player_pos_ff = player_pos;
 
                             if !client_health.alive && input_component.enter_pressed {
                                 spectator_mode = true;
@@ -651,7 +648,7 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    force_field.draw(&camera, player_pos_ff);
+                    force_field.draw(&camera, camera.Position.to_vec());
 
                     // HUD elements should always be rendered on top
                     // TODO: call gl::Clear only after rendering forcefield
