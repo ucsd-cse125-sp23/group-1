@@ -85,8 +85,16 @@ impl Shader {
         gl::Uniform4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, value.as_ptr());
     }
     /// ------------------------------------------------------------------------
-    pub unsafe fn set_vector3_array(&self, name: &CStr, value: &Vec<Vector3<f32>>) {
-        gl::Uniform4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 4, value[0].as_ptr());
+    pub unsafe fn set_vector3_array(&self, name: &CStr, value: &[Vector3<f32>]) {
+        gl::Uniform3fv(
+            gl::GetUniformLocation(self.id, name.as_ptr()), 
+            4, 
+            value[0].as_ptr()
+        );
+    }
+    /// ------------------------------------------------------------------------
+    pub unsafe fn set_int_array(&self, name: &CStr, value: &[i32]) {
+        gl::Uniform1iv(gl::GetUniformLocation(self.id, name.as_ptr()), 4, value.as_ptr());
     }
 
     // utility function for checking shader compilation/linking errors

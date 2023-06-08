@@ -35,7 +35,7 @@ void main()
     for (int i=0; i<4; i++){
 
         if (lightType[i] == 0){
-            break;
+            continue;
         }
 
         // get lightDir, same math for point/dir light
@@ -57,6 +57,8 @@ void main()
         // add ambient to result
         vec3 textureColor = texture(texture_diffuse1, TexCoords).rgb;
         result += (lightAmb[i] + diffuse) * textureColor;
+        // result += lightAmb[i];      // everything is grey
+        // yea im not setting the variables right changin it dones't change this color
     }
 
     color = vec4(result, 1.0f);

@@ -295,10 +295,13 @@ fn main() -> io::Result<()> {
 
                                 // do i need to add clone here?
                                 println!("adding in the new light source");
-                                lights.addLight(Light::new(
-                                    skies[sky].light_dir.clone(),
-                                    skies[sky].light_ambience.clone(),
-                                    skies[sky].light_diffuse.clone(),
+                                lights.add_light(Light::new(
+                                    // vec3(0.,0.,1.),
+                                    // vec3(1.,0.,0.),
+                                    // vec3(1.,0.,0.),
+                                    skies[sky].light_dir,
+                                    skies[sky].light_ambience,
+                                    skies[sky].light_diffuse,
                                     false, -1.
                                 ));
 

@@ -40,7 +40,7 @@ void main()
     TangentViewPos  = TBN * viewPos;
     TangentFragPos  = TBN * pos;
     
-    // setup the 16 light positions
+    // setup the light positions
     for (int i=0; i<4; i++){
 
         // assume its point light, change to directional light if nec
