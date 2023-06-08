@@ -128,7 +128,6 @@ pub fn process_inputs_lobby(
         // send ready JSON (hardcoded for now)
         let ready_json = ReadyECS{ready:true};
         write_data(stream, serde_json::to_string(&ready_json).unwrap());
-        println!("Ready message sent!");
     }
     if window.get_key(Key::Enter) == Action::Release {
         *first_enter = false;

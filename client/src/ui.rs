@@ -495,7 +495,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game_over(&mut self, client_id: usize, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game_over(&mut self, c_ecs: &Option<ClientECS>) {
         unsafe{
             self.game_over_bg.draw();
             match c_ecs {
@@ -505,7 +505,6 @@ impl UI {
                             ecs.health_components[*player].alive &&
                             ecs.health_components[*player].health > 0
                         {
-                            println!("The winner is player {}!", i);
                             match i {
                                 0 => self.p1_winner.draw(),
                                 1 => self.p2_winner.draw(),

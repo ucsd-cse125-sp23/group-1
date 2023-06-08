@@ -92,7 +92,7 @@ impl Shader {
             gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
             if success != gl::TRUE as GLint {
                 gl::GetShaderInfoLog(shader, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-                println!("ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n \
+                eprintln!("ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n \
                           -- --------------------------------------------------- -- ",
                          type_,
                          str::from_utf8(&info_log).unwrap());
@@ -102,7 +102,7 @@ impl Shader {
             gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE as GLint {
                 gl::GetProgramInfoLog(shader, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
-                println!("ERROR::PROGRAM_LINKING_ERROR of type: {}\n{}\n \
+                eprintln!("ERROR::PROGRAM_LINKING_ERROR of type: {}\n{}\n \
                           -- --------------------------------------------------- -- ",
                          type_,
                          str::from_utf8(&info_log).unwrap());
