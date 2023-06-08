@@ -26,8 +26,7 @@ impl Tracer {
         shader.set_mat4(c_str!("model"), &model);
 
         self.alpha = (self.alpha - (FADE_RATE * delta)).max(0.0);
-        let true_alpha = self.alpha.powf(2.0);
-        shader.set_float(c_str!("alpha"), true_alpha);
+        shader.set_float(c_str!("alpha"), self.alpha);
 
         let drawmodel = &drawmodels[self.model_ind % drawmodels.len()];
         drawmodel.draw(shader);
