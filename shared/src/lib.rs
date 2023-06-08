@@ -60,13 +60,12 @@ pub const HITS_3_PATH: &str = "resources/ui_textures/game_over/hits-3.png";
 pub const HITS_4_PATH: &str = "resources/ui_textures/game_over/hits-4.png";
 pub const HITS_5_PATH: &str = "resources/ui_textures/game_over/hits-5.png";
 pub const HITS_6_PATH: &str = "resources/ui_textures/game_over/hits-6.png";
-pub const HITS_7_PATH: &str = "resources/ui_textures/game_over/hits-7.png";
-pub const HITS_8_PATH: &str = "resources/ui_textures/game_over/hits-8.png";
-pub const HITS_9_PATH: &str = "resources/ui_textures/game_over/hits-9.png";
+
 pub const P1_TEXT_PATH: &str = "resources/ui_textures/game_over/p1.png";
 pub const P2_TEXT_PATH: &str = "resources/ui_textures/game_over/p2.png";
 pub const P3_TEXT_PATH: &str = "resources/ui_textures/game_over/p3.png";
 pub const P4_TEXT_PATH: &str = "resources/ui_textures/game_over/p4.png";
+
 pub const P1_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p1-you.png";
 pub const P2_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p2-you.png";
 pub const P3_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p3-you.png";

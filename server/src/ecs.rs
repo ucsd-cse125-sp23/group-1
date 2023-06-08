@@ -944,6 +944,10 @@ impl ECS {
         self.player_health_components[player].alive = false;
         self.player_health_components[player].health = 0;
         self.active_players -= 1;
+
+        let event_key = self.name_components.insert("disconnect_event".to_string());
+        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DisconnectEvent { player: player }});
+
     }
 
     /**

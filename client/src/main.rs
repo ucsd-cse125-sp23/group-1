@@ -153,6 +153,7 @@ fn main() -> io::Result<()> {
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+    let mut rankings = Vec::new();;
 
     // render splash screen
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -423,12 +424,16 @@ fn main() -> io::Result<()> {
                                     }
                                 },
                                 EventType::DeathEvent { player, killer } => {
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
                                     } else if killer == player_key {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                }, 
+                                EventType::DisconnectEvent { player } => {
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                 }
                             }
                         }
@@ -610,6 +615,7 @@ fn main() -> io::Result<()> {
 
                             // game has ended
                             if c_ecs.game_ended {
+                                rankings.reverse();
                                 game_state = GameState::GameOver;
                             }
                         }
@@ -659,7 +665,7 @@ fn main() -> io::Result<()> {
                         game_state = GameState::EnteringLobby;
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game_over(curr_id, &client_ecs);
+                    ui_elems.draw_game_over(curr_id, &client_ecs, &mut rankings);
                     gl::DepthMask(gl::TRUE);
                 }
             }

@@ -3,6 +3,7 @@ use crate::sprite_renderer::{Anchor, Sprite};
 use cgmath::{vec2, Vector2};
 use shared::*;
 use shared::shared_components::*;
+use slotmap::DefaultKey;
 
 pub struct UI {
     // ========================== splash ui elements ==========================
@@ -88,9 +89,6 @@ pub struct UI {
     pub hits_4_b1: Sprite,
     pub hits_5_b1: Sprite,
     pub hits_6_b1: Sprite,
-    pub hits_7_b1: Sprite,
-    pub hits_8_b1: Sprite,
-    pub hits_9_b1: Sprite,
     
     pub hits_0_b2: Sprite,
     pub hits_1_b2: Sprite,
@@ -99,9 +97,6 @@ pub struct UI {
     pub hits_4_b2: Sprite,
     pub hits_5_b2: Sprite,
     pub hits_6_b2: Sprite,
-    pub hits_7_b2: Sprite,
-    pub hits_8_b2: Sprite,
-    pub hits_9_b2: Sprite,
 
     pub hits_0_b3: Sprite,
     pub hits_1_b3: Sprite,
@@ -110,9 +105,6 @@ pub struct UI {
     pub hits_4_b3: Sprite,
     pub hits_5_b3: Sprite,
     pub hits_6_b3: Sprite,
-    pub hits_7_b3: Sprite,
-    pub hits_8_b3: Sprite,
-    pub hits_9_b3: Sprite,
 
     pub hits_0_b4: Sprite,
     pub hits_1_b4: Sprite,
@@ -121,14 +113,27 @@ pub struct UI {
     pub hits_4_b4: Sprite,
     pub hits_5_b4: Sprite,
     pub hits_6_b4: Sprite,
-    pub hits_7_b4: Sprite,
-    pub hits_8_b4: Sprite,
-    pub hits_9_b4: Sprite,
 
-    pub p1_text: Sprite,
-    pub p2_text: Sprite,
-    pub p3_text: Sprite,
-    pub p4_text: Sprite,
+    pub p1_text_b1: Sprite,
+    pub p2_text_b1: Sprite,
+    pub p3_text_b1: Sprite,
+    pub p4_text_b1: Sprite,
+    
+    pub p1_text_b2: Sprite,
+    pub p2_text_b2: Sprite,
+    pub p3_text_b2: Sprite,
+    pub p4_text_b2: Sprite,
+
+    pub p1_text_b3: Sprite,
+    pub p2_text_b3: Sprite,
+    pub p3_text_b3: Sprite,
+    pub p4_text_b3: Sprite,
+
+    pub p1_text_b4: Sprite,
+    pub p2_text_b4: Sprite,
+    pub p3_text_b4: Sprite,
+    pub p4_text_b4: Sprite,
+
     pub p1_you_text: Sprite,
     pub p2_you_text: Sprite,
     pub p3_you_text: Sprite,
@@ -263,9 +268,6 @@ impl UI {
             hits_4_b1: init_sprite(s_size, id, HITS_4_PATH, bar_1_pos, LEADERBOARD_SCALE),
             hits_5_b1: init_sprite(s_size, id, HITS_5_PATH, bar_1_pos, LEADERBOARD_SCALE),
             hits_6_b1: init_sprite(s_size, id, HITS_6_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_7_b1: init_sprite(s_size, id, HITS_7_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_8_b1: init_sprite(s_size, id, HITS_8_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_9_b1: init_sprite(s_size, id, HITS_9_PATH, bar_1_pos, LEADERBOARD_SCALE),
 
             hits_0_b2: init_sprite(s_size, id, HITS_0_PATH, bar_2_pos, LEADERBOARD_SCALE),
             hits_1_b2: init_sprite(s_size, id, HITS_1_PATH, bar_2_pos, LEADERBOARD_SCALE),
@@ -274,9 +276,6 @@ impl UI {
             hits_4_b2: init_sprite(s_size, id, HITS_4_PATH, bar_2_pos, LEADERBOARD_SCALE),
             hits_5_b2: init_sprite(s_size, id, HITS_5_PATH, bar_2_pos, LEADERBOARD_SCALE),
             hits_6_b2: init_sprite(s_size, id, HITS_6_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_7_b2: init_sprite(s_size, id, HITS_7_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_8_b2: init_sprite(s_size, id, HITS_8_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_9_b2: init_sprite(s_size, id, HITS_9_PATH, bar_2_pos, LEADERBOARD_SCALE),
 
             hits_0_b3: init_sprite(s_size, id, HITS_0_PATH, bar_3_pos, LEADERBOARD_SCALE),
             hits_1_b3: init_sprite(s_size, id, HITS_1_PATH, bar_3_pos, LEADERBOARD_SCALE),
@@ -285,9 +284,6 @@ impl UI {
             hits_4_b3: init_sprite(s_size, id, HITS_4_PATH, bar_3_pos, LEADERBOARD_SCALE),
             hits_5_b3: init_sprite(s_size, id, HITS_5_PATH, bar_3_pos, LEADERBOARD_SCALE),
             hits_6_b3: init_sprite(s_size, id, HITS_6_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_7_b3: init_sprite(s_size, id, HITS_7_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_8_b3: init_sprite(s_size, id, HITS_8_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_9_b3: init_sprite(s_size, id, HITS_9_PATH, bar_3_pos, LEADERBOARD_SCALE),
 
             hits_0_b4: init_sprite(s_size, id, HITS_0_PATH, bar_4_pos, LEADERBOARD_SCALE),
             hits_1_b4: init_sprite(s_size, id, HITS_1_PATH, bar_4_pos, LEADERBOARD_SCALE),
@@ -296,14 +292,27 @@ impl UI {
             hits_4_b4: init_sprite(s_size, id, HITS_4_PATH, bar_4_pos, LEADERBOARD_SCALE),
             hits_5_b4: init_sprite(s_size, id, HITS_5_PATH, bar_4_pos, LEADERBOARD_SCALE),
             hits_6_b4: init_sprite(s_size, id, HITS_6_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_7_b4: init_sprite(s_size, id, HITS_7_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_8_b4: init_sprite(s_size, id, HITS_8_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_9_b4: init_sprite(s_size, id, HITS_9_PATH, bar_4_pos, LEADERBOARD_SCALE),
 
-            p1_text: init_sprite(s_size, id, P1_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            p2_text: init_sprite(s_size, id, P2_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            p3_text: init_sprite(s_size, id, P3_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            p4_text: init_sprite(s_size, id, P4_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            p1_text_b1: init_sprite(s_size, id, P1_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+            p2_text_b1: init_sprite(s_size, id, P2_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+            p3_text_b1: init_sprite(s_size, id, P3_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+            p4_text_b1: init_sprite(s_size, id, P4_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+
+            p1_text_b2: init_sprite(s_size, id, P1_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
+            p2_text_b2: init_sprite(s_size, id, P2_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
+            p3_text_b2: init_sprite(s_size, id, P3_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
+            p4_text_b2: init_sprite(s_size, id, P4_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
+
+            p1_text_b3: init_sprite(s_size, id, P1_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
+            p2_text_b3: init_sprite(s_size, id, P2_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
+            p3_text_b3: init_sprite(s_size, id, P3_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
+            p4_text_b3: init_sprite(s_size, id, P4_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
+
+            p1_text_b4: init_sprite(s_size, id, P1_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            p2_text_b4: init_sprite(s_size, id, P2_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            p3_text_b4: init_sprite(s_size, id, P3_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            p4_text_b4: init_sprite(s_size, id, P4_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+
             p1_you_text: init_sprite(s_size, id, P1_YOU_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
             p2_you_text: init_sprite(s_size, id, P2_YOU_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
             p3_you_text: init_sprite(s_size, id, P3_YOU_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
@@ -508,9 +517,17 @@ impl UI {
         }
     }
 
-    pub fn draw_game_over(&mut self, curr_id: usize, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game_over(&mut self, curr_id: usize, c_ecs: &Option<ClientECS>, rankings: &mut Vec<usize>) {
         unsafe{
             self.game_over_bg.draw();
+            self.winner_txt.draw();
+            self.continue_txt.draw();
+            self.bar_header.draw();
+            self.bar_1.draw();
+            self.bar_2.draw();
+            self.bar_3.draw();
+            self.bar_4.draw();
+
             match c_ecs {
                 Some(ecs) => {
                     for (i, player) in ecs.players.iter().enumerate() {
@@ -519,10 +536,50 @@ impl UI {
                             ecs.health_components[*player].health > 0
                         {
                             match i {
-                                0 => self.p1_winner.draw(),
-                                1 => self.p2_winner.draw(),
-                                2 => self.p3_winner.draw(),
-                                3 => self.p4_winner.draw(),
+                                0 => {
+                                    self.p1_winner.draw();
+                                    self.p1_text_b1.draw();
+                                }
+                                1 => {
+                                    self.p2_winner.draw();
+                                    self.p2_text_b1.draw();
+                                }
+                                2 => {
+                                    self.p3_winner.draw();
+                                    self.p3_text_b1.draw();
+                                }
+                                3 => {
+                                    self.p4_winner.draw();
+                                    self.p4_text_b1.draw();
+                                }
+                                _ => ()
+                            }
+                        }
+                    }
+
+                    for (i, player) in rankings.iter().enumerate() {
+                        if i == 0 {             // row 2
+                            match player {
+                                0 => self.p1_text_b2.draw(),
+                                1 => self.p2_text_b2.draw(),
+                                2 => self.p3_text_b2.draw(),
+                                3 => self.p4_text_b2.draw(),
+                                _ => ()
+                            }
+                        } else if i == 1 {      // row 3
+                            match player {
+                                0 => self.p1_text_b3.draw(),
+                                1 => self.p2_text_b3.draw(),
+                                2 => self.p3_text_b3.draw(),
+                                3 => self.p4_text_b3.draw(),
+                                _ => ()
+                            }
+                        } else if i == 2 {      // row 4
+                            match player {
+                                0 => self.p1_text_b4.draw(),
+                                1 => self.p2_text_b4.draw(),
+                                2 => self.p3_text_b4.draw(),
+                                3 => self.p4_text_b4.draw(),
                                 _ => ()
                             }
                         }
@@ -531,22 +588,10 @@ impl UI {
                 None => ()
             }
 
-            self.winner_txt.draw();
-            self.continue_txt.draw();
-            self.bar_header.draw();
-
-            self.bar_1.draw();
-            self.bar_2.draw();
-            self.bar_3.draw();
-            self.bar_4.draw();
-            // self.p1_you_text.draw();
-            // self.p2_you_text.draw();
-            // self.p3_you_text.draw();
-            // self.p4_you_text.draw();
-            // self.hits_3_b1.draw();
-            // self.hits_2_b2.draw();
-            // self.hits_1_b3.draw();
-            // self.hits_0_b4.draw();
+            self.hits_3_b1.draw();
+            self.hits_2_b2.draw();
+            self.hits_1_b3.draw();
+            self.hits_0_b4.draw();
 
             // self.hits_9_b1.set_position(vec2(0.0, 0.0));
             // self.hits_9_b1.draw();
