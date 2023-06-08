@@ -654,7 +654,7 @@ impl ECS {
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
                 self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
-                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:fire_point.x, y:fire_point.y, z:fire_point.z});
+                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), source: Some(player), x:fire_point.x, y:fire_point.y, z:fire_point.z});
 
                 let ray = Ray::new(fire_point, *fire_vec);
                 let max_toi = 1000.0; //depends on size of map

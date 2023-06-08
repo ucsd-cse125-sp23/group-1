@@ -380,6 +380,7 @@ fn main() -> io::Result<()> {
                     }
                 }
 
+                // Handle events for visual and audio effects.
                 match &client_ecs {
                     Some(c_ecs) => {
                         let player_key = c_ecs.ids[client_id];
@@ -393,11 +394,15 @@ fn main() -> io::Result<()> {
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
                                 let audio_event = &c_ecs.audio_components[event];
-                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z, audio_event.source) {
                                     Ok(_) => (),
                                     Err(e) => eprintln!("Audio error playing sound: {e}"),
                                 };
                             }
+                            
+                            // Update emitter positions
+                            audio.update_emitters(&c_ecs.position_components);
+
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
