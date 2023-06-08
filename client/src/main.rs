@@ -19,6 +19,7 @@ mod fadable;
 mod force_field;
 mod init_skies;
 mod init_models;
+mod velocity_indicator;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -27,10 +28,10 @@ use std::time::Duration;
 extern crate gl;
 extern crate glfw;
 
-use self::glfw::{Action, Context, Key, MouseButton};
+use self::glfw::{Action, Context, Key};
 use cgmath::{
-    perspective, vec2, vec3, vec4, Array, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector2, Vector3, Vector4, InnerSpace, Zero
+    perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
+    Transform, Vector3, Vector4, Zero
 };
 
 use std::ffi::CStr;
@@ -38,13 +39,14 @@ use std::ffi::CStr;
 use crate::camera::*;
 use crate::model::Model;
 use crate::shader::Shader;
-
-// network
 use crate::audio::AudioPlayer;
 use crate::common::*;
 use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
+use crate::velocity_indicator::VelocityIndicator;
+
+// network
 use shared::shared_components::*;
 use shared::shared_functions::*;
 use shared::*;
@@ -65,18 +67,13 @@ enum GameState {
     GameOver
 }
 
-// audio
-use kira::{
-    manager::{backend::DefaultBackend, AudioManager, AudioManagerSettings},
-    sound::static_sound::{StaticSoundData, StaticSoundSettings},
-};
 fn main() -> io::Result<()> {
     // initialize event map for handled events
     let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
 
     // initialize audio manager
-    let mut audio = AudioPlayer::default();
-    
+    let mut audio = AudioPlayer::new();
+  
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -165,7 +162,7 @@ fn main() -> io::Result<()> {
     // textures for skybox
     let skies = init_skies::init_skyboxes();
     let mut sky: usize = 0;
-  
+
     // add all models to hashmap
     let models: HashMap<String, Model> = init_models::init_models();
 
@@ -186,6 +183,9 @@ fn main() -> io::Result<()> {
 
     // create lasso
     let lasso = Lasso::new();
+
+    // create velocity indicator
+    let mut vel_indicator = VelocityIndicator::new();
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -251,7 +251,6 @@ fn main() -> io::Result<()> {
         match game_state {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
-                println!("Press ENTER when ready to start game");
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
@@ -261,7 +260,7 @@ fn main() -> io::Result<()> {
                     &mut first_enter,
                     &mut stream
                 );
-                
+
                 process_events_lobby(&events);
 
                 unsafe {
@@ -288,7 +287,6 @@ fn main() -> io::Result<()> {
                             lobby_ecs = l_ecs.clone();
 
                             if lobby_ecs.start_game {
-                                println!("Game starting!");
                                 sky = lobby_ecs.sky;
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
@@ -329,22 +327,6 @@ fn main() -> io::Result<()> {
                     roll,
                     is_focused,
                 );
-
-                // match &client_ecs {
-                //     Some(ecs) => {
-                //         for (_, v) in &ecs.audio_components {
-                //             // only play sound in client 0 for now (TODO: remove)
-                //             if client_id == 0 {
-                //                 println!("received audio event");
-                //                 let audio_event = &v;
-                //                 audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z);
-                //             }
-                //         }
-                //     }
-                //     None => {
-                //         // do nothing
-                //     }
-                // }
 
                 // set camera front of input_component
                 input_component.camera_qx = camera.RotQuat.v.x;
@@ -417,10 +399,15 @@ fn main() -> io::Result<()> {
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
                                 let audio_event = &c_ecs.audio_components[event];
-                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error playing sound: {e}"),
-                                };
+                                match &mut audio {
+                                    Some(audioplayer) => {
+                                        match audioplayer.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    },
+                                    None => ()
+                                }
                             }
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
@@ -479,6 +466,7 @@ fn main() -> io::Result<()> {
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
+                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -492,16 +480,11 @@ fn main() -> io::Result<()> {
                                     != client_health.health
                             {
                                 client_health.health = c_ecs.health_components[player_key].health;
-                                println!(
-                                    "Player {} is still alive, with {} lives left",
-                                    client_id, client_health.health
-                                );
                             } else if c_ecs.health_components[player_key].alive
                                 != client_health.alive
                                 && client_health.alive
                             {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
-                                println!("Player {} is no longer alive x_x", client_id);
                             } else {
                                 client_health.alive = c_ecs.health_components[player_key].alive;
                                 client_health.health = c_ecs.health_components[player_key].health;
@@ -513,16 +496,22 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-                            if frame_count == 0 {
-                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
-                                };
+                            match &mut audio {
+                                Some(audioplayer) if frame_count == 0 => {
+                                    match audioplayer.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                        Ok(_) => (),
+                                        Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                    };
+                                },
+                                _ => ()
                             }
                             // player position used for force field
                             player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+
+                            let velocity = &c_ecs.velocity_components[player_key];
+                            player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
@@ -530,7 +519,7 @@ fn main() -> io::Result<()> {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
-                                    println!("Models map does not contain key: {}", model_name);
+                                    eprintln!("Models map does not contain key: {}", model_name);
                                     continue;
                                 }
 
@@ -636,21 +625,29 @@ fn main() -> io::Result<()> {
                     // note: the first iteration through the match{} above draws the model without view and projection setup
 
                     // draw skybox
-
                     let projection: Matrix4<f32> = perspective(
                         Deg(camera.Zoom),
                         width as f32 / height as f32,
                         0.1,
                         100.0
                     );
-                  
+
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
-                  
-                    gl::DepthMask(gl::FALSE);
+
                     force_field.draw(&camera, player_pos_ff);
+
+                    // HUD elements should always be rendered on top
+                    // TODO: call gl::Clear only after rendering forcefield
+                    gl::Clear(gl::DEPTH_BUFFER_BIT);
+                    vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+
+                    gl::DepthMask(gl::FALSE);
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
                     gl::DepthMask(gl::TRUE);
+
+                    frame_count += 1;
+                    frame_count %= AUDIO_FRAMES;
                 }
             }
             GameState::GameOver => {
@@ -663,11 +660,9 @@ fn main() -> io::Result<()> {
                         game_state = GameState::EnteringLobby;
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game_over(curr_id, &client_ecs);
+                    ui_elems.draw_game_over(&client_ecs);
                     gl::DepthMask(gl::TRUE);
                 }
-                frame_count += 1;
-                frame_count %= AUDIO_FRAMES;
             }
         }
 

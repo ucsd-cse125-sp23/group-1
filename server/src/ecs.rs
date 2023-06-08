@@ -24,7 +24,9 @@ pub struct ECS {
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
+    pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     pub audio_components: SecondaryMap<Entity, AudioComponent>,
+
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
     pub network_components: SecondaryMap<Entity, NetworkComponent>,
@@ -76,6 +78,7 @@ impl ECS {
             player_lasso_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             player_health_components: SecondaryMap::new(),
+            velocity_components: SecondaryMap::new(),
 
             physics_components: SecondaryMap::new(),
             network_components: SecondaryMap::new(),
@@ -149,6 +152,7 @@ impl ECS {
         self.player_weapon_components.retain(|key, _| self.players.contains(&key));
         self.model_components.retain(|key, _| self.players.contains(&key));
         self.player_health_components.retain(|key, _| self.players.contains(&key));
+        self.velocity_components.retain(|key, _| self.players.contains(&key));
         self.physics_components.retain(|key, _| self.players.contains(&key));
         self.network_components.retain(|key, _| self.players.contains(&key));
         self.player_camera_components.retain(|key, _| self.players.contains(&key));
@@ -160,7 +164,7 @@ impl ECS {
         self.dynamics.clear();
         self.renderables.clear();
         self.events.clear();
-        
+
         init_world(self);
         init_player_spawns(&mut self.spawnpoints);
         if self.skies.is_empty() {
@@ -192,6 +196,7 @@ impl ECS {
                 qz: player_pos.rotation.k,
                 qw: player_pos.rotation.w,
             };
+            self.velocity_components[player] = VelocityComponent::default();
             let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
             let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
@@ -234,7 +239,6 @@ impl ECS {
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
                 self.active_players += 1;
                 self.send_ready_message(false);
-                println!("Name: {}", name);
             },
             Err(e) => {
                 eprintln!("Failed to connect to client: {e:?}");
@@ -403,6 +407,7 @@ impl ECS {
         self.model_components.remove(player);
         self.physics_components.remove(player);
         self.network_components.remove(player);
+        self.velocity_components.remove(player);
         self.player_health_components.remove(player);
         self.player_camera_components.remove(player);
         self.player_lasso_components.remove(player);
@@ -488,6 +493,7 @@ impl ECS {
             audio_components: self.audio_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
             event_components: self.event_components.clone(),
+            velocity_components: self.velocity_components.clone(),
             players: self.players.clone(),
             ids: self.ids.clone(),
             events: self.events.clone(),
@@ -545,6 +551,7 @@ impl ECS {
             qz: player_pos.rotation.k,
             qw: player_pos.rotation.w,
         });
+        self.velocity_components.insert(player, VelocityComponent::default());
         let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
         let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
@@ -574,6 +581,7 @@ impl ECS {
                     qw: (rot.w)
                 }
             );
+            self.velocity_components.insert(entity, VelocityComponent::default());
             if !border {
                 self.renderables.push(entity);
             }
@@ -626,6 +634,10 @@ impl ECS {
             position.qy = rigid_body.rotation().j;
             position.qz = rigid_body.rotation().k;
             position.qw = rigid_body.rotation().w;
+            let mut velocity = &mut self.velocity_components[dynamic];
+            velocity.vel_x = rigid_body.linvel().x;
+            velocity.vel_y = rigid_body.linvel().y;
+            velocity.vel_z = rigid_body.linvel().z;
         }
     }
 
@@ -642,12 +654,9 @@ impl ECS {
                 if weapon.reloading && weapon.cooldown == 0 {
                     weapon.ammo = AMMO_COUNT;
                     weapon.reloading = false;
-                    println!("ammo: {}",weapon.ammo);
                 }
             }
             if input.lmb_clicked && weapon.cooldown == 0 && weapon.ammo > 0 {
-                println!("firing!");
-
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let impulse = 12.0 * fire_vec;
                 let position = &self.position_components[player];
@@ -655,7 +664,6 @@ impl ECS {
                 let fire_point = point![position.x, position.y, position.z] + (self.player_camera_components[player].camera_up * halfheight);
 
                 // add fire event to server tick
-                // println!("adding audio event at ({}, {}, {})", position.x, position.y, position.z);
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
                 self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
@@ -700,9 +708,7 @@ impl ECS {
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
-                    None => {
-                        println!("Miss");
-                    },
+                    None => (),
                 }
 
                 let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
@@ -710,9 +716,7 @@ impl ECS {
                 // weapon cooldown is measured in ticks
                 weapon.cooldown = 30;
                 weapon.ammo -= 1;
-                println!("ammo: {}",weapon.ammo);
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
-                println!("reloading...");
                 weapon.cooldown = 120;
                 weapon.reloading = true;
             }
@@ -758,7 +762,6 @@ impl ECS {
                     let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
                     rigid_body.apply_impulse((vector![anchor_point.x, anchor_point.y, anchor_point.z]-vector![position.x, position.y, position.z]).normalize() * impulse, true);
                 } else {
-                    println!("releasing lasso");
                     self.impulse_joint_set.remove(lasso_phys.joint_handle,true);
                     self.player_lasso_phys_components.remove(player);
                     self.player_lasso_components.remove(player);
@@ -785,8 +788,6 @@ impl ECS {
                                     continue 'players;
                                 }
                                 if self.model_components.contains_key(target) && self.model_components[target].border {
-                                    println!("Hit border");
-                                    println!("releasing lasso");
                                     self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                                     self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                                     self.name_components.remove(thrown.entity);
@@ -796,8 +797,6 @@ impl ECS {
                                     self.player_lasso_components.remove(player);
                                     continue 'players;
                                 }
-                                let target_name = & self.name_components[target];
-                                println!("Hit target {}",target_name);
                                 let dist = distance(&point![position.x, position.y, position.z],&hit_point);
                                 let limit = dist / 3.0_f32.sqrt() + slack;
                                 let target_handle = &self.physics_components[target].handle;
@@ -814,6 +813,7 @@ impl ECS {
                                 self.name_components.remove(thrown.entity);
                                 self.physics_components.remove(thrown.entity);
                                 self.position_components.remove(thrown.entity);
+                                self.velocity_components.remove(thrown.entity);
                                 self.player_lasso_thrown_components.remove(player);
                                 continue 'players;
                             }
@@ -822,12 +822,12 @@ impl ECS {
                     let thrown_pos = &self.position_components[thrown.entity];
                     let dist = distance(&point![position.x, position.y, position.z],&point![thrown_pos.x, thrown_pos.y, thrown_pos.z]);
                     if dist > max_dist {
-                        println!("releasing lasso");
                         self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                         self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                         self.name_components.remove(thrown.entity);
                         self.physics_components.remove(thrown.entity);
                         self.position_components.remove(thrown.entity);
+                        self.velocity_components.remove(thrown.entity);
                         self.player_lasso_thrown_components.remove(player);
                         self.player_lasso_components.remove(player);
                     } else {
@@ -836,17 +836,16 @@ impl ECS {
                         self.player_lasso_components[player].anchor_z = thrown_pos.z;
                     }
                 } else {
-                    println!("releasing lasso");
                     self.dynamics.remove(self.dynamics.iter().position(|x| *x == thrown.entity).expect("not found"));
                     self.rigid_body_set.remove(thrown_phys.handle, &mut self.island_manager, &mut self.collider_set, &mut self.impulse_joint_set, &mut self.multibody_joint_set, true);
                     self.name_components.remove(thrown.entity);
                     self.physics_components.remove(thrown.entity);
                     self.position_components.remove(thrown.entity);
+                    self.velocity_components.remove(thrown.entity);
                     self.player_lasso_thrown_components.remove(player);
                     self.player_lasso_components.remove(player);
                 }
             } else if input.rmb_clicked {
-                println!("throwing lasso");
                 let radius = 0.02;
                 let fire_vec = &self.player_camera_components[player].camera_front;
                 let position = &self.position_components[player];
@@ -862,6 +861,7 @@ impl ECS {
                 self.player_lasso_thrown_components.insert(player, PlayerLassoThrownComponent { entity: thrown });
                 self.player_lasso_components.insert(player, PlayerLassoComponent { anchor_x: position.x, anchor_y: position.y, anchor_z: position.z });
                 self.position_components.insert(thrown, position.clone());
+                self.velocity_components.insert(thrown, VelocityComponent::default());
                 self.dynamics.push(thrown);
             }
         }
