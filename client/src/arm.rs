@@ -99,7 +99,7 @@ impl Arm {
 
         let rot_mat = Matrix4::from(camera.RotQuat * rot);
 
-        let sca_mat = Matrix4::from_scale(0.5);
+        let sca_mat = Matrix4::from_scale(0.4);
 
         let model = loc_mat * rot_mat * sca_mat;
         shader.set_mat4(c_str!("model"), &model);
