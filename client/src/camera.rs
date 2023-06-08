@@ -88,15 +88,23 @@ impl Camera {
         self.UpdateVecs();
     }
 
-    // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-    pub fn ProcessMouseScroll(&mut self, yoffset: f32) {
-        if self.Fov >= 1.0 && self.Fov <= FOV {
-            self.Fov -= yoffset;
-        }
-        if self.Fov <= 1.0 {
-            self.Fov = 1.0;
-        }
-        if self.Fov >= FOV {
+    // // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
+    // pub fn ProcessMouseScroll(&mut self, yoffset: f32) {
+    //     if self.Fov >= 1.0 && self.Fov <= FOV {
+    //         self.Fov -= yoffset;
+    //     }
+    //     if self.Fov <= 1.0 {
+    //         self.Fov = 1.0;
+    //     }
+    //     if self.Fov >= FOV {
+    //         self.Fov = FOV;
+    //     }
+    // }
+
+    pub fn ProcessZoom(&mut self, zoomed: bool) {
+        if zoomed {
+            self.Fov = 30.0;
+        } else {
             self.Fov = FOV;
         }
     }

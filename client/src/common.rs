@@ -83,12 +83,6 @@ pub fn process_events_game(
 
                 camera.ProcessMouseMovement(xoffset, yoffset, roll);
             }
-            glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
-                if !is_focused {
-                    return;
-                }
-                camera.ProcessMouseScroll(yoffset as f32);
-            }
             // Exit with code 0 upon window close
             glfw::WindowEvent::Close => {
                 process::exit(0);
@@ -139,6 +133,7 @@ pub fn process_inputs_game(
     window: &mut glfw::Window,
     input_component: &mut PlayerInputComponent,
     roll: &mut bool,
+    zoomed: &mut bool,
     first_click: &mut bool,
     is_focused: bool
 ) {
@@ -178,6 +173,9 @@ pub fn process_inputs_game(
     }
     if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Release {
         *first_click = false;
+    }
+    if window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Press {
+        *zoomed = !*zoomed;
     }
 
     // TODO: add additional quit hotkey?

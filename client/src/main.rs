@@ -238,6 +238,8 @@ fn main() -> io::Result<()> {
 
     let mut frame_count = 0;
 
+    let mut zoomed = false;
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -313,6 +315,7 @@ fn main() -> io::Result<()> {
                     &mut window,
                     &mut input_component,
                     &mut roll,
+                    &mut zoomed,
                     &mut first_click,
                     is_focused,
                 );
@@ -447,6 +450,7 @@ fn main() -> io::Result<()> {
                     None => ()
                 }
 
+                camera.ProcessZoom(zoomed);
                 camera.ScreenShake.shake_camera();
 
                 // render
