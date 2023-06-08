@@ -42,7 +42,6 @@ impl Arm {
     }
 
     pub fn reload(&mut self) {
-        println!("reloading");
         self.state = AnimState::Reload;
         self.start_time = Instant::now();
     }
