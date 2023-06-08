@@ -36,18 +36,22 @@ pub struct UI {
 
     // =========================== game ui elements ===========================
     pub crosshair: Sprite,
+
     pub p1_healthbar: Sprite,
     pub p2_healthbar: Sprite,
     pub p3_healthbar: Sprite,
     pub p4_healthbar: Sprite,
+
     pub p1_halfbar: Sprite,
     pub p2_halfbar: Sprite,
     pub p3_halfbar: Sprite,
     pub p4_halfbar: Sprite,
+
     pub p1_emptybar: Sprite,
     pub p2_emptybar: Sprite,
     pub p3_emptybar: Sprite,
     pub p4_emptybar: Sprite,
+
     pub ammo_0: Sprite,
     pub ammo_1: Sprite,
     pub ammo_2: Sprite,
@@ -55,14 +59,30 @@ pub struct UI {
     pub ammo_4: Sprite,
     pub ammo_5: Sprite,
     pub ammo_6: Sprite,
+
     pub p1_alive: Sprite,
     pub p2_alive: Sprite,
     pub p3_alive: Sprite,
     pub p4_alive: Sprite,
+    
     pub p1_dead: Sprite,
     pub p2_dead: Sprite,
     pub p3_dead: Sprite,
     pub p4_dead: Sprite,
+
+    pub p1_kill_p2: Sprite,
+    pub p1_kill_p3: Sprite,
+    pub p1_kill_p4: Sprite,
+    pub p2_kill_p1: Sprite,
+    pub p2_kill_p3: Sprite,
+    pub p2_kill_p4: Sprite,
+    pub p3_kill_p1: Sprite,
+    pub p3_kill_p2: Sprite,
+    pub p3_kill_p4: Sprite,
+    pub p4_kill_p1: Sprite,
+    pub p4_kill_p2: Sprite,
+    pub p4_kill_p3: Sprite,
+
     pub damage: Fadable,
     pub hitmarker: Fadable,
 
@@ -162,6 +182,7 @@ impl UI {
 
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
+        let death_message_pos = vec2(width / 2.0, height / 1.25);
 
         UI {
             // ============================ splash screen =============================
@@ -237,6 +258,19 @@ impl UI {
             p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
             p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
             p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+
+            p1_kill_p2: init_sprite(s_size, id, P1_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p1_kill_p3: init_sprite(s_size, id, P1_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p1_kill_p4: init_sprite(s_size, id, P1_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p2_kill_p1: init_sprite(s_size, id, P2_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p2_kill_p3: init_sprite(s_size, id, P2_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p2_kill_p4: init_sprite(s_size, id, P2_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p3_kill_p1: init_sprite(s_size, id, P3_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p3_kill_p2: init_sprite(s_size, id, P3_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p3_kill_p4: init_sprite(s_size, id, P3_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p4_kill_p1: init_sprite(s_size, id, P4_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p4_kill_p2: init_sprite(s_size, id, P4_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            p4_kill_p3: init_sprite(s_size, id, P4_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
             hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
@@ -380,6 +414,8 @@ impl UI {
                 None => ()
             }
             self.damage.draw();
+
+            self.p1_kill_p4.draw();
         }
     }
 
