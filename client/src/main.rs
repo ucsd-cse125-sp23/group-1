@@ -29,6 +29,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key};
+use cgmath::InnerSpace;
 use cgmath::{
     perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
     Transform, Vector3, Vector4, Zero
@@ -238,6 +239,8 @@ fn main() -> io::Result<()> {
 
     let mut frame_count = 0;
 
+    let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -308,6 +311,8 @@ fn main() -> io::Result<()> {
                 let mut size_buf = [0 as u8; 4];
 
                 let mut roll = false;
+
+                let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                 process_inputs_game(
                     &mut window,
@@ -388,6 +393,7 @@ fn main() -> io::Result<()> {
                 match &client_ecs {
                     Some(c_ecs) => {
                         let player_key = c_ecs.ids[client_id];
+                        let mut screenshake_event = false;
                         // make sure we haven't handled this event yet
                         for &event in &c_ecs.events {
                             if client_events.contains_key(event) {
@@ -412,11 +418,13 @@ fn main() -> io::Result<()> {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
+                                        screenshake_event = true;
                                     }
                                 },
                                 EventType::HitEvent { player, target } => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
+                                        screenshake_event = true;
                                         ui_elems.damage.add_alpha(0.5);
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
@@ -432,6 +440,28 @@ fn main() -> io::Result<()> {
                                 }
                             }
                         }
+
+                        // player velocity
+                        let velocity = &c_ecs.velocity_components[player_key];
+                        player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
+                        if !screenshake_event {
+                            // kinetic energy should be more realistic, but feels wrong
+                            // let delta_ke = (0.5 * velocity.mass * (player_vel.magnitude().powi(2) - vel_prev.magnitude().powi(2))).abs();
+                            // if delta_ke > 0.0 {
+                            //     camera.ScreenShake.add_trauma(delta_ke / 1000.0);
+                            //     println!("KE change: {}", delta_ke);
+                            // }
+
+                            // change in velocity feels better
+                            let delta_v = (player_vel - vel_prev).magnitude();
+                            let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
+                            if delta_speed > 0.0 {
+                                camera.ScreenShake.add_trauma(delta_speed / 100.0);
+                                println!("Delta-V: {}", delta_v);
+                                println!("Delta-Speed: {}", delta_speed);
+                            }
+                        }
+                        vel_prev = player_vel;
 
                         // dead player camera
                         if !c_ecs.health_components[player_key].alive {
@@ -465,7 +495,6 @@ fn main() -> io::Result<()> {
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
-                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -508,9 +537,6 @@ fn main() -> io::Result<()> {
                             player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
-
-                            let velocity = &c_ecs.velocity_components[player_key];
-                            player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
