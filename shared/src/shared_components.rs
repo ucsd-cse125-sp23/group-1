@@ -197,7 +197,13 @@ pub enum EventType {
     DeathEvent {
         player: Entity,
         killer: Entity
-    }
+    },
+    StartMoveEvent {
+        player: Entity,
+    },
+    StopMoveEvent {
+        player: Entity,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone)]

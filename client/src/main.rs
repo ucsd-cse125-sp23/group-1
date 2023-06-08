@@ -383,17 +383,17 @@ fn main() -> io::Result<()> {
                 // Handle events for visual and audio effects.
                 match &client_ecs {
                     Some(c_ecs) => {
+                        // Update emitter positions
+                        audio.update_emitters(&c_ecs.position_components);
+
                         let player_key = c_ecs.ids[client_id];
                         // make sure we haven't handled this event yet
                         for &event in &c_ecs.events {
                             if client_events.contains_key(event) {
                                 continue;
                             }
-                            client_events.insert(event, ());
-
-                            // Update emitter positions
-                            audio.update_emitters(&c_ecs.position_components);
-
+                            client_events.insert(event, ());     
+                            let audio_enabled = !AUDIO_DEBUG || client_id == 0;
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -401,7 +401,7 @@ fn main() -> io::Result<()> {
                                     }
                                     let player_pos = &c_ecs.position_components[player];
                                     // only play for client 0 if we're debugging on the same machine
-                                    if !AUDIO_DEBUG || client_id == 0 {
+                                    if audio_enabled {
                                         match audio.play_sound(&"fire".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
                                             Ok(_) => (),
                                             Err(e) => eprintln!("Audio error playing sound: {e}"),
@@ -423,6 +423,20 @@ fn main() -> io::Result<()> {
                                     } else if killer == player_key {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                }
+                                EventType::StartMoveEvent { player } => {
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.play_sound(&"thruster".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                }
+                                EventType::StopMoveEvent {player} => {
+                                    if audio_enabled {
+                                        audio.stop_thruster(player);
+                                    };
                                 }
                             }
                         }

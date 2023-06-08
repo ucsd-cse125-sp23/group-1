@@ -1,6 +1,6 @@
 use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
-use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
+use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData, SparseSecondaryMap};
 use std::collections::HashMap;
 use std::str;
 use std::io::{Read, Write, self};
@@ -32,6 +32,8 @@ pub struct ECS {
     pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
     pub player_lasso_thrown_components: SecondaryMap<Entity, PlayerLassoThrownComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
+
+    pub moving: SparseSecondaryMap<Entity, bool>,
 
     // physics objects
     pub rigid_body_set: RigidBodySet,
@@ -83,6 +85,8 @@ impl ECS {
             player_lasso_phys_components: SecondaryMap::new(),
             player_lasso_thrown_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
+
+            moving: SparseSecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -229,6 +233,7 @@ impl ECS {
                 let player = self.new_player(name.clone());
                 self.network_components.insert(player, NetworkComponent{connected: true, stream: curr_stream});
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
+                self.moving.insert(player, false);
                 self.active_players += 1;
                 self.send_ready_message(false);
             },
@@ -412,6 +417,8 @@ impl ECS {
         self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
         self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
         self.active_players = self.players.len() as u8;
+
+        self.moving.remove(player);
     }
 
     /**
@@ -858,6 +865,25 @@ impl ECS {
             let impulse = 0.03;
             let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
             rigid_body.set_rotation(camera.rot, true);
+
+            // if movement started
+            if !self.moving[player] && (input.w_pressed || input.a_pressed || input.s_pressed || input.d_pressed || input.shift_pressed || input.ctrl_pressed) {
+                // println!("Start movement");
+                self.moving[player] = true;
+                // add start movement event to server tick
+                let event_key = self.name_components.insert("start_movement_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::StartMoveEvent { player }});
+            // else if movement stopped
+            } else if self.moving[player] && !(input.w_pressed || input.a_pressed || input.s_pressed || input.d_pressed || input.shift_pressed || input.ctrl_pressed) {
+                // println!("Stop movement");
+                self.moving[player] = false;
+                // add end movement event to server tick
+                let event_key = self.name_components.insert("end_movement_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::StopMoveEvent { player }});
+            }
+
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
             }
