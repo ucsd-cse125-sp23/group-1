@@ -197,6 +197,7 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut spectator_mode = false;
 
     // Create network TcpStream
     // TODO: change to connect_timeout?
@@ -237,10 +238,16 @@ fn main() -> io::Result<()> {
     let mut curr_id = client_id;
 
     let mut frame_count = 0;
+    let mut delta_time;
+    let mut last_frame = 0.0;
 
     // WINDOW LOOP
     // -----------
     loop {
+        let current_frame = glfw.get_time() as f32;
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // set cursor mode based on is_focused
         if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -252,6 +259,7 @@ fn main() -> io::Result<()> {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
                 game_state = GameState::InLobby;
+                spectator_mode = false;
             }
             GameState::InLobby => {
                 process_inputs_lobby(
@@ -434,7 +442,7 @@ fn main() -> io::Result<()> {
                         }
 
                         // dead player camera
-                        if !c_ecs.health_components[player_key].alive {
+                        if !c_ecs.health_components[player_key].alive && !spectator_mode {
                             camera.RotQuat = Quaternion::new(
                                 c_ecs.position_components[player_key].qw,
                                 c_ecs.position_components[player_key].qx,
@@ -506,8 +514,18 @@ fn main() -> io::Result<()> {
                             }
                             // player position used for force field
                             player_pos_ff = player_pos;
-                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+
+                            if !client_health.alive && input_component.enter_pressed {
+                                spectator_mode = true;
+                            }
+
+                            if !client_health.alive && spectator_mode {
+                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height, player_pos);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            } else {
+                                set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            }
 
                             let velocity = &c_ecs.velocity_components[player_key];
                             player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);

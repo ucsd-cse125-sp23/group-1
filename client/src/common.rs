@@ -164,6 +164,9 @@ pub fn process_inputs_game(
     if window.get_key(Key::LeftControl) == Action::Press {
         input_component.ctrl_pressed = true;
     }
+    if window.get_key(Key::Enter) == Action::Press {
+        input_component.enter_pressed = true;
+    }
     if window.get_key(Key::R) == Action::Press {
         input_component.r_pressed = true;
     }
