@@ -33,6 +33,7 @@ pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
 pub const LEADERBOARD_SCALE: f32 = 0.5;
 pub const CONTINUE_SCALE: f32 = 0.5;
+pub const DEATH_MESSAGE_SCALE: f32 = 0.7;
 
 pub const DEFAULT_VERTICAL_FOV: f32 = 45.0;
 
@@ -130,6 +131,19 @@ pub const AMMO_3_PATH: &str = "resources/ui_textures/ammo/ammo3.png";
 pub const AMMO_4_PATH: &str = "resources/ui_textures/ammo/ammo4.png";
 pub const AMMO_5_PATH: &str = "resources/ui_textures/ammo/ammo5.png";
 pub const AMMO_6_PATH: &str = "resources/ui_textures/ammo/ammo6.png";
+
+pub const P1_KILL_P2_PATH: &str = "resources/ui_textures/death_messages/p1-kill-p2.png";
+pub const P1_KILL_P3_PATH: &str = "resources/ui_textures/death_messages/p1-kill-p3.png";
+pub const P1_KILL_P4_PATH: &str = "resources/ui_textures/death_messages/p1-kill-p4.png";
+pub const P2_KILL_P1_PATH: &str = "resources/ui_textures/death_messages/p2-kill-p1.png";
+pub const P2_KILL_P3_PATH: &str = "resources/ui_textures/death_messages/p2-kill-p3.png";
+pub const P2_KILL_P4_PATH: &str = "resources/ui_textures/death_messages/p2-kill-p4.png";
+pub const P3_KILL_P1_PATH: &str = "resources/ui_textures/death_messages/p3-kill-p1.png";
+pub const P3_KILL_P2_PATH: &str = "resources/ui_textures/death_messages/p3-kill-p2.png";
+pub const P3_KILL_P4_PATH: &str = "resources/ui_textures/death_messages/p3-kill-p4.png";
+pub const P4_KILL_P1_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p1.png";
+pub const P4_KILL_P2_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p2.png";
+pub const P4_KILL_P3_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p3.png";
 
 pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
 pub const HITMARKER_PATH: &str = "resources/ui_textures/hitmarker.png";
