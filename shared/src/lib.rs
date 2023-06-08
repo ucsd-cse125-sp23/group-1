@@ -25,7 +25,6 @@ pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
 pub const BAR_BORDER: f32 = 9.0;
 pub const AMMO_BAR_BORDER: f32 = BAR_BORDER + 5.5;
 pub const LEADERBOARD_SPACING: f32 = 20.0;
-
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.015;
@@ -33,6 +32,7 @@ pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
 pub const LEADERBOARD_SCALE: f32 = 0.5;
+pub const CONTINUE_SCALE: f32 = 0.5;
 
 pub const DEFAULT_VERTICAL_FOV: f32 = 45.0;
 
@@ -46,11 +46,13 @@ pub const LOBBY_BG_4_PATH: &str = "resources/ui_textures/lobby_bg/p4_bg.png";
 
 pub const GAME_OVER_BG_PATH: &str = "resources/ui_textures/game_over/space_bg.png";
 pub const WINNER_TXT_PATH: &str = "resources/ui_textures/game_over/winner.png";
+pub const CONTINUE_TXT_PATH: &str = "resources/ui_textures/game_over/continue-text.png";
 pub const BAR_HEADER_PATH: &str = "resources/ui_textures/game_over/bar-header.png";
 pub const BAR_1_PATH: &str = "resources/ui_textures/game_over/bar-1.png";
 pub const BAR_2_PATH: &str = "resources/ui_textures/game_over/bar-2.png";
 pub const BAR_3_PATH: &str = "resources/ui_textures/game_over/bar-3.png";
 pub const BAR_4_PATH: &str = "resources/ui_textures/game_over/bar-4.png";
+
 pub const HITS_0_PATH: &str = "resources/ui_textures/game_over/hits-0.png";
 pub const HITS_1_PATH: &str = "resources/ui_textures/game_over/hits-1.png";
 pub const HITS_2_PATH: &str = "resources/ui_textures/game_over/hits-2.png";

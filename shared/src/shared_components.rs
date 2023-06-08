@@ -175,7 +175,7 @@ impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 3,
+            health : 2,
             hits: 0
         }
     }

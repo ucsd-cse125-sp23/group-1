@@ -69,6 +69,7 @@ pub struct UI {
     // ======================== game over ui elements =========================
     pub game_over_bg: Sprite,
     pub winner_txt: Sprite,
+    pub continue_txt: Sprite,
     pub p1_winner: Sprite,
     pub p2_winner: Sprite,
     pub p3_winner: Sprite,
@@ -149,13 +150,15 @@ impl UI {
         let c3_pos = vec2(width * (11.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
         let c4_pos = vec2(width * (13.0 / 20.0), height - PLAYER_CIRCLE_BORDER);
 
-        let winner_pos = vec2(width / 4.00, height / 2.4);
-        let winner_txt_pos = vec2(width / 4.00, height / 1.3);
-        let bar_header_pos = vec2(width / 1.5, height / 1.3 - LEADERBOARD_SPACING * 0.25);
-        let bar_1_pos = vec2(width / 1.5, height / 1.3 - LEADERBOARD_SPACING);
-        let bar_2_pos = vec2(width / 1.5, height / 1.3 - LEADERBOARD_SPACING * 2.0);
-        let bar_3_pos = vec2(width / 1.5, height / 1.3 - LEADERBOARD_SPACING * 3.0);
-        let bar_4_pos = vec2(width / 1.5, height / 1.3 - LEADERBOARD_SPACING * 4.0);
+        let winner_pos = vec2(width / 4.2, height / 2.4);
+        let winner_txt_pos = vec2(width / 4.2, height / 1.16);
+        let continue_pos = vec2(width / 1.45, height / 5.0);
+        let bar_header_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 1.0);
+
+        let bar_1_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 2.5);
+        let bar_2_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 4.0);
+        let bar_3_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 5.5);
+        let bar_4_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 7.0);
 
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
@@ -241,6 +244,7 @@ impl UI {
             // =========================== game over elements ===========================
             game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
             winner_txt: init_sprite(s_size, id, WINNER_TXT_PATH, winner_txt_pos, WINNER_SCALE),
+            continue_txt: init_sprite(s_size, id, CONTINUE_TXT_PATH, continue_pos, CONTINUE_SCALE),
             p1_winner: init_sprite(s_size, id, P1_JOINED_PATH, winner_pos, WINNER_SCALE),
             p2_winner: init_sprite(s_size, id, P2_JOINED_PATH, winner_pos, WINNER_SCALE),
             p3_winner: init_sprite(s_size, id, P3_JOINED_PATH, winner_pos, WINNER_SCALE),
@@ -312,25 +316,6 @@ impl UI {
             self.crosshair.draw();
             self.hitmarker.draw();
 
-            if client_alive {
-                match client_id {
-                    0 => self.p1_healthbar.draw(),
-                    1 => self.p2_healthbar.draw(),
-                    2 => self.p3_healthbar.draw(),
-                    3 => self.p4_healthbar.draw(),
-                    _ => ()
-                }
-            }
-            else {
-                match client_id {
-                    0 => self.p1_emptybar.draw(),
-                    1 => self.p2_emptybar.draw(),
-                    2 => self.p3_emptybar.draw(),
-                    3 => self.p4_emptybar.draw(),
-                    _ => ()
-                }
-            }
-
             match client_ammo {
                 0 => self.ammo_0.draw(),
                 1 => self.ammo_1.draw(),
@@ -360,6 +345,34 @@ impl UI {
                                 2 => self.p3_dead.draw(),
                                 3 => self.p4_dead.draw(),
                                 _ => ()
+                            }
+                        }
+
+                        if i == client_id {
+                            if client_alive && ecs.health_components[*player].health == 2 {
+                                    match client_id {
+                                    0 => self.p1_healthbar.draw(),
+                                    1 => self.p2_healthbar.draw(),
+                                    2 => self.p3_healthbar.draw(),
+                                    3 => self.p4_healthbar.draw(),
+                                    _ => ()
+                                }
+                            } else if client_alive && ecs.health_components[*player].health == 1 {
+                                match client_id {
+                                    0 => self.p1_halfbar.draw(),
+                                    1 => self.p2_halfbar.draw(),
+                                    2 => self.p3_halfbar.draw(),
+                                    3 => self.p4_halfbar.draw(),
+                                    _ => ()
+                                }
+                            } else {
+                                match client_id {
+                                    0 => self.p1_emptybar.draw(),
+                                    1 => self.p2_emptybar.draw(),
+                                    2 => self.p3_emptybar.draw(),
+                                    3 => self.p4_emptybar.draw(),
+                                    _ => ()
+                                }
                             }
                         }
                     }
@@ -495,7 +508,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game_over(&mut self, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game_over(&mut self, curr_id: usize, c_ecs: &Option<ClientECS>) {
         unsafe{
             self.game_over_bg.draw();
             match c_ecs {
@@ -517,21 +530,23 @@ impl UI {
                 }
                 None => ()
             }
-            self.p1_winner.draw();
+
             self.winner_txt.draw();
+            self.continue_txt.draw();
             self.bar_header.draw();
+
             self.bar_1.draw();
             self.bar_2.draw();
             self.bar_3.draw();
             self.bar_4.draw();
-            self.p1_you_text.draw();
-            self.p2_you_text.draw();
-            self.p3_you_text.draw();
-            self.p4_you_text.draw();
-            self.hits_3_b1.draw();
-            self.hits_2_b2.draw();
-            self.hits_1_b3.draw();
-            self.hits_0_b4.draw();
+            // self.p1_you_text.draw();
+            // self.p2_you_text.draw();
+            // self.p3_you_text.draw();
+            // self.p4_you_text.draw();
+            // self.hits_3_b1.draw();
+            // self.hits_2_b2.draw();
+            // self.hits_1_b3.draw();
+            // self.hits_0_b4.draw();
 
             // self.hits_9_b1.set_position(vec2(0.0, 0.0));
             // self.hits_9_b1.draw();
