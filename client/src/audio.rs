@@ -81,9 +81,14 @@ impl AudioPlayer {
         self.manager.play(self.sound_map[name].with_settings(StaticSoundSettings::new().output_destination(&emitter)))?;
         self.e_map.insert(id, emitter);
         self.sound_vec.push(VecEntry::new(id, source),);
+        // println!("{}", self.manager.num_sounds());
         Ok(id)
     }
 
+    // TODO: stop looped sound function
+    pub fn stop_sound() {
+
+    }
     // called periodically
     pub fn move_listener(&mut self, x: f32, y: f32, z: f32, qx: f32, qy: f32, qz: f32, qw: f32) -> Result<(),CommandError> {
         self.listener.set_position(Vector3{x:x, y:y, z:z}, 
@@ -134,6 +139,7 @@ impl AudioPlayer {
      */
     pub fn prune_emitters(&mut self) {
         while self.sound_vec.len() != 0 && self.sound_vec[0].expired() {
+            self.e_map.remove(&self.sound_vec[0].id);
             self.sound_vec.pop();
         }
     }

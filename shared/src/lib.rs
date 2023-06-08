@@ -21,7 +21,7 @@ pub const AMMO_COUNT: u8 = 6;
 ============================================================================ */ 
 
 // graphics settings
-pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
+pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.2";
 
 pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
 pub const BAR_BORDER: f32 = 9.0;
