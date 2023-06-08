@@ -74,8 +74,8 @@ fn main() -> io::Result<()> {
     let mut client_events: SecondaryMap<Entity, ()> = SecondaryMap::new();
 
     // initialize audio manager
-    let mut audio = AudioPlayer::default();
-
+    let mut audio = AudioPlayer::new();
+  
     // create camera and camera information
     let mut camera = Camera {
         Position: Point3::new(0.0, 0.0, 3.0),
@@ -202,6 +202,7 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut spectator_mode = false;
 
     // Create network TcpStream
     // TODO: change to connect_timeout?
@@ -242,10 +243,16 @@ fn main() -> io::Result<()> {
     let mut curr_id = client_id;
 
     let mut frame_count = 0;
+    let mut delta_time;
+    let mut last_frame = 0.0;
 
     // WINDOW LOOP
     // -----------
     loop {
+        let current_frame = glfw.get_time() as f32;
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // set cursor mode based on is_focused
         if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -257,6 +264,7 @@ fn main() -> io::Result<()> {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
                 game_state = GameState::InLobby;
+                spectator_mode = false;
             }
             GameState::InLobby => {
                 process_inputs_lobby(
@@ -403,10 +411,15 @@ fn main() -> io::Result<()> {
                             // skip audio events for all but client 0 if we're debugging on same machine
                             if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
                                 let audio_event = &c_ecs.audio_components[event];
-                                match audio.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error playing sound: {e}"),
-                                };
+                                match &mut audio {
+                                    Some(audioplayer) => {
+                                        match audioplayer.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    },
+                                    None => ()
+                                }
                             }
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
@@ -440,7 +453,7 @@ fn main() -> io::Result<()> {
                         }
 
                         // dead player camera
-                        if !c_ecs.health_components[player_key].alive {
+                        if !c_ecs.health_components[player_key].alive && !spectator_mode {
                             camera.RotQuat = Quaternion::new(
                                 c_ecs.position_components[player_key].qw,
                                 c_ecs.position_components[player_key].qx,
@@ -470,7 +483,6 @@ fn main() -> io::Result<()> {
                     shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
-                    let mut player_pos_ff = Vector3::zero();
                     let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
@@ -501,23 +513,34 @@ fn main() -> io::Result<()> {
                                 c_ecs.position_components[player_key].y,
                                 c_ecs.position_components[player_key].z,
                             );
-                            if frame_count == 0 {
-                                match audio.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
-                                    Ok(_) => (),
-                                    Err(e) => eprintln!("Audio error moving listener: {e}"),
-                                };
+                            match &mut audio {
+                                Some(audioplayer) if frame_count == 0 => {
+                                    match audioplayer.move_listener(player_pos.x, player_pos.y, player_pos.z, camera.RotQuat.v.x, camera.RotQuat.v.y, camera.RotQuat.v.z, camera.RotQuat.s) {
+                                        Ok(_) => (),
+                                        Err(e) => eprintln!("Audio error moving listener: {e}"),
+                                    };
+                                },
+                                _ => ()
                             }
-                            // player position used for force field
-                            player_pos_ff = player_pos;
-                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+
+                            if !client_health.alive && input_component.enter_pressed {
+                                spectator_mode = true;
+                            }
+
+                            if !client_health.alive && spectator_mode {
+                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            } else {
+                                set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            }
 
                             let velocity = &c_ecs.velocity_components[player_key];
                             player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
-                                if renderable == player_key {
+                                if renderable == player_key && !spectator_mode {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
@@ -636,7 +659,7 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    force_field.draw(&camera, player_pos_ff);
+                    force_field.draw(&camera, camera.Position.to_vec());
 
                     // HUD elements should always be rendered on top
                     // TODO: call gl::Clear only after rendering forcefield
@@ -654,6 +677,8 @@ fn main() -> io::Result<()> {
                 }
             }
             GameState::GameOver => {
+                spectator_mode = false;
+
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
