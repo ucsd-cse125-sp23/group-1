@@ -395,7 +395,6 @@ impl UI {
     }
 
     pub fn display_death_message(&mut self, killer: usize, player: usize) {
-        println!("player {} shot player {}", killer, player);
         match &mut self.death_messages[killer][player] {
             Some(message) => message.add_alpha(2.0),
             None => eprintln!("Player {killer} shot themselves (Player {player})!")

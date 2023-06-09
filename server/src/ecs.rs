@@ -474,7 +474,7 @@ impl ECS {
                 let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
                 match self.network_components[player].stream.write(&message) {
                     Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => println!("WouldBlock error while sending {size} bytes: {e}"),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => eprintln!("WouldBlock error while sending {size} bytes: {e}"),
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                         disconnected_players.push(player);
@@ -688,7 +688,7 @@ impl ECS {
                         let hit_point = ray.point_at(toi);
 
                         let target_name = & self.name_components[target];
-                        println!("Hit target {}",target_name);
+                        // println!("Hit target {}",target_name);
 
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
@@ -981,7 +981,6 @@ impl ECS {
             self.player_health_components[player].health = 0;
             self.active_players -= 1;
 
-            println!("player disconnected!");
             let event_key = self.name_components.insert("disconnect_event".to_string());
             self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DisconnectEvent { player: player }});
             self.events.push(event_key);
