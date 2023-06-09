@@ -8,11 +8,7 @@ pub mod shared_functions;
 // server tick speed, in ms
 // stored as 64 bit int to avoid casting for comparison
 pub const TICK_SPEED: u64 = 16;
-// localhost: 127.0.0.1
-// demo server IP: 137.110.115.157
-pub const SERVER_ADDR: &str = "127.0.0.1";
-pub const PORT: u32 = 2345;
-
+pub const MOVE_DELTA: f32 = 0.1;
 pub const MIN_PLAYERS: usize = 2;
 pub const AMMO_COUNT: u8 = 6;
 
@@ -157,6 +153,6 @@ pub const P4_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker
 
 /** ===========================================================================
  * audio settings
-============================================================================ */ 
-pub const AUDIO_DEBUG: bool = true; // mutes all clients but one when set to true
+============================================================================ */
+pub const AUDIO_DEBUG: bool = false; // mutes all clients but one when set to true
 pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames

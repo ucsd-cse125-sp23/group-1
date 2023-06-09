@@ -812,6 +812,7 @@ dependencies = [
  "nalgebra",
  "rapier3d",
  "serde",
+ "serde_json",
  "slotmap",
 ]
 
