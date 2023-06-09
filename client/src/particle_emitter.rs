@@ -36,7 +36,8 @@ pub struct ParticleEmitter{
     prev_incr: Instant,                     // to count 100ms increments
     time_alive: f32,                        // to know when to stop making new particles
     s_normal: Vector3<f32>,                 // surface normal of the face that is hit
-    start_vel: Vector3<f32>                 // velocity of the object that was hit
+    start_vel: Vector3<f32>,                 // velocity of the object that was hit
+    first_time: bool                        //true if the emitter has just been created
 }
 
 impl ParticleEmitter{
@@ -51,7 +52,8 @@ impl ParticleEmitter{
             prev_incr: Instant::now(),
             time_alive: 0.,
             s_normal,
-            start_vel
+            start_vel,
+            first_time: true
         }
         
     }
@@ -107,13 +109,14 @@ impl ParticleEmitter{
         self.prev = now;
         self.time_alive += delta;
 
-        if now.duration_since(self.prev_incr).as_secs_f32() >= 0.1 {
+        if self.first_time || now.duration_since(self.prev_incr).as_secs_f32() >= 0.1 {
             let num_to_create = min(self.vars.particles_per_100ms,
                 self.vars.particle_limit - self.particles.len() as i32);
             for _ in 0..num_to_create {
                 self.particles.push(self.create_particle());
             }
             self.prev_incr = now;
+            self.first_time = false;
         }
 
         self.position += delta * self.start_vel;
