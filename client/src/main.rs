@@ -483,20 +483,20 @@ fn main() -> io::Result<()> {
                                     }
                                     // TODO: muzzle flash position isn't exactly correct
                                     // amd iherit veloctiy
-                                    particle_emitters.push(ParticleEmitter::new(
-                                        vec3(
-                                            c_ecs.position_components[player_key].x,
-                                            c_ecs.position_components[player_key].y,
-                                            c_ecs.position_components[player_key].z,
-                                        ), 
-                                        camera.Front,
-                                        vec3(
-                                            c_ecs.velocity_components[player_key].vel_x,
-                                            c_ecs.velocity_components[player_key].vel_y,
-                                            c_ecs.velocity_components[player_key].vel_z
-                                        ),
-                                        &emitter_specifiers["fire_spark"]
-                                    ));
+                                    // particle_emitters.push(ParticleEmitter::new(
+                                    //     vec3(
+                                    //         c_ecs.position_components[player_key].x,
+                                    //         c_ecs.position_components[player_key].y,
+                                    //         c_ecs.position_components[player_key].z,
+                                    //     ), 
+                                    //     camera.Front,
+                                    //     vec3(
+                                    //         c_ecs.velocity_components[player_key].vel_x,
+                                    //         c_ecs.velocity_components[player_key].vel_y,
+                                    //         c_ecs.velocity_components[player_key].vel_z
+                                    //     ),
+                                    //     &emitter_specifiers["fire_spark"]
+                                    // ));
                                 },
                                 EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {

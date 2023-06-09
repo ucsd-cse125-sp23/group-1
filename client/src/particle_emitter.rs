@@ -149,9 +149,12 @@ impl ParticleEmitter{
             unsafe {
                 shader.set_mat4(c_str!("model"), &model_matrix);
                 shader.set_vector4(c_str!("color_overwrite"), 
-                &vec4(1., 
-                    self.particles[i].secs_to_live / self.vars.stl_max, 
-                    0., 1.)
+                // &vec4(1., 
+                //     self.particles[i].secs_to_live / self.vars.stl_max, 
+                //     0., 1.)
+                    &(&self.vars.col_start + 
+                    (self.particles[i].secs_to_live / self.vars.stl_max) * 
+                    (&self.vars.col_end-&self.vars.col_start))
                 );
             }
 
