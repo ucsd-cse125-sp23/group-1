@@ -73,7 +73,7 @@ impl TracerManager {
         let origin = if is_player {
             Point3::new(0.5, 0.1, -1.2)
         } else {
-            Point3::new(0.5, -0.4, 0.0)
+            Point3::new(0.3, 0.1, -0.3)
         };
         let p1 = model.transform_point(origin).to_vec();
 
