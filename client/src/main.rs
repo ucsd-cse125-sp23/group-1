@@ -86,6 +86,7 @@ fn main() -> io::Result<()> {
     let mut last_y: f32;
     let mut fullscreen = false;
     let mut f11_pressed = false;
+    let mut mmb_clicked = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -316,6 +317,7 @@ fn main() -> io::Result<()> {
                     &mut input_component,
                     &mut roll,
                     &mut zoomed,
+                    &mut mmb_clicked,
                     &mut first_click,
                     is_focused,
                 );

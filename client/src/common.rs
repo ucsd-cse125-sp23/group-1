@@ -134,6 +134,7 @@ pub fn process_inputs_game(
     input_component: &mut PlayerInputComponent,
     roll: &mut bool,
     zoomed: &mut bool,
+    mmb_clicked: &mut bool,
     first_click: &mut bool,
     is_focused: bool
 ) {
@@ -174,8 +175,12 @@ pub fn process_inputs_game(
     if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Release {
         *first_click = false;
     }
-    if window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Press {
+    if !*mmb_clicked && window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Press {
         *zoomed = !*zoomed;
+        *mmb_clicked = true;
+    }
+    if *mmb_clicked && window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Release {
+        *mmb_clicked = false;
     }
 
     // TODO: add additional quit hotkey?

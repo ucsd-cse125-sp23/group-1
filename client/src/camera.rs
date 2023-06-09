@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 
+use std::time::Instant;
+
 use cgmath;
 use cgmath::Deg;
 use cgmath::vec3;
@@ -29,6 +31,8 @@ const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
 const FOV: f32 = DEFAULT_VERTICAL_FOV;
+const ZOOMED_FOV: f32 = DEFAULT_VERTICAL_FOV / 2.0;
+const ZOOM_RATE: f32 = 10.0 * (DEFAULT_VERTICAL_FOV - ZOOMED_FOV);
 const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
@@ -40,7 +44,8 @@ pub struct Camera {
     pub RotQuat: Quaternion,
     pub MouseSensitivity: f32,
     pub Fov: f32,
-    pub ScreenShake: ScreenShake
+    pub ScreenShake: ScreenShake,
+    pub Prev: Instant
 }
 impl Default for Camera {
     fn default() -> Camera {
@@ -52,7 +57,8 @@ impl Default for Camera {
             RotQuat: Quaternion::new(1.0,0.0,0.0,0.0), // initialized later
             MouseSensitivity: SENSITIVTY,
             Fov: FOV,
-            ScreenShake: ScreenShake::default()
+            ScreenShake: ScreenShake::default(),
+            Prev: Instant::now()
         };
         camera.initMatrix();
         camera
@@ -102,10 +108,13 @@ impl Camera {
     // }
 
     pub fn ProcessZoom(&mut self, zoomed: bool) {
+        let now = Instant::now();
+        let delta = now.duration_since(self.Prev).as_secs_f32();
+        self.Prev = now;
         if zoomed {
-            self.Fov = 30.0;
+            self.Fov = ZOOMED_FOV.max(self.Fov - (delta * ZOOM_RATE));
         } else {
-            self.Fov = FOV;
+            self.Fov = FOV.min(self.Fov + (delta * ZOOM_RATE));
         }
     }
 
