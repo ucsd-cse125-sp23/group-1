@@ -5,6 +5,7 @@ use std::ffi::CStr;
 use crate::model::Model;
 use crate::shader::Shader;
 use crate::camera::Camera;
+use crate::common::update_shader_camera;
 
 const FADE_RATE: f32 = 4.0;
 const HALFHEIGHT: f32 = 0.5;
@@ -70,7 +71,7 @@ impl TracerManager {
         let model = pos_mat * scale_mat * rot_mat;
 
         let origin = if is_player {
-            Point3::new(0.5, 0.0, 0.0)
+            Point3::new(0.5, 0.1, -1.2)
         } else {
             Point3::new(0.5, -0.4, 0.0)
         };
@@ -91,15 +92,7 @@ impl TracerManager {
 
         self.shader.use_program();
 
-        let view = camera.GetViewMatrix();
-        self.shader.set_mat4(c_str!("view"), &view);
-        let projection: Matrix4<f32> = perspective(
-            Deg(camera.Zoom),
-            self.screen_size.x / self.screen_size.y,
-            0.1,
-            10000.0,
-        );
-        self.shader.set_mat4(c_str!("projection"), &projection);
+        update_shader_camera(camera, &self.shader, self.screen_size.x as u32, self.screen_size.y as u32);
 
         self.tracers.retain_mut(|tracer| {
             tracer.draw(&self.shader, &self.models, &camera, delta)

@@ -522,7 +522,6 @@ fn main() -> io::Result<()> {
                     shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
-                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -694,7 +693,6 @@ fn main() -> io::Result<()> {
                     );
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
-
 
                     // enable translucency for force field
                     gl::DepthMask(gl::FALSE);

@@ -14,16 +14,20 @@ pub fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &S
     camera.Position.y = pos.y;
     camera.Position.z = pos.z;
 
+    update_shader_camera(camera, shader_program, width, height);
+}
+
+pub fn update_shader_camera(camera: &Camera, shader: &Shader, width: u32, height: u32) {
     unsafe {
         let view = camera.GetViewMatrix();
-        shader_program.set_mat4(c_str!("view"), &view);
+        shader.set_mat4(c_str!("view"), &view);
         let projection: Matrix4<f32> = perspective(
             Deg(camera.Zoom),
             width as f32 / height as f32,
             0.1,
             10000.0,
         );
-        shader_program.set_mat4(c_str!("projection"), &projection);
+        shader.set_mat4(c_str!("projection"), &projection);
     }
 }
 
