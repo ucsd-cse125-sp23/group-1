@@ -15,7 +15,7 @@ pub struct VelocityIndicator {
 
 impl VelocityIndicator {
     pub fn new() -> VelocityIndicator {
-        let model = Model::new("resources/arrow/arrow.obj");
+        let model = Model::new("resources/models/arrow/arrow.obj");
         let velocity_indicator = VelocityIndicator {
             model,
             prev: Instant::now(),

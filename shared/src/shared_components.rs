@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-use std::str;
+use std::{str};
 
 use crate::AMMO_COUNT;
 type Entity = DefaultKey;
@@ -18,6 +18,8 @@ pub struct PlayerInputComponent {
     pub r_pressed: bool,
     pub shift_pressed: bool,
     pub ctrl_pressed: bool,
+    pub enter_pressed: bool,
+    pub reset_pressed: bool,
     pub camera_qx: f32,
     pub camera_qy: f32,
     pub camera_qz: f32,
@@ -35,6 +37,8 @@ impl PlayerInputComponent {
             d_pressed: false,
             shift_pressed: false,
             ctrl_pressed: false,
+            enter_pressed: false,
+            reset_pressed: false,
             r_pressed: false,
             camera_qx: 0.0,
             camera_qy: 0.0,
@@ -53,7 +57,6 @@ pub struct ClientECS {
     pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
-    pub audio_components: SecondaryMap<Entity, AudioComponent>,
     pub particle_components: SecondaryMap<Entity, ParticleComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
@@ -73,7 +76,6 @@ impl ClientECS {
             weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
-            audio_components: SecondaryMap::new(),
             particle_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
@@ -177,7 +179,7 @@ impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 3,
+            health : 2,
             hits: 0
         }
     }
@@ -194,30 +196,36 @@ pub struct PlayerLassoComponent {
 pub enum EventType {
     FireEvent {
         player: Entity,
-
     },
     HitEvent {
         player: Entity,
-        target: Entity
+        target: Entity,
+        hit_x: f32,
+        hit_y: f32,
+        hit_z: f32
+    },
+    ReloadEvent {
+        player: Entity,
     },
     DeathEvent {
         player: Entity,
         killer: Entity
-    }
+    },
+    DisconnectEvent {
+        player: Entity
+    },
+    StartMoveEvent {
+        player: Entity,
+    },
+    StopMoveEvent {
+        player: Entity,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EventComponent {
     pub event_type: EventType,
     pub lifetime: u8,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct AudioComponent {
-    pub name: String,
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

@@ -69,7 +69,7 @@ fn prop_default_shape() -> Shape { Shape::Cuboid(1.0,1.0,1.0) }
 fn prop_default_density() -> f32 { 1.0 }
 fn prop_default_restitution() -> f32 { 0.3 }
 fn prop_default_border() -> bool { false }
-fn prop_default_max_linvel() -> f32 { 0.15 }
+fn prop_default_max_linvel() -> f32 { 1.0 }
 fn prop_default_max_angvel() -> f32 { 0.1 }
 
 #[derive(Deserialize)]
@@ -84,6 +84,7 @@ fn spawnpoint_default_rot() -> Option<EulerRot> { None }
 fn load_scaled_model(path: &String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
     let path = Path::new(path);
     let obj = tobj::load_obj(path);
+
     let (models, _) = obj.unwrap();
     let mesh = &models[0].mesh;
     let num_vertices = mesh.positions.len() / 3;

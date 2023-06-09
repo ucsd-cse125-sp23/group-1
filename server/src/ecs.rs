@@ -1,8 +1,7 @@
 use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
-use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
+use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData, SparseSecondaryMap};
 use std::collections::HashMap;
-use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
 
@@ -25,7 +24,6 @@ pub struct ECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
-    pub audio_components: SecondaryMap<Entity, AudioComponent>,
     pub particle_components: SecondaryMap<Entity, ParticleComponent>,
 
     // server components
@@ -35,6 +33,8 @@ pub struct ECS {
     pub player_lasso_phys_components: SecondaryMap<Entity, PlayerLassoPhysComponent>,
     pub player_lasso_thrown_components: SecondaryMap<Entity, PlayerLassoThrownComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
+
+    pub moving: SparseSecondaryMap<Entity, bool>,
 
     // physics objects
     pub rigid_body_set: RigidBodySet,
@@ -63,6 +63,7 @@ pub struct ECS {
     pub sky: usize,
     pub active_players: u8,
     pub game_ended: bool,
+    pub eor_countdown: u16,
 }
 
 impl ECS {
@@ -88,7 +89,7 @@ impl ECS {
             player_lasso_thrown_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
 
-            audio_components: SecondaryMap::new(),
+            moving: SparseSecondaryMap::new(),
             particle_components: SecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
@@ -117,6 +118,7 @@ impl ECS {
             sky: 0,
             active_players: 0,
             game_ended: false,
+            eor_countdown: 250, // about 4 seconds
         }
     }
 
@@ -162,7 +164,6 @@ impl ECS {
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
         self.event_components.clear();
-        self.audio_components.clear();
         self.particle_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
@@ -215,6 +216,7 @@ impl ECS {
 
         self.active_players = self.players.len() as u8;
         self.game_ended = false;
+        self.eor_countdown = 250; // about 4 seconds
     }
 
     /**
@@ -240,6 +242,7 @@ impl ECS {
                 let player = self.new_player(name.clone());
                 self.network_components.insert(player, NetworkComponent{connected: true, stream: curr_stream});
                 self.player_health_components.insert(player, PlayerHealthComponent::default());
+                self.moving.insert(player, false);
                 self.active_players += 1;
                 self.send_ready_message(false);
             },
@@ -297,8 +300,8 @@ impl ECS {
                     Ok(bytes_read) if bytes_read == s_size => {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        match serde_json::from_str(message) {
+                        // let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        match bitcode::deserialize(&read_buf[4..]) {
                             Ok(value) => {
                                 received_input = true;
                                 ECS::combine_input(&mut input_temp, value)
@@ -361,10 +364,10 @@ impl ECS {
         let mut disconnected_players: Vec<Entity> = vec![];
 
         let lobby_ecs = self.lobby_ecs(start_game);
-        let j = serde_json::to_string(&lobby_ecs).expect("Lobby ECS serialization error");
+        let j = bitcode::serialize(&lobby_ecs).expect("Lobby ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+            let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
@@ -424,6 +427,8 @@ impl ECS {
         self.dynamics.remove(self.dynamics.iter().position(|x| *x == player).expect("not found"));
         self.renderables.remove(self.renderables.iter().position(|x| *x == player).expect("not found"));
         self.active_players = self.players.len() as u8;
+
+        self.moving.remove(player);
     }
 
     /**
@@ -441,6 +446,7 @@ impl ECS {
         curr.d_pressed |= value.d_pressed;
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
+        curr.reset_pressed |= value.reset_pressed;
         curr.r_pressed |= value.r_pressed;
         curr.camera_qx = value.camera_qx;
         curr.camera_qy = value.camera_qy;
@@ -456,18 +462,22 @@ impl ECS {
 
         // game ends if there's 1 active player left
         if self.active_players <= 1 {
-            self.game_ended = true;
+            if self.eor_countdown == 0 {
+                self.game_ended = true;
+            } else {
+                self.eor_countdown -= 1;
+            }
         }
 
         let client_ecs = self.client_ecs();
-        let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
+        let j = bitcode::serialize(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
             if self.network_components[player].connected {
-                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
                 match self.network_components[player].stream.write(&message) {
                     Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => println!("WouldBlock error while sending {size} bytes: {e}"),
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                         disconnected_players.push(player);
@@ -493,7 +503,6 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
-            audio_components: self.audio_components.clone(),
             particle_components: self.particle_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
             event_components: self.event_components.clone(),
@@ -671,7 +680,6 @@ impl ECS {
                 let event_key = self.name_components.insert("fire_event".to_string());
                 self.events.push(event_key);
                 self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::FireEvent{player}});
-                self.audio_components.insert(event_key, AudioComponent{name:"fire".to_string(), x:fire_point.x, y:fire_point.y, z:fire_point.z});
 
                 let ray = Ray::new(fire_point, *fire_vec);
                 let max_toi = 1000.0; //depends on size of map
@@ -692,7 +700,7 @@ impl ECS {
 
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
-                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target}});
+                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target, hit_x: hit_point.x, hit_y: hit_point.y, hit_z: hit_point.z}});
                         self.particle_components.insert(event_key, ParticleComponent {
                             x: hit_point.x,
                             y: hit_point.y,
@@ -721,6 +729,7 @@ impl ECS {
                                 target_body.set_locked_axes(LockedAxes::empty(), true);
                             }
                         }
+
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
@@ -735,6 +744,10 @@ impl ECS {
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 weapon.cooldown = 120;
                 weapon.reloading = true;
+
+                let event_key = self.name_components.insert("reload_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::ReloadEvent{player}});
             }
         }
     }
@@ -896,6 +909,25 @@ impl ECS {
             let impulse = 0.03;
             let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
             rigid_body.set_rotation(camera.rot, true);
+
+            // if movement started
+            if !self.moving[player] && (input.w_pressed || input.a_pressed || input.s_pressed || input.d_pressed || input.shift_pressed || input.ctrl_pressed) {
+                // println!("Start movement");
+                self.moving[player] = true;
+                // add start movement event to server tick
+                let event_key = self.name_components.insert("start_movement_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::StartMoveEvent { player }});
+            // else if movement stopped
+            } else if self.moving[player] && !(input.w_pressed || input.a_pressed || input.s_pressed || input.d_pressed || input.shift_pressed || input.ctrl_pressed) {
+                // println!("Stop movement");
+                self.moving[player] = false;
+                // add end movement event to server tick
+                let event_key = self.name_components.insert("end_movement_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::StopMoveEvent { player }});
+            }
+
             if input.w_pressed && !input.s_pressed {
                 rigid_body.apply_impulse(impulse * camera.camera_front, true);
             }
@@ -913,6 +945,10 @@ impl ECS {
             }
             if input.ctrl_pressed && !input.shift_pressed {
                 rigid_body.apply_impulse(-impulse * camera.camera_up, true);
+            }
+            if input.reset_pressed {
+                rigid_body.set_translation(Vector3::zeros(), true);
+                rigid_body.set_linvel(Vector3::zeros(), true);
             }
         }
     }
@@ -933,8 +969,8 @@ impl ECS {
                     let read_size = u32::from_be_bytes(size_buf) as usize;
                     let mut read_buf = vec![0 as u8; read_size];
                     stream.read(&mut read_buf).unwrap();
-                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    let ready_ecs: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                    // let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    let ready_ecs: std::result::Result<ReadyECS, bitcode::Error> = bitcode::deserialize(&read_buf[4..]);
                     match ready_ecs {
                         Ok(ecs) => {
                             if ecs.ready {
@@ -957,9 +993,16 @@ impl ECS {
      */
     fn handle_client_disconnect(&mut self, player: DefaultKey){
         self.network_components[player].connected = false;
-        self.player_health_components[player].alive = false;
-        self.player_health_components[player].health = 0;
-        self.active_players -= 1;
+        if self.player_health_components[player].alive {
+            self.player_health_components[player].alive = false;
+            self.player_health_components[player].health = 0;
+            self.active_players -= 1;
+
+            println!("player disconnected!");
+            let event_key = self.name_components.insert("disconnect_event".to_string());
+            self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DisconnectEvent { player: player }});
+            self.events.push(event_key);
+        }
     }
 
     /**
