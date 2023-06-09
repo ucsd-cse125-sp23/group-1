@@ -72,6 +72,11 @@ impl AudioPlayer {
         player.source_map.insert("fire".to_string(),
             StaticSoundData::from_file("resources/audio/blast0.ogg", 
             StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("hit".to_string(),
+            StaticSoundData::from_file("resources/audio/hit.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
         player.source_map.insert("thruster".to_string(),
             StaticSoundData::from_file("resources/audio/thruster.ogg", 
             StaticSoundSettings::default()
@@ -91,6 +96,23 @@ impl AudioPlayer {
             StaticSoundData::from_file("resources/audio/lobby.ogg",
             StaticSoundSettings::default().loop_region(0. ..90.))
         .unwrap());
+
+        player.source_map.insert("throw".to_string(),
+            StaticSoundData::from_file("resources/audio/throw.ogg", 
+            StaticSoundSettings::default()).unwrap());
+        
+        player.source_map.insert("release".to_string(),
+            StaticSoundData::from_file("resources/audio/release.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("reload".to_string(),
+            StaticSoundData::from_file("resources/audio/reload.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("attach".to_string(),
+            StaticSoundData::from_file("resources/audio/attach.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
         Some(player)
     }
 

@@ -456,7 +456,6 @@ fn main() -> io::Result<()> {
                           
                             client_events.insert(event, ());     
                             
-                            
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -483,10 +482,24 @@ fn main() -> io::Result<()> {
                                     }
                                     let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                     tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
+
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"hit".to_string(), hit_x, hit_y, hit_z, Some(target)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 },
                                 EventType::ReloadEvent { player } => {
                                     if player == player_key {
                                         arm.reload();
+                                    }
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"reload".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
                                     }
                                 },
                                 EventType::DeathEvent { player, killer } => {
@@ -529,13 +542,30 @@ fn main() -> io::Result<()> {
                                     };
                                 },
                                 EventType::LassoThrowEvent { player } => {
-
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"throw".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 },
                                 EventType::LassoAttachEvent { target, hit_x, hit_y, hit_z } => {
-
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"attach".to_string(), hit_x, hit_y, hit_z, Some(target)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 },
                                 EventType::LassoReleaseEvent { player } => {
-                                    
+                                    let player_pos = &c_ecs.position_components[player];
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"release".to_string(), player_pos.x, player_pos.y, player_pos.z, None) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 }
                             }
                         }
