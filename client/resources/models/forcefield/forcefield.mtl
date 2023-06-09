@@ -1,0 +1,12 @@
+# Blender 3.5.1 MTL File: 'Forcefield.blend'
+# www.blender.org
+
+newmtl Material.001
+Ns 1000.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+illum 2
+map_Kd forcefield_combined.png
+map_d forcefield_alpha.png

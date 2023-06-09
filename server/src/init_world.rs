@@ -84,6 +84,7 @@ fn spawnpoint_default_rot() -> Option<EulerRot> { None }
 fn load_scaled_model(path: &String, scale: f32) -> (Vec<Point3<f32>>, Vec<[u32; 3]>) {
     let path = Path::new(path);
     let obj = tobj::load_obj(path);
+
     let (models, _) = obj.unwrap();
     let mesh = &models[0].mesh;
     let num_vertices = mesh.positions.len() / 3;

@@ -1,55 +1,54 @@
 [
     {
         "modelname": "cube",
-        "path": "resources/cube/cube.obj"
+        "path": "resources/models/cube/cube.obj"
     },
     {
         "modelname": "sungod",
-        "path": "resources/sungod/sungod.obj"
+        "path": "resources/models/sungod/sungod.obj"
     },
     {
         "modelname": "asteroid",
-        "path": "resources/asteroids/asteroid.obj"
+        "path": "resources/models/asteroids/asteroid.obj"
     },
     {
         "modelname": "rough_asteroid_small",
-        "path": "resources/asteroids/rough_asteroid_small.obj"
+        "path": "resources/models/asteroids/rough_asteroid_small.obj"
     },
     {
         "modelname": "round_asteroid_small",
-        "path": "resources/asteroids/round_asteroid_small.obj"
+        "path": "resources/models/asteroids/round_asteroid_small.obj"
     },
     {
         "modelname": "round_asteroid_big",
-        "path": "resources/asteroids/round_asteroid_big.obj"
+        "path": "resources/models/asteroids/round_asteroid_big.obj"
     },
     {
         "modelname": "characterPink",
-        "path": "resources/character/characterPink.obj"
+        "path": "resources/models/character/characterPink.obj"
     },
     {
         "modelname": "characterBlue",
-        "path": "resources/character/characterBlue.obj"
+        "path": "resources/models/character/characterBlue.obj"
     },
     {
         "modelname": "characterYellow",
-        "path": "resources/character/characterYellow.obj"
+        "path": "resources/models/character/characterYellow.obj"
     },
     {
         "modelname": "characterGreen",
-        "path": "resources/character/characterGreen.obj"
+        "path": "resources/models/character/characterGreen.obj"
     },
     {
         "modelname": "cactus",
-        "path": "resources/cactus/cactus.obj"
+        "path": "resources/models/cactus/cactus.obj"
     },
     {
         "modelname": "wheel",
-        "path": "resources/wheel/new-wheel.obj"
-    }
-    ,
+        "path": "resources/models/wheel/new-wheel.obj"
+    },
     {
         "modelname": "wagon",
-        "path": "resources/wagon/wagon.obj"
+        "path": "resources/models/wagon/wagon.obj"
     }
 ]

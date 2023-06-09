@@ -184,10 +184,10 @@ fn main() -> io::Result<()> {
 
     // set up tracers
     let mut tracers = TracerManager::new(vec![
-        Model::new("resources/tracer/tracer_p1.obj"),
-        Model::new("resources/tracer/tracer_p2.obj"),
-        Model::new("resources/tracer/tracer_p3.obj"),
-        Model::new("resources/tracer/tracer_p4.obj"),
+        Model::new("resources/models/tracer/tracer_p1.obj"),
+        Model::new("resources/models/tracer/tracer_p2.obj"),
+        Model::new("resources/models/tracer/tracer_p3.obj"),
+        Model::new("resources/models/tracer/tracer_p4.obj"),
     ], screen_size);
 
     // create force field

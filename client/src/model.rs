@@ -38,6 +38,7 @@ impl Model {
 
     // loads a model from file and stores the resulting meshes in the meshes vector.
     fn load_model(&mut self, path: &str) {
+        println!("{}", path);
         let path = Path::new(path);
 
         // retrieve the directory path of the filepath
