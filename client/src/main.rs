@@ -217,7 +217,10 @@ fn main() -> io::Result<()> {
     // Create network TcpStream
     // TODO: change to connect_timeout?
     let mut stream = loop {
-        let addrs = (SERVER_ADDR.to_string() + ":" + &PORT.to_string()).to_socket_addrs().expect("Error loading socket address");
+        let (ip, port) = read_address_json("../shared/address.json");
+        let server_addr = ip + ":" + &port;
+
+        let addrs = server_addr.to_socket_addrs().expect("Error loading socket address");
         match TcpStream::connect_timeout(&addrs.last().unwrap(), Duration::from_millis(TICK_SPEED)) {
             Ok(s) => break s,
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
@@ -481,7 +484,6 @@ fn main() -> io::Result<()> {
                             // }
 
                             // change in velocity feels better
-                            let delta_v = (player_vel - vel_prev).magnitude();
                             let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
                             if delta_speed > 0.0 {
                                 camera.ScreenShake.add_trauma(delta_speed / 100.0);

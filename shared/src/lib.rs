@@ -9,8 +9,6 @@ pub mod shared_functions;
 // stored as 64 bit int to avoid casting for comparison
 pub const TICK_SPEED: u64 = 16;
 pub const MOVE_DELTA: f32 = 0.1;
-pub const PORT: u32 = 2345;
-pub const SERVER_ADDR: &str = "127.0.0.1";
 pub const MIN_PLAYERS: u8 = 2;
 pub const AMMO_COUNT: u8 = 6;
 
