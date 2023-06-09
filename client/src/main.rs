@@ -492,7 +492,6 @@ fn main() -> io::Result<()> {
                                     }
                                 }, 
                                 EventType::DisconnectEvent { player } => {
-                                    println!("a disconnect happened");
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                 }
                                 EventType::StartMoveEvent { player } => {
