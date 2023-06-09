@@ -8,6 +8,10 @@
         "path": "resources/models/sungod/sungod.obj"
     },
     {
+        "modelname": "bear",
+        "path": "resources/models/bear/bear.obj"
+    },
+    {
         "modelname": "asteroid",
         "path": "resources/models/asteroids/asteroid.obj"
     },
