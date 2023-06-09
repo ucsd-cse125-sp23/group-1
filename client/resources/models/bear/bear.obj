@@ -1,6 +1,6 @@
 # Blender 3.5.1
 # www.blender.org
-mtllib asteroid.mtl
+mtllib bear.mtl
 o cse125.ucsd.edu_data_bear-sp22
 v -3.078067 7.213453 -1.555461
 v -0.539679 6.229248 -1.449014

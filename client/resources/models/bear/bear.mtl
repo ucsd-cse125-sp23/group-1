@@ -10,4 +10,4 @@ Ni 1.450000
 d 1.000000
 illum 2
 map_Kd bear_diffuse.png
-map_Bump -bm 1.000000 bear_normal.png
+map_Ns bear_normal.png
