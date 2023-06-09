@@ -54,5 +54,9 @@
     {
         "modelname": "wagon",
         "path": "resources/models/wagon/wagon.obj"
+    },
+    {
+        "modelname": "saloon",
+        "path": "resources/models/saloon/saloon.obj"
     }
 ]
