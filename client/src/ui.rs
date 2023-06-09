@@ -73,14 +73,14 @@ impl UI {
 
         let winner_pos = vec2(width / 4.2, height / 2.4);
         let winner_txt_pos = vec2(width / 4.2, height / 1.16);
-        let continue_pos = vec2(width / 1.45, height / 5.0);
-        let bar_header_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 1.0);
 
-        let bar_1_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 2.5);
-        let bar_2_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 4.0);
-        let bar_3_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 5.5);
-        let bar_4_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 7.0);
-
+        let bar_header_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 0.0);
+        let bar_1_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 1.5);
+        let bar_2_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 3.0);
+        let bar_3_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 4.5);
+        let bar_4_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 6.0);
+        let continue_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 8.5);
+        
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
         let death_message_pos = vec2(width / 2.0, height / 1.25);
