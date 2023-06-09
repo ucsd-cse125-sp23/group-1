@@ -708,8 +708,8 @@ fn main() -> io::Result<()> {
                     if !spectator_mode {
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
 
-                        vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
                         arm.draw(&camera, &shader_program);
+                        vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
                     }
 
                     // enable translucency for 2D HUD
