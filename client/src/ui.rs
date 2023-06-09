@@ -61,6 +61,7 @@ pub struct UI {
     pub p4_dead: Sprite,
     pub damage: Fadable,
     pub hitmarker: Fadable,
+    pub killmarkers: [Fadable; 4],
 
     // ======================== game over ui elements =========================
     pub game_over_bg: Sprite,
@@ -163,7 +164,14 @@ impl UI {
             p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
-            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
+            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, HITMARKER_SCALE), 3.0, 2.0),
+
+            killmarkers: [
+                Fadable::new(init_sprite(s_size, id, P1_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P2_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P3_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P4_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+            ],
 
             // =========================== game over elements ===========================
             game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
@@ -179,7 +187,11 @@ impl UI {
         unsafe {
             if !spectator_mode {
                 self.crosshair.draw();
+                for killmarker in &mut self.killmarkers {
+                    killmarker.draw();
+                }
                 self.hitmarker.draw();
+              
 
                 if client_alive {
                     match client_id {
