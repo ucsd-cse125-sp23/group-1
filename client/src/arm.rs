@@ -25,7 +25,7 @@ pub struct Arm {
 
 impl Arm {
     pub fn new() -> Arm {
-        let model = Model::new("resources/arm/arm.obj");
+        let model = Model::new("resources/models/arm/arm.obj");
         let arm = Arm {
             model,
             start_time: Instant::now(),

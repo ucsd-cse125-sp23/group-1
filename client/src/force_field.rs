@@ -14,7 +14,7 @@ pub struct ForceField {
 
 impl ForceField {
     pub fn new(radius: f32, screen_size: Vector2<f32>) -> ForceField {
-        let model = Model::new("resources/forcefield/forcefield.obj");
+        let model = Model::new("resources/models/forcefield/forcefield.obj");
         let shader = Shader::new("shaders/forcefield.vs", "shaders/forcefield.fs");
         let force_field = ForceField {
             radius,

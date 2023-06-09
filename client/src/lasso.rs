@@ -9,7 +9,7 @@ pub struct Lasso {
 
 impl Lasso {
     pub fn new() -> Lasso {
-        let model = Model::new("resources/lasso/lasso.obj");
+        let model = Model::new("resources/models/lasso/lasso.obj");
         let lasso = Lasso {
             model,
         };
