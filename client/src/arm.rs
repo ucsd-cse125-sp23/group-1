@@ -92,7 +92,7 @@ impl Arm {
             .invert()
             .expect("Camera view matrix not invertible");
 
-        let loc_offset = cam_mat.transform_point(Point3::new(0.23, -0.2, -0.3));
+        let loc_offset = cam_mat.transform_point(Point3::new(0.23, -0.2, -0.2));
         let loc_mat = Matrix4::from_translation(loc_offset.to_vec());
 
         let rot_mat = Matrix4::from(camera.RotQuat * rot);
