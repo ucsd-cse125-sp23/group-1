@@ -61,6 +61,7 @@ pub struct ECS {
     pub sky: usize,
     pub active_players: u8,
     pub game_ended: bool,
+    pub eor_countdown: u16,
 }
 
 impl ECS {
@@ -114,6 +115,7 @@ impl ECS {
             sky: 0,
             active_players: 0,
             game_ended: false,
+            eor_countdown: 250, // about 4 seconds
         }
     }
 
@@ -211,6 +213,7 @@ impl ECS {
 
         self.active_players = self.players.len() as u8;
         self.game_ended = false;
+        self.eor_countdown = 250; // about 4 seconds
     }
 
     /**
@@ -437,6 +440,7 @@ impl ECS {
         curr.d_pressed |= value.d_pressed;
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
+        curr.reset_pressed |= value.reset_pressed;
         curr.r_pressed |= value.r_pressed;
         curr.camera_qx = value.camera_qx;
         curr.camera_qy = value.camera_qy;
@@ -452,7 +456,11 @@ impl ECS {
 
         // game ends if there's 1 active player left
         if self.active_players <= 1 {
-            self.game_ended = true;
+            if self.eor_countdown == 0 {
+                self.game_ended = true;
+            } else {
+                self.eor_countdown -= 1;
+            }
         }
 
         let client_ecs = self.client_ecs();
@@ -718,6 +726,10 @@ impl ECS {
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 weapon.cooldown = 120;
                 weapon.reloading = true;
+
+                let event_key = self.name_components.insert("reload_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::ReloadEvent{player}});
             }
         }
     }
@@ -896,6 +908,10 @@ impl ECS {
             }
             if input.ctrl_pressed && !input.shift_pressed {
                 rigid_body.apply_impulse(-impulse * camera.camera_up, true);
+            }
+            if input.reset_pressed {
+                rigid_body.set_translation(Vector3::zeros(), true);
+                rigid_body.set_linvel(Vector3::zeros(), true);
             }
         }
     }

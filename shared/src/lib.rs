@@ -28,6 +28,7 @@ pub const LEADERBOARD_SPACING: f32 = 20.0;
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.015;
+pub const HITMARKER_SCALE: f32 = CROSSHAIR_SCALE * 2.0;
 pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
@@ -35,7 +36,7 @@ pub const LEADERBOARD_SCALE: f32 = 0.5;
 pub const CONTINUE_SCALE: f32 = 0.5;
 pub const DEATH_MESSAGE_SCALE: f32 = 0.7;
 
-pub const DEFAULT_VERTICAL_FOV: f32 = 45.0;
+pub const DEFAULT_VERTICAL_FOV: f32 = 59.0;
 
 // UI element paths
 pub const SPLASH_PATH: &str = "resources/ui_textures/Game-poster.jpg";
@@ -97,7 +98,7 @@ pub const P2_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p2_ready_
 pub const P3_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p3_ready_me.png";
 pub const P4_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p4_ready_me.png";
 
-pub const CROSSHAIR_PATH: &str = "resources/ui_textures/crosshair_3.png";
+pub const CROSSHAIR_PATH: &str = "resources/ui_textures/crosshair/crosshair_6.png";
 
 pub const P1_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p1-health-full.png";
 pub const P2_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p2-health-full.png";
@@ -146,7 +147,11 @@ pub const P4_KILL_P2_PATH: &str = "resources/ui_textures/death_messages/p4-kill-
 pub const P4_KILL_P3_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p3.png";
 
 pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
-pub const HITMARKER_PATH: &str = "resources/ui_textures/hitmarker.png";
+pub const HITMARKER_PATH: &str = "resources/ui_textures/crosshair/hitmarker_2.png";
+pub const P1_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p1.png";
+pub const P2_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p2.png";
+pub const P3_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p3.png";
+pub const P4_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p4.png";
 
 // audio settings
 pub const AUDIO_DEBUG: bool = false;

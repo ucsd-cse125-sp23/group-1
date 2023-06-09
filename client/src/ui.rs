@@ -33,6 +33,7 @@ pub struct UI {
 
     pub damage: Fadable,
     pub hitmarker: Fadable,
+    pub killmarkers: [Fadable; 4],
 
     // ======================== game over ui elements =========================
     game_over_bg: Sprite,
@@ -211,7 +212,14 @@ impl UI {
             ],
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
-            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
+            hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, HITMARKER_SCALE), 3.0, 2.0),
+
+            killmarkers: [
+                Fadable::new(init_sprite(s_size, id, P1_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P2_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P3_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+                Fadable::new(init_sprite(s_size, id, P4_KILLMARKER_PATH, bg_pos, HITMARKER_SCALE), 1.0, 2.0),
+            ],
 
             // =========================== game over elements ===========================
             game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
@@ -266,12 +274,21 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool) {
         unsafe {
-            self.crosshair.draw();
-            self.hitmarker.draw();
-            self.ammo[client_ammo as usize].draw();
+            if !spectator_mode {
+                self.crosshair.draw();
+                for killmarker in &mut self.killmarkers {
+                    killmarker.draw();
+                }
+                self.hitmarker.draw();
 
+                self.ammo[client_ammo as usize].draw();
+
+                self.damage.draw();
+            }
+
+            // draw player status regardless of spectator mode or not
             match c_ecs {
                 Some(ecs) => {
                     for (i, player) in ecs.players.iter().enumerate() {
@@ -314,7 +331,6 @@ impl UI {
                 }
             }
 
-            self.damage.draw();
         }
     }
 
