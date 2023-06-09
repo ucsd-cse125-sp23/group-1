@@ -215,6 +215,8 @@ fn main() -> io::Result<()> {
     let mut is_focused = true;
     let mut ready_sent = false;
     let mut spectator_mode = false;
+    let mut show_death_screen = false;
+    let mut show_game_over_screen = false;
 
     // Create network TcpStream
     // TODO: change to connect_timeout?
@@ -483,6 +485,7 @@ fn main() -> io::Result<()> {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
+                                        show_death_screen = true;
                                     } else if killer == player_key {
                                         let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                         ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
@@ -601,6 +604,7 @@ fn main() -> io::Result<()> {
 
                             if !client_health.alive && input_component.enter_pressed {
                                 spectator_mode = true;
+                                show_death_screen = false;
                             }
 
                             if !client_health.alive && spectator_mode {
@@ -707,6 +711,8 @@ fn main() -> io::Result<()> {
                                 i += 1;
                             }
 
+                            show_game_over_screen = c_ecs.active_players <= 1;
+
                             // game has ended
                             if c_ecs.game_ended {
                                 for (i, player) in c_ecs.players.iter().enumerate() {
@@ -761,7 +767,8 @@ fn main() -> io::Result<()> {
                     gl::DepthMask(gl::FALSE);
 
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode);
+
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode, show_death_screen, show_game_over_screen);
 
                     // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
@@ -772,6 +779,8 @@ fn main() -> io::Result<()> {
             }
             GameState::GameOver => {
                 spectator_mode = false;
+                show_death_screen = false;
+                show_game_over_screen = false;
 
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

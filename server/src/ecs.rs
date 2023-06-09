@@ -507,6 +507,7 @@ impl ECS {
             ids: self.ids.clone(),
             events: self.events.clone(),
             renderables: self.renderables.clone(),
+            active_players: self.active_players.clone(),
             game_ended: self.game_ended,
         }
     }

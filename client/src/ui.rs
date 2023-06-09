@@ -31,6 +31,10 @@ pub struct UI {
 
     death_messages: [[Option<Fadable>; 4]; 4],
 
+    you_died_txt: Sprite,
+    you_win_txt: Sprite,
+    game_over_txt: Sprite,
+
     pub damage: Fadable,
     pub hitmarker: Fadable,
     pub killmarkers: [Fadable; 4],
@@ -69,17 +73,18 @@ impl UI {
 
         let winner_pos = vec2(width / 4.2, height / 2.4);
         let winner_txt_pos = vec2(width / 4.2, height / 1.16);
-        let continue_pos = vec2(width / 1.45, height / 5.0);
-        let bar_header_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 1.0);
 
-        let bar_1_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 2.5);
-        let bar_2_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 4.0);
-        let bar_3_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 5.5);
-        let bar_4_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 7.0);
-
+        let bar_header_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 0.0);
+        let bar_1_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 1.5);
+        let bar_2_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 3.0);
+        let bar_3_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 4.5);
+        let bar_4_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 6.0);
+        let continue_pos = vec2(width / 1.45, height / 1.3 - LEADERBOARD_SPACING * 8.5);
+        
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
         let death_message_pos = vec2(width / 2.0, height / 1.25);
+        let screen_txt_pos = vec2(width / 2.0, height / 2.0);
 
         let death_message_fade = 0.3;
         let death_message_alpha = 3.0;
@@ -210,6 +215,10 @@ impl UI {
                     None
                 ]
             ],
+
+            you_died_txt: init_sprite(s_size, id, YOU_DIED_TXT_PATH,screen_txt_pos, SCREEN_TXT_SCALE),
+            you_win_txt: init_sprite(s_size, id, YOU_WIN_TXT_PATH, screen_txt_pos, SCREEN_TXT_SCALE),
+            game_over_txt: init_sprite(s_size, id, GAME_OVER_TXT_PATH, screen_txt_pos, SCREEN_TXT_SCALE),
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
             hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, HITMARKER_SCALE), 3.0, 2.0),
@@ -274,7 +283,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool, show_death_screen: bool, show_game_over_screen: bool) {
         unsafe {
             if !spectator_mode {
                 self.crosshair.draw();
@@ -286,6 +295,10 @@ impl UI {
                 self.ammo[client_ammo as usize].draw();
 
                 self.damage.draw();
+
+                if show_death_screen && !show_game_over_screen {
+                    self.you_died_txt.draw();
+                }
             }
 
             // draw player status regardless of spectator mode or not
@@ -331,6 +344,13 @@ impl UI {
                 }
             }
 
+            if show_game_over_screen {
+                if client_alive {
+                    self.you_win_txt.draw();
+                } else {
+                    self.game_over_txt.draw();
+                }
+            }
         }
     }
 
