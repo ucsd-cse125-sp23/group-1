@@ -278,6 +278,8 @@ fn main() -> io::Result<()> {
         match game_state {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
+                zoomed = false;
+                mmb_clicked = false;
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
