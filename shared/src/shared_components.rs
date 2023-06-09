@@ -65,6 +65,7 @@ pub struct ClientECS {
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
     pub events: Vec<Entity>,
+    pub active_players: u8,
     pub game_ended: bool
 }
 
@@ -84,6 +85,7 @@ impl ClientECS {
             ids: vec![],
             renderables: vec![],
             events: vec![],
+            active_players: 0,
             game_ended: false
         }
     }
