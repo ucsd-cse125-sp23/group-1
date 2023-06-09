@@ -5,10 +5,10 @@ use cgmath::vec4;
 use crate::sprite_renderer::Sprite;
 
 pub struct Fadable {
-    sprite: Sprite,
+    pub sprite: Sprite,
     fade_rate: f32,
     max_alpha: f32,
-    alpha: f32,
+    pub alpha: f32,
     prev: Instant,
 }
 
