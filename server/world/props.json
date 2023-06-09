@@ -19,6 +19,64 @@
         "scale": 1.3
     },
     {
+        "name": "saloon.001",
+        "modelname": "saloon",
+        "pos": [
+            71.63935852050781,
+            119.51868438720703,
+            -29.994569778442383
+        ],
+        "rot": {
+            "w": 0.6733825206756592,
+            "x": 0.5944167375564575,
+            "y": -0.43380776047706604,
+            "z": 0.07096162438392639
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/models/saloon/saloon.obj"
+        },
+        "scale": 0.9
+    },
+    {
+        "name": "saloon.002",
+        "modelname": "saloon",
+        "pos": [
+            -144.8662872314453,
+            0.0,
+            -21.329544067382812
+        ],
+        "rot": {
+            "w": -0.051638439297676086,
+            "x": -0.7052187323570251,
+            "y": -0.7052187323570251,
+            "z": -0.05163850262761116
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/models/saloon/saloon.obj"
+        },
+        "scale": 0.9,
+        "dynamic": false
+    },
+    {
+        "name": "saloon.003",
+        "modelname": "saloon",
+        "pos": [
+            34.60394287109375,
+            -143.68038940429688,
+            108.08781433105469
+        ],
+        "rot": {
+            "w": -0.8057800531387329,
+            "x": 0.5232225060462952,
+            "y": 0.03969479724764824,
+            "z": 0.27455615997314453
+        },
+        "shape": {
+            "ConvexDecomp": "../client/resources/models/saloon/saloon.obj"
+        },
+        "scale": 0.9
+    },
+    {
         "name": "border",
         "modelname": "forcefield",
         "shape": {
