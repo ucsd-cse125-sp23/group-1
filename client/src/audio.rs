@@ -6,34 +6,21 @@ use kira::{
     spatial::{
 		scene::{SpatialSceneSettings, SpatialSceneHandle},
 		listener::{ListenerSettings, ListenerHandle},
-		emitter::{EmitterHandle, EmitterId, EmitterSettings},
+		emitter::{EmitterHandle, EmitterSettings, EmitterDistances},
 	},
 	sound::{PlaybackState, static_sound::{StaticSoundData, StaticSoundHandle, StaticSoundSettings}},
-    tween::{Tween},
+    tween::{Tween, Easing},
     CommandError
 };
 use mint::{Vector3, Quaternion};
-use std::collections::HashMap;
+
+use std::{collections::HashMap};
+use std::time::Duration;
 
 use shared::shared_components::*;
 type Entity = DefaultKey;
 
 use slotmap::{SecondaryMap, DefaultKey, SparseSecondaryMap};
-
-#[derive(Clone, Copy)]
-struct VecEntry {
-    id: EmitterId,
-    source: Option<Entity>
-}
-
-impl VecEntry {
-    pub fn new(id: EmitterId, source: Option<Entity>) -> VecEntry {
-        VecEntry{
-            id: id,
-            source: source,
-        }
-    }
-}
 
 /**
  * Single audio player for the game.
@@ -47,6 +34,7 @@ pub struct AudioPlayer {
     
     sound_vec: Vec<Sound>, // non-thruster sounds
     thrusters: SparseSecondaryMap<Entity, Sound>, // thruster sounds
+    music: Option<StaticSoundHandle>
 }
 
 struct Sound {
@@ -78,12 +66,53 @@ impl AudioPlayer {
             source_map: HashMap::new(),
             sound_vec: vec![],
             thrusters: SparseSecondaryMap::new(),
+            music: None
         };
         // TODO: load from config file
-        player.source_map.insert("fire".to_string(), StaticSoundData::from_file("resources/audio/blast0.ogg", StaticSoundSettings::default()).unwrap());
-        player.source_map.insert("thruster".to_string(), 
+        player.source_map.insert("fire".to_string(),
+            StaticSoundData::from_file("resources/audio/blast0.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("hit".to_string(),
+            StaticSoundData::from_file("resources/audio/hit.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("thruster".to_string(),
             StaticSoundData::from_file("resources/audio/thruster.ogg", 
-            StaticSoundSettings::default().loop_region(2.0..3.0)).unwrap());
+            StaticSoundSettings::default()
+            .loop_region(0.5..2.5)
+            .volume(0.5)
+            .fade_in_tween(Tween{
+                start_time:kira::StartTime::Immediate, 
+                duration:Duration::from_millis(10), 
+                easing:Easing::Linear}))
+        .unwrap());
+        player.source_map.insert("death".to_string(),
+            StaticSoundData::from_file("resources/audio/bell2.ogg", 
+            StaticSoundSettings::default().volume(0.8))
+        .unwrap());
+        
+        player.source_map.insert("lobby".to_string(),
+            StaticSoundData::from_file("resources/audio/lobby.ogg",
+            StaticSoundSettings::default().loop_region(0. ..90.))
+        .unwrap());
+
+        player.source_map.insert("throw".to_string(),
+            StaticSoundData::from_file("resources/audio/throw.ogg", 
+            StaticSoundSettings::default()).unwrap());
+        
+        player.source_map.insert("release".to_string(),
+            StaticSoundData::from_file("resources/audio/release.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("reload".to_string(),
+            StaticSoundData::from_file("resources/audio/reload.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
+        player.source_map.insert("attach".to_string(),
+            StaticSoundData::from_file("resources/audio/attach.ogg", 
+            StaticSoundSettings::default()).unwrap());
+
         Some(player)
     }
 
@@ -91,7 +120,10 @@ impl AudioPlayer {
      * Plays a sound and places its static sound handle in a list of sounds.
      */
     pub fn play_sound(&mut self, name: &String, x: f32, y: f32, z: f32, source: Option<Entity>) -> Result<(),Box<dyn std::error::Error>> {
-        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default().persist_until_sounds_finish(true))?;
+        let emitter = self.scene.add_emitter(Vector3{x, y, z}, EmitterSettings::default()
+            .persist_until_sounds_finish(true)
+            .distances(EmitterDistances{min_distance:shared::ATT_MIN, max_distance:shared::ATT_MAX})
+            .attenuation_function(Easing::Linear))?;
         let sound_handle = self.manager.play(self.source_map[name]
             .with_modified_settings(|settings| settings.output_destination(&emitter)))?;
         let sound = Sound{handle: sound_handle, emitter: emitter, source: source};
@@ -105,6 +137,34 @@ impl AudioPlayer {
         
         Ok(())
     }
+    /**
+     * Plays a sound once, just for the player.
+     */
+    pub fn play_static(&mut self, name: &String) -> Result<StaticSoundHandle,Box<dyn std::error::Error>> {
+        let handle = self.manager.play(self.source_map[name].clone())?;
+        Ok(handle)
+    }
+
+    /**
+     * Plays a sound and then puts it in the music slot.
+     */
+    pub fn play_music(&mut self, name: &String) {
+        if self.music.is_some() {
+            self.music.as_mut().unwrap().stop(Tween::default()).unwrap();
+        }
+        let handle = self.play_static(name).unwrap();
+        self.music = Some(handle);
+    }
+
+    /**
+     * Stops the currently playing music track.
+     */
+    pub fn stop_music(&mut self) {
+        if self.music.is_some() {
+            self.music.as_mut().unwrap().stop(Tween::default()).unwrap();
+            self.music = None;
+        }
+    }
 
     /**
      * Stops the thruster sound of a given player.
@@ -113,6 +173,14 @@ impl AudioPlayer {
         if self.thrusters.contains_key(player) {
             self.thrusters[player].handle.stop(Tween::default()).unwrap();
         }
+    }
+
+    pub fn stop_all_sounds(&mut self) {
+        for (_, sound) in &mut self.thrusters {
+            sound.handle.stop(Tween::default()).unwrap();
+        }
+        self.thrusters.clear();
+        self.sound_vec.clear();
     }
 
     // Takes player position and updates listener position

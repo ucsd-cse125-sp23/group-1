@@ -162,7 +162,7 @@ fn main() -> io::Result<()> {
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
-    let mut rankings = Vec::new();;
+    let mut rankings = Vec::new();
 
     // render splash screen
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -246,8 +246,12 @@ fn main() -> io::Result<()> {
     let mut show_death_screen = false;
     let mut show_game_over_screen = false;
 
+    // Start playing menu music
+    if audio.is_some() {
+        audio.as_mut().unwrap().play_music(&"lobby".to_string());
+    }
+
     // Create network TcpStream
-    // TODO: change to connect_timeout?
     let mut stream = loop {
         let (ip, port) = read_address_json("../shared/address.json");
         let server_addr = ip + ":" + &port;
@@ -316,6 +320,12 @@ fn main() -> io::Result<()> {
                 zoomed = false;
                 mmb_clicked = false;
                 game_state = GameState::InLobby;
+                
+                // Start playing menu music
+                if audio.is_some() {
+                    audio.as_mut().unwrap().play_music(&"lobby".to_string());
+                }
+                
             }
             GameState::InLobby => {
                 process_inputs_lobby(
@@ -355,6 +365,12 @@ fn main() -> io::Result<()> {
                                 client_ecs = None;
                                 first_mouse = true;
                                 lobby_ecs.ready_players.clear();
+
+                                // Stop playing lobby music
+                                if audio.is_some() {
+                                    audio.as_mut().unwrap().stop_music();
+                                }
+                                
                                 game_state = GameState::InGame;
                             }
                         }
@@ -468,6 +484,7 @@ fn main() -> io::Result<()> {
                                 continue;
                             }
                             client_events.insert(event, ());     
+
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -520,10 +537,24 @@ fn main() -> io::Result<()> {
                                     ));
                                     let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                     tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
+
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"hit".to_string(), hit_x, hit_y, hit_z, Some(target)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 },
                                 EventType::ReloadEvent { player } => {
                                     if player == player_key {
                                         arm.reload();
+                                    }
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"reload".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
                                     }
                                 },
                                 EventType::DeathEvent { player, killer } => {
@@ -541,10 +572,16 @@ fn main() -> io::Result<()> {
                                         let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                         ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
                                     }
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_static(&"death".to_string()) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 }, 
                                 EventType::DisconnectEvent { player } => {
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
-                                }
+                                },
                                 EventType::StartMoveEvent { player } => {
                                     if audio_enabled {
                                         let player_pos = &c_ecs.position_components[player];
@@ -553,11 +590,37 @@ fn main() -> io::Result<()> {
                                             Err(e) => eprintln!("Audio error playing sound: {e}"),
                                         };
                                     }
-                                }
+                                },
                                 EventType::StopMoveEvent {player} => {
                                     if audio_enabled {
                                         audio.as_mut().unwrap().stop_thruster(player);
                                     };
+                                },
+                                EventType::LassoThrowEvent { player } => {
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"throw".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                },
+                                EventType::LassoAttachEvent { target, hit_x, hit_y, hit_z } => {
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"attach".to_string(), hit_x, hit_y, hit_z, Some(target)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                },
+                                EventType::LassoReleaseEvent { player } => {
+                                    let player_pos = &c_ecs.position_components[player];
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"release".to_string(), player_pos.x, player_pos.y, player_pos.z, None) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 }
                             }
                         }
@@ -839,6 +902,11 @@ fn main() -> io::Result<()> {
             }
             GameState::GameOver => {
                 spectator_mode = false;
+              
+                // otherwise the thruster sound will keep looping
+                if audio.is_some() {
+                    audio.as_mut().unwrap().stop_all_sounds();
+                }
                 show_death_screen = false;
                 show_game_over_screen = false;
 

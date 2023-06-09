@@ -825,6 +825,12 @@ impl ECS {
                                     self.position_components.remove(thrown.entity);
                                     self.player_lasso_thrown_components.remove(player);
                                     self.player_lasso_components.remove(player);
+
+                                    // add lasso release event
+                                    let event_key = self.name_components.insert("lasso_release_event".to_string());
+                                    self.events.push(event_key);
+                                    self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::LassoReleaseEvent{player}});
+
                                     continue 'players;
                                 }
                                 let dist = distance(&point![position.x, position.y, position.z],&hit_point);
@@ -845,6 +851,12 @@ impl ECS {
                                 self.position_components.remove(thrown.entity);
                                 self.velocity_components.remove(thrown.entity);
                                 self.player_lasso_thrown_components.remove(player);
+
+                                // add lasso attach event
+                                let event_key = self.name_components.insert("lasso_attach_event".to_string());
+                                self.events.push(event_key);
+                                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::LassoAttachEvent { target, hit_x: hit_point.x, hit_y: hit_point.y, hit_z: hit_point.z }});
+
                                 continue 'players;
                             }
                         }
@@ -860,6 +872,11 @@ impl ECS {
                         self.velocity_components.remove(thrown.entity);
                         self.player_lasso_thrown_components.remove(player);
                         self.player_lasso_components.remove(player);
+
+                        // add lasso release event
+                        let event_key = self.name_components.insert("lasso_release_event".to_string());
+                        self.events.push(event_key);
+                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::LassoReleaseEvent{player}});
                     } else {
                         self.player_lasso_components[player].anchor_x = thrown_pos.x;
                         self.player_lasso_components[player].anchor_y = thrown_pos.y;
@@ -874,6 +891,11 @@ impl ECS {
                     self.velocity_components.remove(thrown.entity);
                     self.player_lasso_thrown_components.remove(player);
                     self.player_lasso_components.remove(player);
+
+                    // add lasso release event
+                    let event_key = self.name_components.insert("lasso_release_event".to_string());
+                    self.events.push(event_key);
+                    self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::LassoReleaseEvent{player}});
                 }
             } else if input.rmb_clicked {
                 let radius = 0.02;
@@ -893,6 +915,11 @@ impl ECS {
                 self.position_components.insert(thrown, position.clone());
                 self.velocity_components.insert(thrown, VelocityComponent::default());
                 self.dynamics.push(thrown);
+
+                // add lasso throw event
+                let event_key = self.name_components.insert("lasso_throw_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::LassoThrowEvent{player}});
             }
         }
     }
