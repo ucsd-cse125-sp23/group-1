@@ -56,8 +56,15 @@ struct Sound {
 }
 
 impl AudioPlayer {
-    pub fn default() -> AudioPlayer {
-        let mut manager = AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()).unwrap();
+    pub fn new() -> Option<AudioPlayer> {
+        let mut manager: AudioManager;
+        match AudioManager::<DefaultBackend>::new(AudioManagerSettings::default()) {
+            Ok(am) => manager = am,
+            Err(e) => {
+                eprintln!("Error loading audio manager: {e}");
+                return None;
+            } 
+        }
         let mut scene = manager.add_spatial_scene(SpatialSceneSettings::default()).unwrap();
         let listener = scene.add_listener(
             Vector3{x:0.,y:0.,z:0.}, 
@@ -77,7 +84,7 @@ impl AudioPlayer {
         player.source_map.insert("thruster".to_string(), 
             StaticSoundData::from_file("resources/audio/thruster.ogg", 
             StaticSoundSettings::default().loop_region(2.0..3.0)).unwrap());
-        player
+        Some(player)
     }
 
     /**

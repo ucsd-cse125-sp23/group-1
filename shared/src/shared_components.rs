@@ -18,6 +18,8 @@ pub struct PlayerInputComponent {
     pub r_pressed: bool,
     pub shift_pressed: bool,
     pub ctrl_pressed: bool,
+    pub enter_pressed: bool,
+    pub reset_pressed: bool,
     pub camera_qx: f32,
     pub camera_qy: f32,
     pub camera_qz: f32,
@@ -35,6 +37,8 @@ impl PlayerInputComponent {
             d_pressed: false,
             shift_pressed: false,
             ctrl_pressed: false,
+            enter_pressed: false,
+            reset_pressed: false,
             r_pressed: false,
             camera_qx: 0.0,
             camera_qy: 0.0,
@@ -54,6 +58,7 @@ pub struct ClientECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
+    pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
     pub players: Vec<Entity>,
     pub ids: Vec<Entity>,
@@ -72,6 +77,7 @@ impl ClientECS {
             health_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
+            velocity_components: SecondaryMap::new(),
             players: vec![],
             ids: vec![],
             renderables: vec![],
@@ -188,11 +194,16 @@ pub struct PlayerLassoComponent {
 pub enum EventType {
     FireEvent {
         player: Entity,
-
     },
     HitEvent {
         player: Entity,
-        target: Entity
+        target: Entity,
+        hit_x: f32,
+        hit_y: f32,
+        hit_z: f32
+    },
+    ReloadEvent {
+        player: Entity,
     },
     DeathEvent {
         player: Entity,
@@ -210,4 +221,21 @@ pub enum EventType {
 pub struct EventComponent {
     pub event_type: EventType,
     pub lifetime: u8,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VelocityComponent {
+    pub vel_x: f32,
+    pub vel_y: f32,
+    pub vel_z: f32,
+}
+
+impl VelocityComponent {
+    pub fn default() -> VelocityComponent{
+        VelocityComponent {
+            vel_x: 0.0,
+            vel_y: 0.0,
+            vel_z: 0.0,
+        }
+    }
 }

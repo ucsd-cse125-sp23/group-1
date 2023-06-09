@@ -175,41 +175,45 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool) {
         unsafe {
-            self.crosshair.draw();
-            self.hitmarker.draw();
+            if !spectator_mode {
+                self.crosshair.draw();
+                self.hitmarker.draw();
 
-            if client_alive {
-                match client_id {
-                    0 => self.p1_healthbar.draw(),
-                    1 => self.p2_healthbar.draw(),
-                    2 => self.p3_healthbar.draw(),
-                    3 => self.p4_healthbar.draw(),
+                if client_alive {
+                    match client_id {
+                        0 => self.p1_healthbar.draw(),
+                        1 => self.p2_healthbar.draw(),
+                        2 => self.p3_healthbar.draw(),
+                        3 => self.p4_healthbar.draw(),
+                        _ => ()
+                    }
+                } else {
+                    match client_id {
+                        0 => self.p1_emptybar.draw(),
+                        1 => self.p2_emptybar.draw(),
+                        2 => self.p3_emptybar.draw(),
+                        3 => self.p4_emptybar.draw(),
+                        _ => ()
+                    }
+                }
+
+                match client_ammo {
+                    0 => self.ammo_0.draw(),
+                    1 => self.ammo_1.draw(),
+                    2 => self.ammo_2.draw(),
+                    3 => self.ammo_3.draw(),
+                    4 => self.ammo_4.draw(),
+                    5 => self.ammo_5.draw(),
+                    6 => self.ammo_6.draw(),
                     _ => ()
                 }
-            }
-            else {
-                match client_id {
-                    0 => self.p1_emptybar.draw(),
-                    1 => self.p2_emptybar.draw(),
-                    2 => self.p3_emptybar.draw(),
-                    3 => self.p4_emptybar.draw(),
-                    _ => ()
-                }
+
+                self.damage.draw();
             }
 
-            match client_ammo {
-                0 => self.ammo_0.draw(),
-                1 => self.ammo_1.draw(),
-                2 => self.ammo_2.draw(),
-                3 => self.ammo_3.draw(),
-                4 => self.ammo_4.draw(),
-                5 => self.ammo_5.draw(),
-                6 => self.ammo_6.draw(),
-                _ => ()
-            }
-
+            // draw player status regardless of spectator mode or not
             match c_ecs {
                 Some(ecs) => {
                     for (i, player) in ecs.players.iter().enumerate() {
@@ -234,7 +238,6 @@ impl UI {
                 }, 
                 None => ()
             }
-            self.damage.draw();
         }
     }
 

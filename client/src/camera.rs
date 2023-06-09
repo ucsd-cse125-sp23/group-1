@@ -7,6 +7,10 @@ use cgmath::vec3;
 use cgmath::prelude::*;
 
 use crate::screenshake::ScreenShake;
+use shared::*;
+use shared::shared_components::PlayerInputComponent;
+use crate::common::set_camera_pos;
+use crate::shader::Shader;
 
 type Point3 = cgmath::Point3<f32>;
 type Vector3 = cgmath::Vector3<f32>;
@@ -27,7 +31,7 @@ const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
-const ZOOM: f32 = 45.0;
+const ZOOM: f32 = DEFAULT_VERTICAL_FOV;
 const HALFHEIGHT: f32 = 0.5;
 pub struct Camera {
     // Camera Attributes
@@ -64,6 +68,36 @@ impl Camera {
         Matrix4::from(self.ScreenShake.euler) * view
     }
 
+    /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
+    pub fn ProcessKeyboard(&mut self, input: &PlayerInputComponent, deltaTime: f32, shader: &Shader, width: u32, height: u32) {
+        let velocity = 50.0 * deltaTime;
+
+        let mut direction: Vector3 = Vector3::zero();
+        if input.d_pressed {
+            direction.x += 1.0;
+        }
+        if input.a_pressed {
+            direction.x -= 1.0;
+        }
+        if input.w_pressed {
+            direction.z += 1.0;
+        }
+        if input.s_pressed {
+            direction.z -= 1.0;
+        }
+        if input.shift_pressed {
+            direction.y += 1.0;
+        }
+        if input.ctrl_pressed {
+            direction.y -= 1.0;
+        }
+
+        direction.normalize();
+        let new_pos = self.Position + velocity * (direction.x * self.Right + direction.y * self.Up + direction.z * self.Front);
+
+        set_camera_pos(self, new_pos.to_vec(), shader, width, height);
+    }
+
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
     pub fn ProcessMouseMovement(&mut self, mut xoffset: f32, mut yoffset: f32, roll: bool) {
         xoffset *= self.MouseSensitivity;
@@ -89,14 +123,14 @@ impl Camera {
 
     // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     pub fn ProcessMouseScroll(&mut self, yoffset: f32) {
-        if self.Zoom >= 1.0 && self.Zoom <= 45.0 {
+        if self.Zoom >= 1.0 && self.Zoom <= ZOOM {
             self.Zoom -= yoffset;
         }
         if self.Zoom <= 1.0 {
             self.Zoom = 1.0;
         }
-        if self.Zoom >= 45.0 {
-            self.Zoom = 45.0;
+        if self.Zoom >= ZOOM {
+            self.Zoom = ZOOM;
         }
     }
 
