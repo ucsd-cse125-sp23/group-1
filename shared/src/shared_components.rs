@@ -211,7 +211,7 @@ pub enum EventType {
     },
     DisconnectEvent {
         player: Entity
-    }
+    },
     StartMoveEvent {
         player: Entity,
     },
