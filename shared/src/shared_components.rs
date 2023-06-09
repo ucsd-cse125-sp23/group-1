@@ -196,7 +196,10 @@ pub enum EventType {
     },
     HitEvent {
         player: Entity,
-        target: Entity
+        target: Entity,
+        hit_x: f32,
+        hit_y: f32,
+        hit_z: f32
     },
     DeathEvent {
         player: Entity,

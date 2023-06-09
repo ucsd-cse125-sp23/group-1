@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod tracer;
 
 use std::collections::HashMap;
 use std::time::Duration;
@@ -29,6 +30,7 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key};
+use cgmath::InnerSpace;
 use cgmath::{
     perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
     Transform, Vector3, Vector4, Zero
@@ -45,6 +47,7 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::tracer::TracerManager;
 
 // network
 use shared::shared_components::*;
@@ -53,7 +56,6 @@ use shared::*;
 use std::io::{self, Read};
 use std::net::{ToSocketAddrs, TcpStream};
 use std::process;
-use std::str;
 
 use slotmap::{SecondaryMap,DefaultKey};
 
@@ -169,15 +171,23 @@ fn main() -> io::Result<()> {
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
-        vec4(222.0 / 255.0, 135.0 / 255.0, 135.0 / 255.0, 1.0),
-        vec4(135.0 / 255.0, 205.0 / 255.0, 222.0 / 255.0, 1.0),
-        vec4(255.0 / 255.0, 230.0 / 255.0, 128.0 / 255.0, 1.0),
-        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0),
+        vec4(224.0 / 255.0, 14.0 / 255.0, 115.0 / 255.0, 1.0),
+        vec4(98.0 / 255.0, 168.0 / 255.0, 205.0 / 255.0, 1.0),
+        vec4(252.0 / 255.0, 201.0 / 255.0, 0.0 / 255.0, 1.0),
+        vec4(88.0 / 255.0, 180.0 / 255.0, 36.0 / 255.0, 1.0),
     ];
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
+
+    // set up tracers
+    let mut tracers = TracerManager::new(vec![
+        Model::new("resources/tracer/tracer_p1.obj"),
+        Model::new("resources/tracer/tracer_p2.obj"),
+        Model::new("resources/tracer/tracer_p3.obj"),
+        Model::new("resources/tracer/tracer_p4.obj"),
+    ], screen_size);
 
     // create force field
     let force_field = ForceField::new(250.0, screen_size);
@@ -239,6 +249,8 @@ fn main() -> io::Result<()> {
 
     let mut frame_count = 0;
 
+    let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -281,8 +293,7 @@ fn main() -> io::Result<()> {
                 let received = read_data(&mut stream);
                 if received.len() > 0 {
                     // ignore malformed input (probably leftover game state)
-                    let res: Result<LobbyECS, serde_json::Error> =
-                        serde_json::from_str(received.as_str());
+                    let res: Result<LobbyECS, bitcode::Error> = bitcode::deserialize(&received);
                     match res {
                         Ok(l_ecs) => {
                             lobby_ecs = l_ecs.clone();
@@ -311,6 +322,8 @@ fn main() -> io::Result<()> {
 
                 let mut roll = false;
 
+                let mut player_vel = vec3(0.0, 0.0, 0.0);
+
                 process_inputs_game(
                     &mut window,
                     &mut input_component,
@@ -337,7 +350,7 @@ fn main() -> io::Result<()> {
 
                 // send client data if player is still alive
                 if client_health.alive {
-                    let j = serde_json::to_string(&input_component)
+                    let j = bitcode::serialize(&input_component)
                         .expect("Input component serialization error");
                     write_data(&mut stream, j);
                 } // TODO: support spectator movement
@@ -370,10 +383,10 @@ fn main() -> io::Result<()> {
                             stream
                                 .read_exact(&mut read_buf)
                                 .expect("read_exact did not read the same amount of bytes as peek");
-                            let message: &str = str::from_utf8(&read_buf[4..])
-                                .expect("Error converting buffer to string");
-                            // TODO: handle this throwing an error. Occasionally crashes ^
-                            let value: ClientECS = serde_json::from_str(message)
+                            // let message: &str = str::from_utf8(&read_buf[4..])
+                            //     .expect("Error converting buffer to string");
+                            // // TODO: handle this throwing an error. Occasionally crashes ^
+                            let value: ClientECS = bitcode::deserialize(&read_buf[4..])
                                 .expect("Error converting string to ClientECS");
                             client_ecs = Some(value);
                         }
@@ -390,6 +403,7 @@ fn main() -> io::Result<()> {
                 match &client_ecs {
                     Some(c_ecs) => {
                         let player_key = c_ecs.ids[client_id];
+                        let mut screenshake_event = false;
                         // make sure we haven't handled this event yet
                         for &event in &c_ecs.events {
                             if client_events.contains_key(event) {
@@ -414,15 +428,19 @@ fn main() -> io::Result<()> {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
+                                        screenshake_event = true;
                                     }
                                 },
-                                EventType::HitEvent { player, target } => {
+                                EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
+                                        screenshake_event = true;
                                         ui_elems.damage.add_alpha(0.5);
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                    let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                    tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
                                 },
                                 EventType::DeathEvent { player, killer } => {
                                     let k_id = c_ecs.players.iter().position(|&x| x == killer).unwrap();
@@ -444,6 +462,28 @@ fn main() -> io::Result<()> {
                                 }
                             }
                         }
+
+                        // player velocity
+                        let velocity = &c_ecs.velocity_components[player_key];
+                        player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
+                        if !screenshake_event {
+                            // kinetic energy should be more realistic, but feels wrong
+                            // let delta_ke = (0.5 * velocity.mass * (player_vel.magnitude().powi(2) - vel_prev.magnitude().powi(2))).abs();
+                            // if delta_ke > 0.0 {
+                            //     camera.ScreenShake.add_trauma(delta_ke / 1000.0);
+                            //     println!("KE change: {}", delta_ke);
+                            // }
+
+                            // change in velocity feels better
+                            let delta_v = (player_vel - vel_prev).magnitude();
+                            let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
+                            if delta_speed > 0.0 {
+                                camera.ScreenShake.add_trauma(delta_speed / 100.0);
+                                println!("Delta-V: {}", delta_v);
+                                println!("Delta-Speed: {}", delta_speed);
+                            }
+                        }
+                        vel_prev = player_vel;
 
                         // dead player camera
                         if !c_ecs.health_components[player_key].alive {
@@ -477,7 +517,6 @@ fn main() -> io::Result<()> {
 
                     let mut trackers = vec![];
                     let mut player_pos_ff = Vector3::zero();
-                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -520,9 +559,6 @@ fn main() -> io::Result<()> {
                             player_pos_ff = player_pos;
                             set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
                             shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
-
-                            let velocity = &c_ecs.velocity_components[player_key];
-                            player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
@@ -646,16 +682,27 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    force_field.draw(&camera, player_pos_ff);
 
+                    // enable translucency for force field
+                    gl::DepthMask(gl::FALSE);
+
+                    force_field.draw(&camera, player_pos_ff);
+                    tracers.draw_tracers(&camera);
+
+                    // disable translucency for velocity indicator and first person model
+                    gl::DepthMask(gl::TRUE);
                     // HUD elements should always be rendered on top
-                    // TODO: call gl::Clear only after rendering forcefield
                     gl::Clear(gl::DEPTH_BUFFER_BIT);
+
                     vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
 
+                    // enable translucency for 2D HUD
                     gl::DepthMask(gl::FALSE);
+
                     tracker.draw_all_trackers(trackers);
                     ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+
+                    // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
 
                     frame_count += 1;
