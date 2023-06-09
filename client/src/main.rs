@@ -90,6 +90,7 @@ fn main() -> io::Result<()> {
     let mut last_y: f32;
     let mut fullscreen = false;
     let mut f11_pressed = false;
+    let mut mmb_clicked = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -258,6 +259,8 @@ fn main() -> io::Result<()> {
 
     let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
 
+    let mut zoomed = false;
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -275,6 +278,8 @@ fn main() -> io::Result<()> {
         match game_state {
             GameState::EnteringLobby => {
                 ready_sent = false; // prevents sending ready message twice
+                zoomed = false;
+                mmb_clicked = false;
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
@@ -338,6 +343,8 @@ fn main() -> io::Result<()> {
                     &mut window,
                     &mut input_component,
                     &mut roll,
+                    &mut zoomed,
+                    &mut mmb_clicked,
                     &mut first_click,
                     is_focused,
                 );
@@ -522,6 +529,7 @@ fn main() -> io::Result<()> {
                     None => ()
                 }
 
+                camera.ProcessZoom(zoomed);
                 camera.ScreenShake.shake_camera();
 
                 // render
@@ -703,7 +711,7 @@ fn main() -> io::Result<()> {
 
                     // draw skybox
                     let projection: Matrix4<f32> = perspective(
-                        Deg(camera.Zoom),
+                        Deg(camera.Fov),
                         width as f32 / height as f32,
                         0.1,
                         100.0
