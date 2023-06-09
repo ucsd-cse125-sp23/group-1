@@ -283,7 +283,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool, show_death_screen: bool) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool, show_death_screen: bool, show_game_over_screen: bool) {
         unsafe {
             if !spectator_mode {
                 self.crosshair.draw();
@@ -296,7 +296,7 @@ impl UI {
 
                 self.damage.draw();
 
-                if show_death_screen {
+                if show_death_screen && !show_game_over_screen {
                     self.you_died_txt.draw();
                 }
             }
@@ -344,6 +344,13 @@ impl UI {
                 }
             }
 
+            if show_game_over_screen {
+                if client_alive {
+                    self.you_win_txt.draw();
+                } else {
+                    self.game_over_txt.draw();
+                }
+            }
         }
     }
 
