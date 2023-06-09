@@ -113,6 +113,9 @@ impl Mesh {
             // shader.set_int(c_str!(sampler.as_ptr()), i as i32);
             // shader.set_int(c_str!("load_normal"), load_normal);
 
+            // gl::Uniform1i(gl::GetUniformLocation(self.id, name.as_ptr()), value as i32);
+
+
             // and finally bind the texture
             gl::BindTexture(gl::TEXTURE_2D, texture.id);
         }

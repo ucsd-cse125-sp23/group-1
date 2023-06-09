@@ -22,8 +22,10 @@ mod init_models;
 mod velocity_indicator;
 mod arm;
 mod tracer;
+mod particle_emitter;
 
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::time::Duration;
 
 // graphics
@@ -41,7 +43,9 @@ use std::ffi::CStr;
 
 use crate::camera::*;
 use crate::model::Model;
+use crate::particle_emitter::ParticleEmitterSpecifier;
 use crate::shader::Shader;
+use crate::particle_emitter::ParticleEmitter;
 use crate::audio::AudioPlayer;
 use crate::common::*;
 use crate::force_field::ForceField;
@@ -186,10 +190,10 @@ fn main() -> io::Result<()> {
 
     // set up tracers
     let mut tracers = TracerManager::new(vec![
-        Model::new("resources/tracer/tracer_p1.obj"),
-        Model::new("resources/tracer/tracer_p2.obj"),
-        Model::new("resources/tracer/tracer_p3.obj"),
-        Model::new("resources/tracer/tracer_p4.obj"),
+        Model::new("resources/models/tracer/tracer_p1.obj"),
+        Model::new("resources/models/tracer/tracer_p2.obj"),
+        Model::new("resources/models/tracer/tracer_p3.obj"),
+        Model::new("resources/models/tracer/tracer_p4.obj"),
     ], screen_size);
 
     // create force field
@@ -204,6 +208,30 @@ fn main() -> io::Result<()> {
     // create first person model
     let mut arm = Arm::new();
 
+    // list of particle emitters
+    let mut particle_emitters = Vec::<ParticleEmitter>::new();
+    let mut emitter_specifiers:HashMap<String, ParticleEmitterSpecifier> = HashMap::new();
+    emitter_specifiers.insert("hit_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.08, stl_max: 0.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 2.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 0.25,
+        particles_per_100ms: 10
+    });
+    emitter_specifiers.insert("fire_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.8, stl_max: 1.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 6.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 0.25,
+        particles_per_100ms: 2
+    });
+
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
@@ -215,6 +243,8 @@ fn main() -> io::Result<()> {
     let mut is_focused = true;
     let mut ready_sent = false;
     let mut spectator_mode = false;
+    let mut show_death_screen = false;
+    let mut show_game_over_screen = false;
 
     // Start playing menu music
     if audio.is_some() {
@@ -453,9 +483,8 @@ fn main() -> io::Result<()> {
                             if client_events.contains_key(event) {
                                 continue;
                             }
-                          
                             client_events.insert(event, ());     
-                            
+
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -471,6 +500,22 @@ fn main() -> io::Result<()> {
                                             Err(e) => eprintln!("Audio error playing sound: {e}"),
                                         };
                                     }
+                                    // TODO: muzzle flash position isn't exactly correct
+                                    // amd iherit veloctiy
+                                    // particle_emitters.push(ParticleEmitter::new(
+                                    //     vec3(
+                                    //         c_ecs.position_components[player_key].x,
+                                    //         c_ecs.position_components[player_key].y,
+                                    //         c_ecs.position_components[player_key].z,
+                                    //     ), 
+                                    //     camera.Front,
+                                    //     vec3(
+                                    //         c_ecs.velocity_components[player_key].vel_x,
+                                    //         c_ecs.velocity_components[player_key].vel_y,
+                                    //         c_ecs.velocity_components[player_key].vel_z
+                                    //     ),
+                                    //     &emitter_specifiers["fire_spark"]
+                                    // ));
                                 },
                                 EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
@@ -480,6 +525,16 @@ fn main() -> io::Result<()> {
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                    let particle_component = &c_ecs.particle_components[event];
+                                    particle_emitters.push(ParticleEmitter::new(
+                                        vec3(particle_component.x,
+                                            particle_component.y,particle_component.z), 
+                                        vec3(particle_component.normal_x,
+                                            particle_component.normal_y, particle_component.normal_z),
+                                        vec3(particle_component.vel_x,
+                                            particle_component.vel_y, particle_component.vel_z),
+                                        &emitter_specifiers["hit_spark"]
+                                    ));
                                     let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                     tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
 
@@ -512,6 +567,7 @@ fn main() -> io::Result<()> {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
+                                        show_death_screen = true;
                                     } else if killer == player_key {
                                         let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                         ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
@@ -524,7 +580,6 @@ fn main() -> io::Result<()> {
                                     }
                                 }, 
                                 EventType::DisconnectEvent { player } => {
-                                    println!("a disconnect happened");
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                 },
                                 EventType::StartMoveEvent { player } => {
@@ -662,6 +717,7 @@ fn main() -> io::Result<()> {
 
                             if !client_health.alive && input_component.enter_pressed {
                                 spectator_mode = true;
+                                show_death_screen = false;
                             }
 
                             if !client_health.alive && spectator_mode {
@@ -767,6 +823,18 @@ fn main() -> io::Result<()> {
                                 }
                                 i += 1;
                             }
+                            // render particle effects                
+                            shader_program.set_bool(c_str!("use_color"), true);
+                            for i in (0..particle_emitters.len()).rev(){
+                                let die = particle_emitters[i].draw(&models["cube"], &shader_program);
+                                if die{
+                                    particle_emitters.remove(i);
+                                }
+                            }                
+                            shader_program.set_bool(c_str!("use_color"), false); 
+                            
+
+                            show_game_over_screen = c_ecs.active_players <= 1;
 
                             // game has ended
                             if c_ecs.game_ended {
@@ -822,7 +890,8 @@ fn main() -> io::Result<()> {
                     gl::DepthMask(gl::FALSE);
 
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode);
+
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode, show_death_screen, show_game_over_screen);
 
                     // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
@@ -833,10 +902,13 @@ fn main() -> io::Result<()> {
             }
             GameState::GameOver => {
                 spectator_mode = false;
+              
                 // otherwise the thruster sound will keep looping
                 if audio.is_some() {
                     audio.as_mut().unwrap().stop_all_sounds();
                 }
+                show_death_screen = false;
+                show_game_over_screen = false;
 
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

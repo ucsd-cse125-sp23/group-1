@@ -1,6 +1,7 @@
 use std::net::TcpStream;
-use std::{process, str};
+use std::{process, str, fs};
 use std::io::{Read,Write,ErrorKind};
+use serde::Deserialize;
 
 pub fn read_data(stream: &mut TcpStream) -> Vec<u8> {
     let mut size_buf = [0 as u8; 4];
@@ -72,4 +73,17 @@ pub fn poll_size(stream: &TcpStream) -> i32 {
             return -1;
         }
     }
+}
+
+#[derive(Deserialize)]
+struct LoadAddress {
+    ip: String,
+    port: String,
+}
+
+pub fn read_address_json(path: &str) -> (String, String) {
+    let j = fs::read_to_string(path).expect("Error reading file {path}");
+    let address: LoadAddress = serde_json::from_str(&j).expect("Error deserializing file {path}");
+
+    return (address.ip, address.port);
 }

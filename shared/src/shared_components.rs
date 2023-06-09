@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-use std::{str, fs};
+use std::{str};
 
 use crate::AMMO_COUNT;
 type Entity = DefaultKey;
@@ -57,6 +57,7 @@ pub struct ClientECS {
     pub weapon_components: SecondaryMap<Entity, PlayerWeaponComponent>,
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub health_components: SecondaryMap<Entity, PlayerHealthComponent>,
+    pub particle_components: SecondaryMap<Entity, ParticleComponent>,
     pub player_lasso_components: SecondaryMap<Entity, PlayerLassoComponent>,
     pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
     pub event_components: SecondaryMap<Entity, EventComponent>,
@@ -64,6 +65,7 @@ pub struct ClientECS {
     pub ids: Vec<Entity>,
     pub renderables: Vec<Entity>,
     pub events: Vec<Entity>,
+    pub active_players: u8,
     pub game_ended: bool
 }
 
@@ -75,6 +77,7 @@ impl ClientECS {
             weapon_components: SecondaryMap::new(),
             model_components: SecondaryMap::new(),
             health_components: SecondaryMap::new(),
+            particle_components: SecondaryMap::new(),
             player_lasso_components: SecondaryMap::new(),
             event_components: SecondaryMap::new(),
             velocity_components: SecondaryMap::new(),
@@ -82,6 +85,7 @@ impl ClientECS {
             ids: vec![],
             renderables: vec![],
             events: vec![],
+            active_players: 0,
             game_ended: false
         }
     }
@@ -255,15 +259,15 @@ impl VelocityComponent {
     }
 }
 
-#[derive(Deserialize)]
-struct LoadAddress {
-    ip: String,
-    port: String,
-}
-
-pub fn read_address_json(path: &str) -> (String, String) {
-    let j = fs::read_to_string(path).expect("Error reading file {path}");
-    let address: LoadAddress = serde_json::from_str(&j).expect("Error deserializing file {path}");
-
-    return (address.ip, address.port);
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ParticleComponent {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32,
+    pub normal_x: f32,
+    pub normal_y: f32,
+    pub normal_z: f32,
+    pub vel_x: f32,
+    pub vel_y: f32,
+    pub vel_z: f32
 }
