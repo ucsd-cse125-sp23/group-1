@@ -413,8 +413,15 @@ fn main() -> io::Result<()> {
                     }
                 }
 
+                // Handle events for visual and audio effects.
                 match &client_ecs {
                     Some(c_ecs) => {
+                        let audio_enabled = audio.is_some() && (!AUDIO_DEBUG || client_id == 0);
+                        // Update emitter positions
+                        if audio.is_some() {
+                            audio.as_mut().unwrap().update_emitters(&c_ecs.position_components);
+                        }
+
                         let player_key = c_ecs.ids[client_id];
                         let mut screenshake_event = false;
                         // make sure we haven't handled this event yet
@@ -422,21 +429,10 @@ fn main() -> io::Result<()> {
                             if client_events.contains_key(event) {
                                 continue;
                             }
-                            client_events.insert(event, ());
-                            // check event type
-                            // skip audio events for all but client 0 if we're debugging on same machine
-                            if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
-                                let audio_event = &c_ecs.audio_components[event];
-                                match &mut audio {
-                                    Some(audioplayer) => {
-                                        match audioplayer.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
-                                            Ok(_) => (),
-                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
-                                        };
-                                    },
-                                    None => ()
-                                }
-                            }
+                          
+                            client_events.insert(event, ());     
+                            
+                            
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
@@ -444,12 +440,20 @@ fn main() -> io::Result<()> {
                                         arm.shoot();
                                         screenshake_event = true;
                                     }
+                                    let player_pos = &c_ecs.position_components[player];
+                                    // only play for client 0 if we're debugging on the same machine
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"fire".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 },
                                 EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
                                         screenshake_event = true;
-                                        ui_elems.damage.add_alpha(0.5);
+                                        ui_elems.damage.add_alpha(0.6);
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
@@ -466,8 +470,23 @@ fn main() -> io::Result<()> {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
                                     } else if killer == player_key {
-                                        ui_elems.hitmarker.add_alpha(1.0);
+                                        let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                        ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
                                     }
+                                }
+                                EventType::StartMoveEvent { player } => {
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"thruster".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                }
+                                EventType::StopMoveEvent {player} => {
+                                    if audio_enabled {
+                                        audio.as_mut().unwrap().stop_thruster(player);
+                                    };
                                 }
                             }
                         }

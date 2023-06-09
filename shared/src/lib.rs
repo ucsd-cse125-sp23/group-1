@@ -9,7 +9,7 @@ pub mod shared_functions;
 // stored as 64 bit int to avoid casting for comparison
 pub const TICK_SPEED: u64 = 16;
 pub const MOVE_DELTA: f32 = 0.1;
-pub const MIN_PLAYERS: u8 = 2;
+pub const MIN_PLAYERS: usize = 2;
 pub const AMMO_COUNT: u8 = 6;
 
 /** ===========================================================================
@@ -17,7 +17,7 @@ pub const AMMO_COUNT: u8 = 6;
 ============================================================================ */ 
 
 // graphics settings
-pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
+pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.2";
 
 pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
 pub const BAR_BORDER: f32 = 9.0;
@@ -26,6 +26,7 @@ pub const AMMO_BAR_BORDER: f32 = BAR_BORDER + 5.5;
 pub const BAR_SCALE: f32 = 0.15;
 pub const PLAYER_SCALE: f32 = 0.17;
 pub const CROSSHAIR_SCALE: f32 = 0.015;
+pub const HITMARKER_SCALE: f32 = CROSSHAIR_SCALE * 2.0;
 pub const LOBBY_BG_SCALE: f32 = 1.0;
 pub const PLAYER_CIRCLE_SCALE: f32 = 0.05;
 pub const WINNER_SCALE: f32 = 0.3;
@@ -68,7 +69,7 @@ pub const P2_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p2_ready_
 pub const P3_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p3_ready_me.png";
 pub const P4_READY_ME_PATH: &str = "resources/ui_textures/player_cards/p4_ready_me.png";
 
-pub const CROSSHAIR_PATH: &str = "resources/ui_textures/crosshair_3.png";
+pub const CROSSHAIR_PATH: &str = "resources/ui_textures/crosshair/crosshair_6.png";
 
 pub const P1_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p1-health-full.png";
 pub const P2_HEALTH_FULL: &str = "resources/ui_textures/health_bar/p2-health-full.png";
@@ -99,8 +100,14 @@ pub const AMMO_5_PATH: &str = "resources/ui_textures/ammo/ammo5.png";
 pub const AMMO_6_PATH: &str = "resources/ui_textures/ammo/ammo6.png";
 
 pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
-pub const HITMARKER_PATH: &str = "resources/ui_textures/hitmarker.png";
+pub const HITMARKER_PATH: &str = "resources/ui_textures/crosshair/hitmarker_2.png";
+pub const P1_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p1.png";
+pub const P2_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p2.png";
+pub const P3_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p3.png";
+pub const P4_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p4.png";
 
-// audio settings
-pub const AUDIO_DEBUG: bool = false;
+/** ===========================================================================
+ * audio settings
+============================================================================ */
+pub const AUDIO_DEBUG: bool = false; // mutes all clients but one when set to true
 pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames
