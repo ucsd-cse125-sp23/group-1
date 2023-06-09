@@ -40,10 +40,10 @@ pub const DEFAULT_VERTICAL_FOV: f32 = 59.0;
 // UI element paths
 pub const SPLASH_PATH: &str = "resources/ui_textures/Game-poster.jpg";
 
-pub const LOBBY_BG_1_PATH: &str = "resources/ui_textures/lobby_bg/p1_bg.png";
-pub const LOBBY_BG_2_PATH: &str = "resources/ui_textures/lobby_bg/p2_bg.png";
-pub const LOBBY_BG_3_PATH: &str = "resources/ui_textures/lobby_bg/p3_bg.png";
-pub const LOBBY_BG_4_PATH: &str = "resources/ui_textures/lobby_bg/p4_bg.png";
+pub const LOBBY_BG_1_PATH: &str = "resources/ui_textures/lobby_bg/p1_bg_16x9.png";
+pub const LOBBY_BG_2_PATH: &str = "resources/ui_textures/lobby_bg/p2_bg_16x9.png";
+pub const LOBBY_BG_3_PATH: &str = "resources/ui_textures/lobby_bg/p3_bg_16x9.png";
+pub const LOBBY_BG_4_PATH: &str = "resources/ui_textures/lobby_bg/p4_bg_16x9.png";
 
 pub const GAME_OVER_BG_PATH: &str = "resources/ui_textures/game_over/space_bg.png";
 pub const WINNER_TXT_PATH: &str = "resources/ui_textures/game_over/winner.png";
