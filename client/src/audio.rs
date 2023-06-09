@@ -73,7 +73,7 @@ impl AudioPlayer {
         player.source_map.insert("thruster".to_string(),
             StaticSoundData::from_file("resources/audio/thruster.ogg", 
             StaticSoundSettings::default()
-            .loop_region(2.0..6.0)
+            .loop_region(0.5..2.5)
             .volume(0.5)
             .fade_in_tween(Tween{
                 start_time:kira::StartTime::Immediate, 
