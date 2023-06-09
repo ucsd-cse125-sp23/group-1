@@ -352,28 +352,28 @@ impl UI {
 
             match c_ecs {
                 Some(ecs) => {
-                    for (i, player) in ecs.players.iter().enumerate() {
-                        if  ecs.players.contains(player) &&
-                            ecs.health_components[*player].alive &&
-                            ecs.health_components[*player].health > 0
-                        {
-                            self.winner_card[i].draw();
+                    // for (i, player) in ecs.players.iter().enumerate() {
+                    //     if  ecs.players.contains(player) &&
+                    //         ecs.health_components[*player].alive &&
+                    //         ecs.health_components[*player].health > 0
+                    //     {
+                    //         self.winner_card[i].draw();
 
-                            self.player_txt[i].set_position(self.bar_pos[0]);
-                            self.player_txt[i].draw();
+                    //         self.player_txt[i].set_position(self.bar_pos[0]);
+                    //         self.player_txt[i].draw();
                             
-                            let hit_count = &mut self.hits[ecs.health_components[*player].hits as usize];
-                            hit_count.set_position(self.bar_pos[0]);
-                            hit_count.draw();
-                        }
-                    }
+                    //         let hit_count = &mut self.hits[ecs.health_components[*player].hits as usize];
+                    //         hit_count.set_position(self.bar_pos[0]);
+                    //         hit_count.draw();
+                    //     }
+                    // }
 
                     for (i, player) in rankings.iter().enumerate() {
-                        self.player_txt[*player].set_position(self.bar_pos[i+1]);
+                        self.player_txt[*player].set_position(self.bar_pos[i]);
                         self.player_txt[*player].draw();
                         
                         let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
-                        hit_count.set_position(self.bar_pos[i+1]);
+                        hit_count.set_position(self.bar_pos[i]);
                         hit_count.draw();
                     }
                 }

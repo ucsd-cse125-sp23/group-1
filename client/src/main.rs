@@ -657,6 +657,14 @@ fn main() -> io::Result<()> {
 
                             // game has ended
                             if c_ecs.game_ended {
+                                for (i, player) in c_ecs.players.iter().enumerate() {
+                                    if  c_ecs.players.contains(player) &&
+                                        c_ecs.health_components[*player].alive &&
+                                        c_ecs.health_components[*player].health > 0
+                                    {
+                                        rankings.push(i);
+                                    }
+                                }
                                 rankings.reverse();
                                 game_state = GameState::GameOver;
                             }
