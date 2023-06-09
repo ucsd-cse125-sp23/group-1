@@ -186,22 +186,10 @@ impl ECS {
             self.player_camera_components[player] = PlayerCameraComponent::default();
             self.player_health_components[player] = PlayerHealthComponent::default();
 
-            if self.spawnpoints.is_empty() {
-                eprintln!("Ran out of player spawnpoints, reusing");
-                init_player_spawns(&mut self.spawnpoints);
-            }
-            let player_pos = get_rand_from_vec(&mut self.spawnpoints);
-            self.position_components[player] = PositionComponent{
-                x: player_pos.translation.x,
-                y: player_pos.translation.y,
-                z: player_pos.translation.z,
-                qx: player_pos.rotation.i,
-                qy: player_pos.rotation.j,
-                qz: player_pos.rotation.k,
-                qw: player_pos.rotation.w,
-            };
+        
+            self.position_components[player] = PositionComponent::default();
             self.velocity_components[player] = VelocityComponent::default();
-            let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
+            let rigid_body = RigidBodyBuilder::dynamic().lock_rotations().ccd_enabled(true).can_sleep(false).build();
             let handle = self.rigid_body_set.insert(rigid_body);
             let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
             let local_com = collider.mass_properties().local_com;
@@ -551,22 +539,9 @@ impl ECS {
         self.player_input_components.insert(player, PlayerInputComponent::default());
         self.player_weapon_components.insert(player, PlayerWeaponComponent::default());
         self.player_camera_components.insert(player, PlayerCameraComponent::default());
-        if self.spawnpoints.is_empty() {
-            eprintln!("Ran out of player spawnpoints, reusing");
-            init_player_spawns(&mut self.spawnpoints);
-        }
-        let player_pos = get_rand_from_vec(&mut self.spawnpoints);
-        self.position_components.insert(player, PositionComponent{
-            x: player_pos.translation.x,
-            y: player_pos.translation.y,
-            z: player_pos.translation.z,
-            qx: player_pos.rotation.i,
-            qy: player_pos.rotation.j,
-            qz: player_pos.rotation.k,
-            qw: player_pos.rotation.w,
-        });
+        self.position_components.insert(player, PositionComponent::default());
         self.velocity_components.insert(player, VelocityComponent::default());
-        let rigid_body = RigidBodyBuilder::dynamic().position(player_pos).lock_rotations().ccd_enabled(true).can_sleep(false).build();
+        let rigid_body = RigidBodyBuilder::dynamic().lock_rotations().ccd_enabled(true).can_sleep(false).build();
         let handle = self.rigid_body_set.insert(rigid_body);
         let mut collider = ColliderBuilder::capsule_y(0.5, 0.4).user_data(player.data().as_ffi() as u128).collision_groups(InteractionGroups::new(((1 as u32) << (index + 1)).into(),Group::all())).build();
         let local_com = collider.mass_properties().local_com;
@@ -631,6 +606,22 @@ impl ECS {
         for (index, &player) in self.players.iter().enumerate() {
             self.name_components[player] = names[index % names.len()].to_string();
             self.model_components[player].modelname = models[index % names.len()].to_string();
+            if self.spawnpoints.is_empty() {
+                eprintln!("Ran out of player spawnpoints, reusing");
+                init_player_spawns(&mut self.spawnpoints);
+            }
+            let player_pos = get_rand_from_vec(&mut self.spawnpoints);
+            self.position_components[player] = PositionComponent{
+                x: player_pos.translation.x,
+                y: player_pos.translation.y,
+                z: player_pos.translation.z,
+                qx: player_pos.rotation.i,
+                qy: player_pos.rotation.j,
+                qz: player_pos.rotation.k,
+                qw: player_pos.rotation.w,
+            };
+            let rigid_body = self.rigid_body_set.get_mut(self.physics_components[player].handle).unwrap();
+            rigid_body.set_position(player_pos, true);
         }
     }
 
