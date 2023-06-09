@@ -14,7 +14,7 @@ use kira::{
 };
 use mint::{Vector3, Quaternion};
 
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use std::time::Duration;
 
 use shared::shared_components::*;
@@ -34,6 +34,7 @@ pub struct AudioPlayer {
     
     sound_vec: Vec<Sound>, // non-thruster sounds
     thrusters: SparseSecondaryMap<Entity, Sound>, // thruster sounds
+    music: Option<StaticSoundHandle>
 }
 
 struct Sound {
@@ -65,6 +66,7 @@ impl AudioPlayer {
             source_map: HashMap::new(),
             sound_vec: vec![],
             thrusters: SparseSecondaryMap::new(),
+            music: None
         };
         // TODO: load from config file
         player.source_map.insert("fire".to_string(),
@@ -82,7 +84,13 @@ impl AudioPlayer {
         .unwrap());
         player.source_map.insert("death".to_string(),
             StaticSoundData::from_file("resources/audio/bell2.ogg", 
-            StaticSoundSettings::default().volume(0.8)).unwrap());
+            StaticSoundSettings::default().volume(0.8))
+        .unwrap());
+        
+        player.source_map.insert("lobby".to_string(),
+            StaticSoundData::from_file("resources/audio/lobby.ogg",
+            StaticSoundSettings::default().loop_region(0. ..90.))
+        .unwrap());
         Some(player)
     }
 
@@ -110,9 +118,30 @@ impl AudioPlayer {
     /**
      * Plays a sound once, just for the player.
      */
-    pub fn play_static(&mut self, name: &String) -> Result<(),Box<dyn std::error::Error>> {
-        self.manager.play(self.source_map[name].clone())?;
-        Ok(())
+    pub fn play_static(&mut self, name: &String) -> Result<StaticSoundHandle,Box<dyn std::error::Error>> {
+        let handle = self.manager.play(self.source_map[name].clone())?;
+        Ok(handle)
+    }
+
+    /**
+     * Plays a sound and then puts it in the music slot.
+     */
+    pub fn play_music(&mut self, name: &String) {
+        if self.music.is_some() {
+            self.music.as_mut().unwrap().stop(Tween::default()).unwrap();
+        }
+        let handle = self.play_static(name).unwrap();
+        self.music = Some(handle);
+    }
+
+    /**
+     * Stops the currently playing music track.
+     */
+    pub fn stop_music(&mut self) {
+        if self.music.is_some() {
+            self.music.as_mut().unwrap().stop(Tween::default()).unwrap();
+            self.music = None;
+        }
     }
 
     /**

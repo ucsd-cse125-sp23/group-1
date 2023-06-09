@@ -216,8 +216,12 @@ fn main() -> io::Result<()> {
     let mut ready_sent = false;
     let mut spectator_mode = false;
 
+    // Start playing menu music
+    if audio.is_some() {
+        audio.as_mut().unwrap().play_music(&"lobby".to_string());
+    }
+
     // Create network TcpStream
-    // TODO: change to connect_timeout?
     let mut stream = loop {
         let (ip, port) = read_address_json("../shared/address.json");
         let server_addr = ip + ":" + &port;
@@ -286,6 +290,12 @@ fn main() -> io::Result<()> {
                 zoomed = false;
                 mmb_clicked = false;
                 game_state = GameState::InLobby;
+                
+                // Start playing menu music
+                if audio.is_some() {
+                    audio.as_mut().unwrap().play_music(&"lobby".to_string());
+                }
+                
             }
             GameState::InLobby => {
                 process_inputs_lobby(
@@ -325,6 +335,12 @@ fn main() -> io::Result<()> {
                                 client_ecs = None;
                                 first_mouse = true;
                                 lobby_ecs.ready_players.clear();
+
+                                // Stop playing lobby music
+                                if audio.is_some() {
+                                    audio.as_mut().unwrap().stop_music();
+                                }
+                                
                                 game_state = GameState::InGame;
                             }
                         }
