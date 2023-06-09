@@ -1,6 +1,6 @@
 use crate::fadable::Fadable;
 use crate::sprite_renderer::{Anchor, Sprite};
-use cgmath::{vec2, Vector2};
+use cgmath::{vec2, Vector2, vec3};
 use shared::*;
 use shared::shared_components::*;
 use slotmap::DefaultKey;
@@ -71,18 +71,19 @@ pub struct UI {
     pub p3_dead: Sprite,
     pub p4_dead: Sprite,
 
-    pub p1_kill_p2: Sprite,
-    pub p1_kill_p3: Sprite,
-    pub p1_kill_p4: Sprite,
-    pub p2_kill_p1: Sprite,
-    pub p2_kill_p3: Sprite,
-    pub p2_kill_p4: Sprite,
-    pub p3_kill_p1: Sprite,
-    pub p3_kill_p2: Sprite,
-    pub p3_kill_p4: Sprite,
-    pub p4_kill_p1: Sprite,
-    pub p4_kill_p2: Sprite,
-    pub p4_kill_p3: Sprite,
+    pub death_messages: [[Option<Fadable>; 4]; 4],
+    // pub p1_kill_p2: Fadable,
+    // pub p1_kill_p3: Fadable,
+    // pub p1_kill_p4: Fadable,
+    // pub p2_kill_p1: Fadable,
+    // pub p2_kill_p3: Fadable,
+    // pub p2_kill_p4: Fadable,
+    // pub p3_kill_p1: Fadable,
+    // pub p3_kill_p2: Fadable,
+    // pub p3_kill_p4: Fadable,
+    // pub p4_kill_p1: Fadable,
+    // pub p4_kill_p2: Fadable,
+    // pub p4_kill_p3: Fadable,
 
     pub damage: Fadable,
     pub hitmarker: Fadable,
@@ -102,37 +103,7 @@ pub struct UI {
     pub bar_3: Sprite,
     pub bar_4: Sprite,
 
-    pub hits_0_b1: Sprite,
-    pub hits_1_b1: Sprite,
-    pub hits_2_b1: Sprite,
-    pub hits_3_b1: Sprite,
-    pub hits_4_b1: Sprite,
-    pub hits_5_b1: Sprite,
-    pub hits_6_b1: Sprite,
-    
-    pub hits_0_b2: Sprite,
-    pub hits_1_b2: Sprite,
-    pub hits_2_b2: Sprite,
-    pub hits_3_b2: Sprite,
-    pub hits_4_b2: Sprite,
-    pub hits_5_b2: Sprite,
-    pub hits_6_b2: Sprite,
-
-    pub hits_0_b3: Sprite,
-    pub hits_1_b3: Sprite,
-    pub hits_2_b3: Sprite,
-    pub hits_3_b3: Sprite,
-    pub hits_4_b3: Sprite,
-    pub hits_5_b3: Sprite,
-    pub hits_6_b3: Sprite,
-
-    pub hits_0_b4: Sprite,
-    pub hits_1_b4: Sprite,
-    pub hits_2_b4: Sprite,
-    pub hits_3_b4: Sprite,
-    pub hits_4_b4: Sprite,
-    pub hits_5_b4: Sprite,
-    pub hits_6_b4: Sprite,
+    pub hits: [Sprite; 7],
 
     pub p1_text_b1: Sprite,
     pub p2_text_b1: Sprite,
@@ -154,10 +125,12 @@ pub struct UI {
     pub p3_text_b4: Sprite,
     pub p4_text_b4: Sprite,
 
-    pub p1_you_text: Sprite,
-    pub p2_you_text: Sprite,
-    pub p3_you_text: Sprite,
-    pub p4_you_text: Sprite
+    you_text: [Sprite; 4],
+
+    bar_1_pos: Vector2<f32>,
+    bar_2_pos: Vector2<f32>,
+    bar_3_pos: Vector2<f32>,
+    bar_4_pos: Vector2<f32>,
 }
 
 impl UI {
@@ -188,6 +161,9 @@ impl UI {
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
         let death_message_pos = vec2(width / 2.0, height / 1.25);
+
+        let death_message_fade = 0.3;
+        let death_message_alpha = 3.0;
 
         UI {
             // ============================ splash screen =============================
@@ -264,18 +240,32 @@ impl UI {
             p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
             p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
 
-            p1_kill_p2: init_sprite(s_size, id, P1_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p1_kill_p3: init_sprite(s_size, id, P1_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p1_kill_p4: init_sprite(s_size, id, P1_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p2_kill_p1: init_sprite(s_size, id, P2_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p2_kill_p3: init_sprite(s_size, id, P2_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p2_kill_p4: init_sprite(s_size, id, P2_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p3_kill_p1: init_sprite(s_size, id, P3_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p3_kill_p2: init_sprite(s_size, id, P3_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p3_kill_p4: init_sprite(s_size, id, P3_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p4_kill_p1: init_sprite(s_size, id, P4_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p4_kill_p2: init_sprite(s_size, id, P4_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
-            p4_kill_p3: init_sprite(s_size, id, P4_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE),
+            death_messages: [
+                [
+                    None,
+                    Some(Fadable::new(init_sprite(s_size, id, P1_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P1_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P1_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha))
+                ],
+                [
+                    Some(Fadable::new(init_sprite(s_size, id, P2_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    None,
+                    Some(Fadable::new(init_sprite(s_size, id, P2_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P2_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha))
+                ],
+                [
+                    Some(Fadable::new(init_sprite(s_size, id, P3_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P3_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    None,
+                    Some(Fadable::new(init_sprite(s_size, id, P3_KILL_P4_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha))
+                ],
+                [
+                    Some(Fadable::new(init_sprite(s_size, id, P4_KILL_P1_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P4_KILL_P2_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    Some(Fadable::new(init_sprite(s_size, id, P4_KILL_P3_PATH, death_message_pos, DEATH_MESSAGE_SCALE), death_message_fade, death_message_alpha)),
+                    None
+                ]
+            ],
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
             hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, CROSSHAIR_SCALE), 3.0, 2.0),
@@ -295,37 +285,15 @@ impl UI {
             bar_3: init_sprite(s_size, id, BAR_3_PATH, bar_3_pos, LEADERBOARD_SCALE),
             bar_4: init_sprite(s_size, id, BAR_4_PATH, bar_4_pos, LEADERBOARD_SCALE),
 
-            hits_0_b1: init_sprite(s_size, id, HITS_0_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_1_b1: init_sprite(s_size, id, HITS_1_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_2_b1: init_sprite(s_size, id, HITS_2_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_3_b1: init_sprite(s_size, id, HITS_3_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_4_b1: init_sprite(s_size, id, HITS_4_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_5_b1: init_sprite(s_size, id, HITS_5_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            hits_6_b1: init_sprite(s_size, id, HITS_6_PATH, bar_1_pos, LEADERBOARD_SCALE),
-
-            hits_0_b2: init_sprite(s_size, id, HITS_0_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_1_b2: init_sprite(s_size, id, HITS_1_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_2_b2: init_sprite(s_size, id, HITS_2_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_3_b2: init_sprite(s_size, id, HITS_3_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_4_b2: init_sprite(s_size, id, HITS_4_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_5_b2: init_sprite(s_size, id, HITS_5_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            hits_6_b2: init_sprite(s_size, id, HITS_6_PATH, bar_2_pos, LEADERBOARD_SCALE),
-
-            hits_0_b3: init_sprite(s_size, id, HITS_0_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_1_b3: init_sprite(s_size, id, HITS_1_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_2_b3: init_sprite(s_size, id, HITS_2_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_3_b3: init_sprite(s_size, id, HITS_3_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_4_b3: init_sprite(s_size, id, HITS_4_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_5_b3: init_sprite(s_size, id, HITS_5_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            hits_6_b3: init_sprite(s_size, id, HITS_6_PATH, bar_3_pos, LEADERBOARD_SCALE),
-
-            hits_0_b4: init_sprite(s_size, id, HITS_0_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_1_b4: init_sprite(s_size, id, HITS_1_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_2_b4: init_sprite(s_size, id, HITS_2_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_3_b4: init_sprite(s_size, id, HITS_3_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_4_b4: init_sprite(s_size, id, HITS_4_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_5_b4: init_sprite(s_size, id, HITS_5_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            hits_6_b4: init_sprite(s_size, id, HITS_6_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            hits: [
+                init_sprite(s_size, id, HITS_0_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_1_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_2_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_3_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_4_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_5_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, HITS_6_PATH, bar_1_pos, LEADERBOARD_SCALE),
+            ],
 
             p1_text_b1: init_sprite(s_size, id, P1_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
             p2_text_b1: init_sprite(s_size, id, P2_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
@@ -347,10 +315,17 @@ impl UI {
             p3_text_b4: init_sprite(s_size, id, P3_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
             p4_text_b4: init_sprite(s_size, id, P4_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
 
-            p1_you_text: init_sprite(s_size, id, P1_YOU_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            p2_you_text: init_sprite(s_size, id, P2_YOU_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            p3_you_text: init_sprite(s_size, id, P3_YOU_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            p4_you_text: init_sprite(s_size, id, P4_YOU_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            you_text: [
+                init_sprite(s_size, id, P1_YOU_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P2_YOU_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P3_YOU_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P4_YOU_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE)
+            ],
+
+            bar_1_pos,
+            bar_2_pos,
+            bar_3_pos,
+            bar_4_pos
         }
     }
 
@@ -422,9 +397,27 @@ impl UI {
                 }, 
                 None => ()
             }
-            self.damage.draw();
 
-            self.p1_kill_p4.draw();
+            let mut num_deathmessages = 0.0;
+
+            for row in &mut self.death_messages {
+                for deathmessage in row {
+                    match deathmessage {
+                        Some(message) => {
+                            let pos = message.sprite.transform.position;
+                            message.sprite.set_position(pos + vec2(0.0, -20.0 * num_deathmessages));
+                            message.draw();
+                            message.sprite.set_position(pos);
+                            if message.alpha > 0.0 {
+                                num_deathmessages += 1.0;
+                            }
+                        },
+                        None => ()
+                    }
+                }
+            }
+
+            self.damage.draw();
         }
     }
 
@@ -590,6 +583,9 @@ impl UI {
                                 }
                                 _ => ()
                             }
+                            let hit_count = &mut self.hits[ecs.health_components[*player].hits as usize];
+                            hit_count.set_position(self.bar_1_pos);
+                            hit_count.draw();
                         }
                     }
 
@@ -602,6 +598,9 @@ impl UI {
                                 3 => self.p4_text_b2.draw(),
                                 _ => ()
                             }
+                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
+                            hit_count.set_position(self.bar_2_pos);
+                            hit_count.draw();
                         } else if i == 1 {      // row 3
                             match player {
                                 0 => self.p1_text_b3.draw(),
@@ -610,6 +609,9 @@ impl UI {
                                 3 => self.p4_text_b3.draw(),
                                 _ => ()
                             }
+                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
+                            hit_count.set_position(self.bar_3_pos);
+                            hit_count.draw();
                         } else if i == 2 {      // row 4
                             match player {
                                 0 => self.p1_text_b4.draw(),
@@ -618,16 +620,19 @@ impl UI {
                                 3 => self.p4_text_b4.draw(),
                                 _ => ()
                             }
+                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
+                            hit_count.set_position(self.bar_4_pos);
+                            hit_count.draw();
                         }
                     }
                 }
                 None => ()
             }
 
-            self.hits_3_b1.draw();
-            self.hits_2_b2.draw();
-            self.hits_1_b3.draw();
-            self.hits_0_b4.draw();
+            // self.hits_3_b1.draw();
+            // self.hits_2_b2.draw();
+            // self.hits_1_b3.draw();
+            // self.hits_0_b4.draw();
 
             // self.hits_9_b1.set_position(vec2(0.0, 0.0));
             // self.hits_9_b1.draw();
@@ -638,6 +643,14 @@ impl UI {
 
     pub fn draw_splash(&mut self) {
         unsafe { self.splash.draw() };
+    }
+
+    pub fn display_death_message(&mut self, killer: usize, player: usize) {
+        println!("player {} shot player {}", killer, player);
+        match &mut self.death_messages[killer][player] {
+            Some(message) => message.add_alpha(2.0),
+            None => eprintln!("Player {killer} shot themselves (Player {player})!")
+        }
     }
 }
 

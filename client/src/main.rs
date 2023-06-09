@@ -251,6 +251,7 @@ fn main() -> io::Result<()> {
 
         match game_state {
             GameState::EnteringLobby => {
+                rankings.clear();
                 ready_sent = false; // prevents sending ready message twice
                 game_state = GameState::InLobby;
             }
@@ -424,6 +425,11 @@ fn main() -> io::Result<()> {
                                     }
                                 },
                                 EventType::DeathEvent { player, killer } => {
+                                    let k_id = c_ecs.players.iter().position(|&x| x == killer).unwrap();
+                                    let p_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+
+                                    ui_elems.display_death_message(k_id, p_id);
+                                    
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
@@ -433,6 +439,7 @@ fn main() -> io::Result<()> {
                                     }
                                 }, 
                                 EventType::DisconnectEvent { player } => {
+                                    println!("a disconnect happened");
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                 }
                             }
