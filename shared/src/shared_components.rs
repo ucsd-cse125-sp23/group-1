@@ -202,6 +202,18 @@ pub enum EventType {
         hit_y: f32,
         hit_z: f32
     },
+    LassoThrowEvent {
+        player: Entity
+    },
+    LassoAttachEvent {
+        target: Entity,
+        hit_x: f32,
+        hit_y: f32,
+        hit_z: f32
+    },
+    LassoReleaseEvent {
+        player: Entity
+    },
     ReloadEvent {
         player: Entity,
     },
