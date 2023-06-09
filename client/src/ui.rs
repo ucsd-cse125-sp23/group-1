@@ -31,6 +31,10 @@ pub struct UI {
 
     death_messages: [[Option<Fadable>; 4]; 4],
 
+    you_died_txt: Sprite,
+    you_win_txt: Sprite,
+    game_over_txt: Sprite,
+
     pub damage: Fadable,
     pub hitmarker: Fadable,
     pub killmarkers: [Fadable; 4],
@@ -80,6 +84,7 @@ impl UI {
         let health_pos = vec2(BAR_BORDER, BAR_BORDER);
         let ammo_pos = vec2(width - BAR_BORDER, AMMO_BAR_BORDER);
         let death_message_pos = vec2(width / 2.0, height / 1.25);
+        let screen_txt_pos = vec2(width / 2.0, height / 2.0);
 
         let death_message_fade = 0.3;
         let death_message_alpha = 3.0;
@@ -210,6 +215,10 @@ impl UI {
                     None
                 ]
             ],
+
+            you_died_txt: init_sprite(s_size, id, YOU_DIED_TXT_PATH,screen_txt_pos, SCREEN_TXT_SCALE),
+            you_win_txt: init_sprite(s_size, id, YOU_WIN_TXT_PATH, screen_txt_pos, SCREEN_TXT_SCALE),
+            game_over_txt: init_sprite(s_size, id, GAME_OVER_TXT_PATH, screen_txt_pos, SCREEN_TXT_SCALE),
           
             damage: Fadable::new(init_sprite(s_size, id, DAMAGE_PATH, bg_pos, LOBBY_BG_SCALE), 1.0, 1.0),
             hitmarker: Fadable::new(init_sprite(s_size, id, HITMARKER_PATH, bg_pos, HITMARKER_SCALE), 3.0, 2.0),
@@ -274,7 +283,7 @@ impl UI {
         }
     }
 
-    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool) {
+    pub fn draw_game(&mut self, client_id: usize, client_alive: bool, client_ammo: u8, c_ecs: &Option<ClientECS>, spectator_mode: bool, show_death_screen: bool) {
         unsafe {
             if !spectator_mode {
                 self.crosshair.draw();
@@ -286,6 +295,10 @@ impl UI {
                 self.ammo[client_ammo as usize].draw();
 
                 self.damage.draw();
+
+                if show_death_screen {
+                    self.you_died_txt.draw();
+                }
             }
 
             // draw player status regardless of spectator mode or not

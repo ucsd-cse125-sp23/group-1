@@ -33,6 +33,7 @@ pub const WINNER_SCALE: f32 = 0.3;
 pub const LEADERBOARD_SCALE: f32 = 0.5;
 pub const CONTINUE_SCALE: f32 = 0.5;
 pub const DEATH_MESSAGE_SCALE: f32 = 0.7;
+pub const SCREEN_TXT_SCALE: f32 = 1.0;
 
 pub const DEFAULT_VERTICAL_FOV: f32 = 59.0;
 
@@ -143,6 +144,10 @@ pub const P3_KILL_P4_PATH: &str = "resources/ui_textures/death_messages/p3-kill-
 pub const P4_KILL_P1_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p1.png";
 pub const P4_KILL_P2_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p2.png";
 pub const P4_KILL_P3_PATH: &str = "resources/ui_textures/death_messages/p4-kill-p3.png";
+
+pub const YOU_DIED_TXT_PATH: &str = "resources/ui_textures/screen_text/you-died.png";
+pub const YOU_WIN_TXT_PATH: &str = "resources/ui_textures/screen_text/you-win.png";
+pub const GAME_OVER_TXT_PATH: &str = "resources/ui_textures/screen_text/game-over.png";
 
 pub const DAMAGE_PATH: &str = "resources/ui_textures/damage.png";
 pub const HITMARKER_PATH: &str = "resources/ui_textures/crosshair/hitmarker_2.png";
