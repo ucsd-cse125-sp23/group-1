@@ -25,18 +25,20 @@ impl Shader {
 
         // compile vertex shader
         unsafe {
+            // println!("compiling vertex");
             // vertex shader
             let vertex = gl::CreateShader(gl::VERTEX_SHADER);
             gl::ShaderSource(vertex, 1, &v_shader_code.as_ptr(), ptr::null());
             gl::CompileShader(vertex);
             shader.check_compile_errors(vertex, "VERTEX");
 
+            // println!("vertex compiled, compiling fragment");
             // fragment shader
             let fragment = gl::CreateShader(gl::FRAGMENT_SHADER);
             gl::ShaderSource(fragment, 1, &f_shader_code.as_ptr(), ptr::null());
             gl::CompileShader(fragment);
             shader.check_compile_errors(fragment, "FRAGMENT");
-
+            // println!("fragment compiled");
             // shader program
             let id = gl::CreateProgram();
             gl::AttachShader(id, vertex);
@@ -81,6 +83,18 @@ impl Shader {
     /// ------------------------------------------------------------------------
     pub unsafe fn set_vector4(&self, name: &CStr, value: &Vector4<f32>) {
         gl::Uniform4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, value.as_ptr());
+    }
+    /// ------------------------------------------------------------------------
+    pub unsafe fn set_vector3_array(&self, name: &CStr, value: &[Vector3<f32>]) {
+        gl::Uniform3fv(
+            gl::GetUniformLocation(self.id, name.as_ptr()), 
+            4, 
+            value[0].as_ptr()
+        );
+    }
+    /// ------------------------------------------------------------------------
+    pub unsafe fn set_int_array(&self, name: &CStr, value: &[i32]) {
+        gl::Uniform1iv(gl::GetUniformLocation(self.id, name.as_ptr()), 4, value.as_ptr());
     }
 
     // utility function for checking shader compilation/linking errors

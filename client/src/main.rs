@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod lights;
 mod arm;
 mod tracer;
 mod particle_emitter;
@@ -52,6 +53,8 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::lights::Light;
+use crate::lights::Lights;
 use crate::arm::Arm;
 use crate::tracer::TracerManager;
 
@@ -66,6 +69,8 @@ use std::process;
 use slotmap::{SecondaryMap,DefaultKey};
 
 type Entity = DefaultKey;
+
+const HALFHEIGHT: f32 = 0.5;
 
 #[derive(PartialEq, Eq)]
 enum GameState {
@@ -172,6 +177,7 @@ fn main() -> io::Result<()> {
     // textures for skybox
     let skies = init_skies::init_skyboxes();
     let mut sky: usize = 0;
+    let mut lights = Lights::new();
 
     // add all models to hashmap
     let models: HashMap<String, Model> = init_models::init_models();
@@ -359,6 +365,15 @@ fn main() -> io::Result<()> {
 
                             if lobby_ecs.start_game {
                                 sky = lobby_ecs.sky;
+                                lights.clear();
+
+                                lights.add_light(Light::new(
+                                    skies[sky].light_dir,
+                                    skies[sky].light_ambience,
+                                    skies[sky].light_diffuse,
+                                    false, -1.
+                                ));
+
                                 let start_pos = &lobby_ecs.position_components[lobby_ecs.ids[client_id]];
                                 camera.RotQuat = Quaternion::new(start_pos.qw, start_pos.qx, start_pos.qy, start_pos.qz);
                                 camera.UpdateVecs();
@@ -493,6 +508,16 @@ fn main() -> io::Result<()> {
                                         screenshake_event = true;
                                     }
                                     let player_pos = &c_ecs.position_components[player];
+                                    let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                    lights.add_light(Light::new(
+                                        vec3(
+                                            player_pos.x, 
+                                            player_pos.y, 
+                                            player_pos.z), 
+                                            vec3(0.2, 0.2, 0.2), 
+                                        tracker_colors[player_id].truncate(), 
+                                        true, 1.5 
+                                    ));
                                     // only play for client 0 if we're debugging on the same machine
                                     if audio_enabled {
                                         match audio.as_mut().unwrap().play_sound(&"fire".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
@@ -671,9 +696,10 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
-                    shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
-                    shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
+                    lights.init_lights(&shader_program, false);
+                    // shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
+                    // shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
+                    // shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
 
@@ -883,7 +909,9 @@ fn main() -> io::Result<()> {
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
 
                         arm.draw(&camera, &shader_program);
+                        lights.init_lights(&shader_program, true);
                         vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                        lights.init_lights(&shader_program, false);
                     }
 
                     // enable translucency for 2D HUD
