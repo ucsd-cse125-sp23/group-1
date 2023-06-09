@@ -513,7 +513,7 @@ fn main() -> io::Result<()> {
                                 EventType::DisconnectEvent { player } => {
                                     println!("a disconnect happened");
                                     rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
-                                }
+                                },
                                 EventType::StartMoveEvent { player } => {
                                     if audio_enabled {
                                         let player_pos = &c_ecs.position_components[player];
@@ -522,11 +522,20 @@ fn main() -> io::Result<()> {
                                             Err(e) => eprintln!("Audio error playing sound: {e}"),
                                         };
                                     }
-                                }
+                                },
                                 EventType::StopMoveEvent {player} => {
                                     if audio_enabled {
                                         audio.as_mut().unwrap().stop_thruster(player);
                                     };
+                                },
+                                EventType::LassoThrowEvent { player } => {
+
+                                },
+                                EventType::LassoAttachEvent { target, hit_x, hit_y, hit_z } => {
+
+                                },
+                                EventType::LassoReleaseEvent { player } => {
+                                    
                                 }
                             }
                         }
