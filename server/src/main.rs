@@ -11,7 +11,7 @@ mod server_components;
 mod common;
 
 use shared::*;
-use shared::shared_components::read_address_json;
+use shared::shared_functions::read_address_json;
 use crate::common::*;
 
 fn main() {

@@ -16,6 +16,9 @@ uniform sampler2D texture_diffuse1;
 uniform int load_normal;
 uniform sampler2D texture_normal1;
 
+uniform int use_color;
+uniform vec4 color_overwrite;
+
 uniform vec3 lightAmb;
 uniform vec3 lightDif;
 
@@ -27,7 +30,6 @@ void main()
     if (load_normal == 1) {
         vec3 tnormal = texture(texture_normal1, TexCoords).rgb;
         tnormal = normalize(tnormal * 2.0 - 1.0);
-        // normal =  normalize(TBN * tnormal);
         normal = tnormal;
 
         lightDir = normalize(TangentLightPos - TangentFragPos);
@@ -45,4 +47,8 @@ void main()
     vec3 textureColor = texture(texture_diffuse1, TexCoords).rgb;
     vec3 result = (lightAmb + diffuse) * textureColor;
     color = vec4(result, 1.0f);
+    
+    if (use_color == 1) {
+        color = color_overwrite;
+    }
 }

@@ -24,6 +24,7 @@ pub struct ECS {
     pub model_components: SecondaryMap<Entity, ModelComponent>,
     pub player_health_components: SecondaryMap<Entity, PlayerHealthComponent>,
     pub velocity_components: SecondaryMap<Entity, VelocityComponent>,
+    pub particle_components: SecondaryMap<Entity, ParticleComponent>,
 
     // server components
     pub physics_components: SecondaryMap<Entity, PhysicsComponent>,
@@ -89,6 +90,7 @@ impl ECS {
             event_components: SecondaryMap::new(),
 
             moving: SparseSecondaryMap::new(),
+            particle_components: SecondaryMap::new(),
 
             rigid_body_set: RigidBodySet::new(),
             collider_set: ColliderSet::new(),
@@ -162,6 +164,7 @@ impl ECS {
         self.player_lasso_phys_components.clear();
         self.player_lasso_thrown_components.clear();
         self.event_components.clear();
+        self.particle_components.clear();
         self.dynamics.clear();
         self.renderables.clear();
         self.events.clear();
@@ -500,6 +503,7 @@ impl ECS {
             weapon_components: self.player_weapon_components.clone(),
             model_components: self.model_components.clone(),
             health_components: self.player_health_components.clone(),
+            particle_components: self.particle_components.clone(),
             player_lasso_components: self.player_lasso_components.clone(),
             event_components: self.event_components.clone(),
             velocity_components: self.velocity_components.clone(),
@@ -682,20 +686,33 @@ impl ECS {
                 let max_toi = 1000.0; //depends on size of map
                 let solid = true;
                 let filter = QueryFilter::new().exclude_rigid_body(self.physics_components[player].handle);
-                match self.query_pipeline.cast_ray(&mut self.rigid_body_set, &mut self.collider_set, &ray, max_toi, solid, filter) {
-                    Some((target_collider_handle, toi)) => {
+                match self.query_pipeline.cast_ray_and_get_normal(&mut self.rigid_body_set, &mut self.collider_set, &ray, max_toi, solid, filter) {
+                    Some((target_collider_handle, intersection)) => {
                         let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
-                        let hit_point = ray.point_at(toi);
+                        let hit_point = ray.point_at(intersection.toi);
+                        let hit_normal = intersection.normal;
 
                         let target_name = & self.name_components[target];
                         // println!("Hit target {}",target_name);
 
+                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+                        let target_start_vel = target_body.linvel();
+
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
                         self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target, hit_x: hit_point.x, hit_y: hit_point.y, hit_z: hit_point.z}});
-
-                        let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
+                        self.particle_components.insert(event_key, ParticleComponent {
+                            x: hit_point.x,
+                            y: hit_point.y,
+                            z: hit_point.z,
+                            normal_x: hit_normal.x,
+                            normal_y: hit_normal.y,
+                            normal_z: hit_normal.z,
+                            vel_x: target_start_vel.x,
+                            vel_y: target_start_vel.y,
+                            vel_z: target_start_vel.z
+                        });
 
                         // if target is a player, update its health component
                         if self.players.contains(&target) && self.player_health_components[target].alive {
