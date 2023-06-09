@@ -126,8 +126,8 @@ pub fn process_inputs_lobby(
     if !*first_enter && !*ready_sent && window.get_key(Key::Enter) == Action::Press {
         *ready_sent = true;
         // send ready JSON (hardcoded for now)
-        let ready_json = ReadyECS{ready:true};
-        write_data(stream, serde_json::to_string(&ready_json).unwrap());
+        let ready_bitcode = ReadyECS{ready:true};
+        write_data(stream, bitcode::serialize(&ready_bitcode).unwrap());
     }
     if window.get_key(Key::Enter) == Action::Release {
         *first_enter = false;
