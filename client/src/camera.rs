@@ -33,6 +33,7 @@ const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
 const SPEED: f32 = 2.5;
 const SENSITIVTY: f32 = 0.1;
+const ZOOM_SENSITIVITY: f32 = 0.04;
 const FOV: f32 = DEFAULT_VERTICAL_FOV;
 const ZOOMED_FOV: f32 = DEFAULT_VERTICAL_FOV / 2.0;
 const ZOOM_RATE: f32 = 10.0 * (DEFAULT_VERTICAL_FOV - ZOOMED_FOV);
@@ -146,8 +147,10 @@ impl Camera {
         self.Prev = now;
         if zoomed {
             self.Fov = ZOOMED_FOV.max(self.Fov - (delta * ZOOM_RATE));
+            self.MouseSensitivity = ZOOM_SENSITIVITY;
         } else {
             self.Fov = FOV.min(self.Fov + (delta * ZOOM_RATE));
+            self.MouseSensitivity = SENSITIVTY;
         }
     }
 
