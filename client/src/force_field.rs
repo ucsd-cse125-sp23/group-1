@@ -3,7 +3,7 @@ use crate::model::Model;
 use crate::shader::Shader;
 use cgmath::{Deg, InnerSpace, Matrix4, perspective, SquareMatrix, Vector2, Vector3};
 use std::ffi::{CStr};
-use cgmath::num_traits::clamp;
+use cgmath::num_traits::{abs, clamp};
 
 pub struct ForceField {
     pub radius: f32,
@@ -44,9 +44,11 @@ impl ForceField {
         self.shader.set_mat4(c_str!("model"), &model);
 
         // alpha will be 0 at inner radius
-        let inner_radius = 150.0;
-        let mut alpha = (player_pos.magnitude() - inner_radius) / (self.radius - inner_radius);
+        let show_radius = 100.0;
+        let distance = abs(player_pos.magnitude() - self.radius);
+        let mut alpha = distance / show_radius;
         alpha = clamp(alpha, 0.0, 1.0).powi(2);
+        alpha = 1.0 - alpha;
         self.shader.set_float(c_str!("alpha"), alpha);
 
         self.model.draw(&self.shader);

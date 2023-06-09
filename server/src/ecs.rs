@@ -2,7 +2,6 @@ use rapier3d::prelude::*;
 use nalgebra::{UnitQuaternion, Isometry3, Translation3, Quaternion, distance, Vector3};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey, Key, KeyData};
 use std::collections::HashMap;
-use std::str;
 use std::io::{Read, Write, self};
 use std::net::TcpListener;
 
@@ -294,8 +293,8 @@ impl ECS {
                     Ok(bytes_read) if bytes_read == s_size => {
                         // if this throws an error we deserve to crash tbh
                         stream.read_exact(&mut read_buf).expect("read_exact did not read the same amount of bytes as peek");
-                        let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
-                        match serde_json::from_str(message) {
+                        // let message : &str = str::from_utf8(&read_buf[4..]).expect("Error converting buffer to string");
+                        match bitcode::deserialize(&read_buf[4..]) {
                             Ok(value) => {
                                 received_input = true;
                                 ECS::combine_input(&mut input_temp, value)
@@ -358,10 +357,10 @@ impl ECS {
         let mut disconnected_players: Vec<Entity> = vec![];
 
         let lobby_ecs = self.lobby_ecs(start_game);
-        let j = serde_json::to_string(&lobby_ecs).expect("Lobby ECS serialization error");
+        let j = bitcode::serialize(&lobby_ecs).expect("Lobby ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
-            let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+            let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
             match self.network_components[player].stream.write(&message) {
                 Ok(_) => (),
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
@@ -438,6 +437,7 @@ impl ECS {
         curr.d_pressed |= value.d_pressed;
         curr.shift_pressed |= value.shift_pressed;
         curr.ctrl_pressed |= value.ctrl_pressed;
+        curr.reset_pressed |= value.reset_pressed;
         curr.r_pressed |= value.r_pressed;
         curr.camera_qx = value.camera_qx;
         curr.camera_qy = value.camera_qy;
@@ -457,14 +457,14 @@ impl ECS {
         }
 
         let client_ecs = self.client_ecs();
-        let j = serde_json::to_string(&client_ecs).expect("Client ECS serialization error");
+        let j = bitcode::serialize(&client_ecs).expect("Client ECS serialization error");
         let size = j.len() as u32 + 4;
         for &player in &self.players {
             if self.network_components[player].connected {
-                let message = [u32::to_be_bytes(size).to_vec(), j.clone().into_bytes()].concat();
+                let message = [u32::to_be_bytes(size).to_vec(), j.clone()].concat();
                 match self.network_components[player].stream.write(&message) {
                     Ok(_) => (),
-                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => (),
+                    Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => println!("WouldBlock error while sending {size} bytes: {e}"),
                     Err(e) => {
                         eprintln!("Error updating client \"{}\": {:?}", self.name_components[player], e);
                         disconnected_players.push(player);
@@ -677,13 +677,14 @@ impl ECS {
                     Some((target_collider_handle, toi)) => {
                         let target_collider = self.collider_set.get_mut(target_collider_handle).unwrap();
                         let target = DefaultKey::from(KeyData::from_ffi(target_collider.user_data as u64));
+                        let hit_point = ray.point_at(toi);
 
                         let target_name = & self.name_components[target];
                         println!("Hit target {}",target_name);
 
                         let event_key = self.name_components.insert("hit_event".to_string());
                         self.events.push(event_key);
-                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target}});
+                        self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::HitEvent{player, target, hit_x: hit_point.x, hit_y: hit_point.y, hit_z: hit_point.z}});
 
                         let target_body = self.rigid_body_set.get_mut(self.physics_components[target].handle).unwrap();
 
@@ -704,7 +705,6 @@ impl ECS {
                             }
                         }
 
-                        let hit_point = ray.point_at(toi);
                         target_body.apply_impulse_at_point(impulse, hit_point, true);
 
                     },
@@ -719,6 +719,10 @@ impl ECS {
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 weapon.cooldown = 120;
                 weapon.reloading = true;
+
+                let event_key = self.name_components.insert("reload_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::ReloadEvent{player}});
             }
         }
     }
@@ -898,6 +902,10 @@ impl ECS {
             if input.ctrl_pressed && !input.shift_pressed {
                 rigid_body.apply_impulse(-impulse * camera.camera_up, true);
             }
+            if input.reset_pressed {
+                rigid_body.set_translation(Vector3::zeros(), true);
+                rigid_body.set_linvel(Vector3::zeros(), true);
+            }
         }
     }
 
@@ -917,8 +925,8 @@ impl ECS {
                     let read_size = u32::from_be_bytes(size_buf) as usize;
                     let mut read_buf = vec![0 as u8; read_size];
                     stream.read(&mut read_buf).unwrap();
-                    let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
-                    let ready_ecs: std::result::Result<ReadyECS, serde_json::Error> = serde_json::from_str(raw_str);
+                    // let raw_str: &str = str::from_utf8(&read_buf[4..]).unwrap();
+                    let ready_ecs: std::result::Result<ReadyECS, bitcode::Error> = bitcode::deserialize(&read_buf[4..]);
                     match ready_ecs {
                         Ok(ecs) => {
                             if ecs.ready {

@@ -18,6 +18,8 @@ pub struct PlayerInputComponent {
     pub r_pressed: bool,
     pub shift_pressed: bool,
     pub ctrl_pressed: bool,
+    pub enter_pressed: bool,
+    pub reset_pressed: bool,
     pub camera_qx: f32,
     pub camera_qy: f32,
     pub camera_qz: f32,
@@ -35,6 +37,8 @@ impl PlayerInputComponent {
             d_pressed: false,
             shift_pressed: false,
             ctrl_pressed: false,
+            enter_pressed: false,
+            reset_pressed: false,
             r_pressed: false,
             camera_qx: 0.0,
             camera_qy: 0.0,
@@ -192,11 +196,16 @@ pub struct PlayerLassoComponent {
 pub enum EventType {
     FireEvent {
         player: Entity,
-
     },
     HitEvent {
         player: Entity,
-        target: Entity
+        target: Entity,
+        hit_x: f32,
+        hit_y: f32,
+        hit_z: f32
+    },
+    ReloadEvent {
+        player: Entity,
     },
     DeathEvent {
         player: Entity,

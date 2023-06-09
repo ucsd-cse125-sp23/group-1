@@ -6,6 +6,8 @@ use cgmath::{vec2, Vector2, Vector3, Point3, EuclideanSpace, Transform, Rad, Inn
 use std::f32::consts::PI;
 use crate::camera::Camera;
 
+const MIN_LENGTH: f32 = 5.0;
+
 pub struct Tracker {
     line_width: f32,
     line: Sprite,
@@ -38,7 +40,11 @@ impl Tracker {
         let angle: Rad<f32>;
         let v1;
         let v2;
-        if vec2(projection.x, projection.y).magnitude() >= self.target_radius {
+        if projection.z > 0.0 {
+            angle = Rad(0.001);
+            v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
+            v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
+        } else if vec2(projection.x, projection.y).magnitude() >= self.target_radius {
             angle = Angle::asin(self.target_radius / vec2(projection.x, projection.y).magnitude());
             v1 = Basis2::<f32>::from_angle(angle*2.0).rotate_vector(vec2(projection.x, projection.y));
             v2 = Basis2::<f32>::from_angle(angle*-2.0).rotate_vector(vec2(projection.x, projection.y));
@@ -79,7 +85,7 @@ impl Tracker {
         for tracker in trackers {
             let mut color = tracker.3;
             // hardcoded alpha
-            color.w = 0.5;
+            color.w = 0.6;
             self.line.set_color(color);
             self.draw_from_vectors(tracker.1, tracker.2);
         }
@@ -111,7 +117,7 @@ impl Tracker {
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let (v1_x1, v1_x2, v2_x1, v2_x2) = find_points(
+            let (mut v1_x1, mut v1_x2, mut v2_x1, mut v2_x2) = find_points(
                 angle1,
                 angle2,
                 v1_intersection.x,
@@ -122,10 +128,23 @@ impl Tracker {
                 0.0,
             );
 
+            let length = v1_x2 - v1_x1;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v1_x1 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v1_x2 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line.draw_from_corners(
                 vec2(v1_x1, screen_size.y),
                 vec2(v1_x2, screen_size.y - self.line_width),
             );
+
+            let length = v2_x2 - v2_x1;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v2_x2 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v2_x1 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line.draw_from_corners(
                 vec2(v2_x2, screen_size.y),
                 vec2(v2_x1, screen_size.y - self.line_width),
@@ -139,7 +158,7 @@ impl Tracker {
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let (v1_x1, v1_x2, v2_x1, v2_x2) = find_points(
+            let (mut v1_x1, mut v1_x2, mut v2_x1, mut v2_x2) = find_points(
                 angle1,
                 angle2,
                 v1_intersection.x,
@@ -150,8 +169,21 @@ impl Tracker {
                 screen_size.x,
             );
 
+            let length = v1_x1 - v1_x2;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v1_x2 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v1_x1 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line
                 .draw_from_corners(vec2(v1_x2, self.line_width), vec2(v1_x1, 0.0));
+
+            let length = v2_x1 - v2_x2;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v2_x1 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v2_x2 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line
                 .draw_from_corners(vec2(v2_x1, self.line_width), vec2(v2_x2, 0.0));
         }
@@ -163,7 +195,7 @@ impl Tracker {
             let v1_intersection = screen_size / 2.0 + v1 * ratio1;
             let v2_intersection = screen_size / 2.0 + v2 * ratio2;
 
-            let (v1_y1, v1_y2, v2_y1, v2_y2) = find_points(
+            let (mut v1_y1, mut v1_y2, mut v2_y1, mut v2_y2) = find_points(
                 angle1,
                 angle2,
                 v1_intersection.y,
@@ -174,10 +206,23 @@ impl Tracker {
                 0.0,
             );
 
+            let length = v1_y2 - v1_y1;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v1_y1 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v1_y2 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line.draw_from_corners(
                 vec2(0.0, v1_y2),
                 vec2(self.line_width, v1_y1),
             );
+
+            let length = v2_y1 - v2_y2;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v2_y2 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v2_y1 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line.draw_from_corners(
                 vec2(0.0, v2_y1),
                 vec2(self.line_width, v2_y2),
@@ -202,7 +247,7 @@ impl Tracker {
             let bot_right_angle = bot_right_angle - PI;
             let top_right_angle = top_right_angle + PI;
 
-            let (v1_y1, v1_y2, v2_y1, v2_y2) = find_points(
+            let (mut v1_y1, mut v1_y2, mut v2_y1, mut v2_y2) = find_points(
                 angle1,
                 angle2,
                 v1_intersection.y,
@@ -213,10 +258,23 @@ impl Tracker {
                 screen_size.y,
             );
 
+            let length = v1_y1 - v1_y2;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v1_y2 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v1_y1 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+
             self.line.draw_from_corners(
                 vec2(screen_size.x - self.line_width, v1_y1),
                 vec2(screen_size.x, v1_y2),
             );
+
+            let length = v2_y2 - v2_y1;
+            if length != 0.0 && length.abs() < MIN_LENGTH {
+                v2_y1 -= (MIN_LENGTH - length.abs()) / 2.0;
+                v2_y2 += (MIN_LENGTH - length.abs()) / 2.0;
+            }
+            
             self.line.draw_from_corners(
                 vec2(screen_size.x - self.line_width, v2_y2),
                 vec2(screen_size.x, v2_y1),
