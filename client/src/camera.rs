@@ -8,6 +8,9 @@ use cgmath::prelude::*;
 
 use crate::screenshake::ScreenShake;
 use shared::*;
+use shared::shared_components::PlayerInputComponent;
+use crate::common::set_camera_pos;
+use crate::shader::Shader;
 
 type Point3 = cgmath::Point3<f32>;
 type Vector3 = cgmath::Vector3<f32>;
@@ -63,6 +66,36 @@ impl Camera {
     pub fn GetViewMatrix(&self) -> Matrix4 {
         let view = Matrix4::look_at(self.Position + (self.Up * HALFHEIGHT), self.Position + (self.Up * HALFHEIGHT) + self.Front, self.Up);
         Matrix4::from(self.ScreenShake.euler) * view
+    }
+
+    /// Processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
+    pub fn ProcessKeyboard(&mut self, input: &PlayerInputComponent, deltaTime: f32, shader: &Shader, width: u32, height: u32) {
+        let velocity = 50.0 * deltaTime;
+
+        let mut direction: Vector3 = Vector3::zero();
+        if input.d_pressed {
+            direction.x += 1.0;
+        }
+        if input.a_pressed {
+            direction.x -= 1.0;
+        }
+        if input.w_pressed {
+            direction.z += 1.0;
+        }
+        if input.s_pressed {
+            direction.z -= 1.0;
+        }
+        if input.shift_pressed {
+            direction.y += 1.0;
+        }
+        if input.ctrl_pressed {
+            direction.y -= 1.0;
+        }
+
+        direction.normalize();
+        let new_pos = self.Position + velocity * (direction.x * self.Right + direction.y * self.Up + direction.z * self.Front);
+
+        set_camera_pos(self, new_pos.to_vec(), shader, width, height);
     }
 
     /// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.

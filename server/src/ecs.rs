@@ -719,6 +719,10 @@ impl ECS {
             } else if (input.lmb_clicked || (input.r_pressed && weapon.ammo < AMMO_COUNT)) && weapon.cooldown == 0 {
                 weapon.cooldown = 120;
                 weapon.reloading = true;
+
+                let event_key = self.name_components.insert("reload_event".to_string());
+                self.events.push(event_key);
+                self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::ReloadEvent{player}});
             }
         }
     }

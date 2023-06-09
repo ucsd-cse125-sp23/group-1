@@ -20,6 +20,7 @@ mod force_field;
 mod init_skies;
 mod init_models;
 mod velocity_indicator;
+mod arm;
 mod tracer;
 
 use std::collections::HashMap;
@@ -33,7 +34,7 @@ use self::glfw::{Action, Context, Key};
 use cgmath::InnerSpace;
 use cgmath::{
     perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector3, Vector4, Zero
+    Transform, Vector3, Vector4
 };
 
 use std::ffi::CStr;
@@ -47,6 +48,7 @@ use crate::force_field::ForceField;
 use crate::lasso::Lasso;
 use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
+use crate::arm::Arm;
 use crate::tracer::TracerManager;
 
 // network
@@ -197,6 +199,9 @@ fn main() -> io::Result<()> {
     // create velocity indicator
     let mut vel_indicator = VelocityIndicator::new();
 
+    // create first person model
+    let mut arm = Arm::new();
+
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
 
@@ -207,6 +212,7 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut spectator_mode = false;
 
     // Create network TcpStream
     // TODO: change to connect_timeout?
@@ -247,12 +253,18 @@ fn main() -> io::Result<()> {
     let mut curr_id = client_id;
 
     let mut frame_count = 0;
+    let mut delta_time;
+    let mut last_frame = 0.0;
 
     let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
 
     // WINDOW LOOP
     // -----------
     loop {
+        let current_frame = glfw.get_time() as f32;
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // set cursor mode based on is_focused
         if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -426,6 +438,7 @@ fn main() -> io::Result<()> {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
+                                        arm.shoot();
                                         screenshake_event = true;
                                     }
                                 },
@@ -439,6 +452,11 @@ fn main() -> io::Result<()> {
                                     }
                                     let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                     tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
+                                },
+                                EventType::ReloadEvent { player } => {
+                                    if player == player_key {
+                                        arm.reload();
+                                    }
                                 },
                                 EventType::DeathEvent { player, killer } => {
                                     if player == player_key {
@@ -467,14 +485,12 @@ fn main() -> io::Result<()> {
                             let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
                             if delta_speed > 0.0 {
                                 camera.ScreenShake.add_trauma(delta_speed / 100.0);
-                                println!("Delta-V: {}", delta_v);
-                                println!("Delta-Speed: {}", delta_speed);
                             }
                         }
                         vel_prev = player_vel;
 
                         // dead player camera
-                        if !c_ecs.health_components[player_key].alive {
+                        if !c_ecs.health_components[player_key].alive && !spectator_mode {
                             camera.RotQuat = Quaternion::new(
                                 c_ecs.position_components[player_key].qw,
                                 c_ecs.position_components[player_key].qx,
@@ -504,7 +520,6 @@ fn main() -> io::Result<()> {
                     shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
-                    let mut player_pos_ff = Vector3::zero();
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -543,14 +558,22 @@ fn main() -> io::Result<()> {
                                 },
                                 _ => ()
                             }
-                            // player position used for force field
-                            player_pos_ff = player_pos;
-                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+
+                            if !client_health.alive && input_component.enter_pressed {
+                                spectator_mode = true;
+                            }
+
+                            if !client_health.alive && spectator_mode {
+                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            } else {
+                                set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            }
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
-                                if renderable == player_key {
+                                if renderable == player_key && !spectator_mode {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
@@ -669,25 +692,27 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-
                     // enable translucency for force field
                     gl::DepthMask(gl::FALSE);
 
-                    force_field.draw(&camera, player_pos_ff);
+                    force_field.draw(&camera, camera.Position.to_vec());
                     tracers.draw_tracers(&camera);
 
                     // disable translucency for velocity indicator and first person model
                     gl::DepthMask(gl::TRUE);
                     // HUD elements should always be rendered on top
-                    gl::Clear(gl::DEPTH_BUFFER_BIT);
+                    if !spectator_mode {
+                        gl::Clear(gl::DEPTH_BUFFER_BIT);
 
-                    vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                        arm.draw(&camera, &shader_program);
+                        vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                    }
 
                     // enable translucency for 2D HUD
                     gl::DepthMask(gl::FALSE);
 
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode);
 
                     // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
@@ -697,6 +722,8 @@ fn main() -> io::Result<()> {
                 }
             }
             GameState::GameOver => {
+                spectator_mode = false;
+
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
