@@ -25,20 +25,20 @@ impl Shader {
 
         // compile vertex shader
         unsafe {
-            println!("compiling vertex");
+            // println!("compiling vertex");
             // vertex shader
             let vertex = gl::CreateShader(gl::VERTEX_SHADER);
             gl::ShaderSource(vertex, 1, &v_shader_code.as_ptr(), ptr::null());
             gl::CompileShader(vertex);
             shader.check_compile_errors(vertex, "VERTEX");
 
-            println!("vertex compiled, compiling fragment");
+            // println!("vertex compiled, compiling fragment");
             // fragment shader
             let fragment = gl::CreateShader(gl::FRAGMENT_SHADER);
             gl::ShaderSource(fragment, 1, &f_shader_code.as_ptr(), ptr::null());
             gl::CompileShader(fragment);
             shader.check_compile_errors(fragment, "FRAGMENT");
-            println!("fragment compiled");
+            // println!("fragment compiled");
             // shader program
             let id = gl::CreateProgram();
             gl::AttachShader(id, vertex);

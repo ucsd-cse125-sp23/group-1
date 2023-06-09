@@ -7,13 +7,14 @@ layout (location = 4) in vec3 aBitangent;
 
 out vec2 TexCoords;
 out vec3 Normal;
-out vec3 LightPos[12];
+out vec3 LightPos[8];
 out vec3 ViewPos;
 out vec3 FragPos;
-out vec3 TangentLightPos[12];
+out vec3 TangentLightPos[8];
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 out mat3 TBN;
+out vec3 objPos;
 
 uniform mat4 model;
 uniform mat4 model_scaleless;
@@ -21,12 +22,13 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 viewPos;
 
-uniform vec3 lightDir[12];
-uniform int lightType[12];
+uniform vec3 lightDir[8];
+uniform int lightType[8];
 
 void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1.0f);
+    objPos = vec3( model * vec4(aPos, 1.0f));
     TexCoords = aTexCoords;
 
     vec3 T = normalize(vec3(model_scaleless * vec4(aTangent,   0.0)));
@@ -41,9 +43,9 @@ void main()
     TangentFragPos  = TBN * pos;
     
     // setup the light positions
-    for (int i=0; i<12; i++){
+    for (int i=0; i<8; i++){
 
-        // assume its point light, change to directional light if nec
+         // assume its point light, change to directional light if nec
         LightPos[i] = lightDir[i];
         if (lightType[i] == 2) {
             LightPos[i] += pos;

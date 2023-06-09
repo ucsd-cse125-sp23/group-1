@@ -5,7 +5,7 @@ use std::time::{Instant};
 use crate::shader::Shader;
 
 
-const MAX_LIGHTS: usize = 12;
+const MAX_LIGHTS: usize = 8;
 
 pub struct Light{ 
     light_dir: Vector3<f32>,
@@ -18,9 +18,11 @@ pub struct Light{
 
 impl Light{
     pub fn new(light_dir: Vector3<f32>, light_amb: Vector3<f32>, 
-        light_dif: Vector3<f32>, is_point_light: bool, secs_alive: f32) -> Light{
+        light_dif: Vector3<f32>,
+        is_point_light: bool, secs_alive: f32) -> Light{
         Light { 
-            light_dir, light_amb, light_dif, is_point_light, secs_alive, 
+            light_dir, light_amb, light_dif,
+            is_point_light, secs_alive, 
             time_of_creation: Instant::now() 
         }
     }
@@ -34,7 +36,7 @@ impl Lights{
     }
     pub fn clear(&mut self){self.lights.clear();}
 
-    pub fn init_lights(&mut self, shader: &Shader){
+    pub fn init_lights(&mut self, shader: &Shader, one_light: bool){
 
         // remove lights that outlived its life
         for i in (0..self.lights.len()).rev() {
@@ -54,7 +56,11 @@ impl Lights{
         let mut light_dirs = [vec3(0.,0.,0.); MAX_LIGHTS];
         let mut light_ambs = [vec3(0.,0.,0.); MAX_LIGHTS];
         let mut light_difs = [vec3(0.,0.,0.); MAX_LIGHTS];
-        for i in 0..self.lights.len(){
+        let mut n = self.lights.len();
+        if one_light {
+            n = 1;
+        }
+        for i in 0..n{
             light_types[i] = if self.lights[i].is_point_light {1} else {2};
             light_dirs[i] = self.lights[i].light_dir;
             light_ambs[i] = self.lights[i].light_amb;

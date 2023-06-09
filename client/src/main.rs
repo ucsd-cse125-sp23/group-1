@@ -70,6 +70,8 @@ use slotmap::{SecondaryMap,DefaultKey};
 
 type Entity = DefaultKey;
 
+const HALFHEIGHT: f32 = 0.5;
+
 #[derive(PartialEq, Eq)]
 enum GameState {
     EnteringLobby,
@@ -488,17 +490,17 @@ fn main() -> io::Result<()> {
                                         arm.shoot();
                                         screenshake_event = true;
                                     }
-
-                                    lights.add_light(Light::new(
-                                        // vec3(
-                                        //     c_ecs.position_components[player_key].x,
-                                        //     c_ecs.position_components[player_key].y,
-                                        //     c_ecs.position_components[player_key].z,), 
-                                           vec3(0., 0., 0.),
-                                            vec3(1., 0., 0.), 
-                                        vec3(0., 0., 1.), true, 2.5 
-                                    ));
                                     let player_pos = &c_ecs.position_components[player];
+                                    let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                    lights.add_light(Light::new(
+                                        vec3(
+                                            player_pos.x, 
+                                            player_pos.y, 
+                                            player_pos.z), 
+                                            vec3(0.2, 0.2, 0.2), 
+                                        tracker_colors[player_id].truncate(), 
+                                        true, 1.5 
+                                    ));
                                     // only play for client 0 if we're debugging on the same machine
                                     if audio_enabled {
                                         match audio.as_mut().unwrap().play_sound(&"fire".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
@@ -631,7 +633,7 @@ fn main() -> io::Result<()> {
                     shader_program.use_program();
 
                     // TODO: lighting variables (this can imported from a json file?)
-                    lights.init_lights(&shader_program);
+                    lights.init_lights(&shader_program, false);
                     // shader_program.set_vector3(c_str!("lightDir"), &skies[sky].light_dir);
                     // shader_program.set_vector3(c_str!("lightAmb"), &skies[sky].light_ambience);
                     // shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
@@ -844,7 +846,9 @@ fn main() -> io::Result<()> {
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
 
                         arm.draw(&camera, &shader_program);
+                        lights.init_lights(&shader_program, true);
                         vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                        lights.init_lights(&shader_program, false);
                     }
 
                     // enable translucency for 2D HUD
