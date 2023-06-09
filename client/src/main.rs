@@ -90,6 +90,7 @@ fn main() -> io::Result<()> {
     let mut last_y: f32;
     let mut fullscreen = false;
     let mut f11_pressed = false;
+    let mut mmb_clicked = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -157,6 +158,7 @@ fn main() -> io::Result<()> {
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+    let mut rankings = Vec::new();;
 
     // render splash screen
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -217,7 +219,10 @@ fn main() -> io::Result<()> {
     // Create network TcpStream
     // TODO: change to connect_timeout?
     let mut stream = loop {
-        let addrs = (SERVER_ADDR.to_string() + ":" + &PORT.to_string()).to_socket_addrs().expect("Error loading socket address");
+        let (ip, port) = read_address_json("../shared/address.json");
+        let server_addr = ip + ":" + &port;
+
+        let addrs = server_addr.to_socket_addrs().expect("Error loading socket address");
         match TcpStream::connect_timeout(&addrs.last().unwrap(), Duration::from_millis(TICK_SPEED)) {
             Ok(s) => break s,
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
@@ -258,6 +263,8 @@ fn main() -> io::Result<()> {
 
     let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
 
+    let mut zoomed = false;
+
     // WINDOW LOOP
     // -----------
     loop {
@@ -274,7 +281,10 @@ fn main() -> io::Result<()> {
 
         match game_state {
             GameState::EnteringLobby => {
+                rankings.clear();
                 ready_sent = false; // prevents sending ready message twice
+                zoomed = false;
+                mmb_clicked = false;
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
@@ -290,13 +300,12 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    curr_id = client_id;
-                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                    if lobby_ecs.ids.len() > 0 {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
+                        gl::DepthMask(gl::FALSE);
+                        ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                        gl::DepthMask(gl::TRUE);
                     }
-                    gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
-                    gl::DepthMask(gl::TRUE);
                 }
 
                 // poll server for ready message or ready-player updates
@@ -338,6 +347,8 @@ fn main() -> io::Result<()> {
                     &mut window,
                     &mut input_component,
                     &mut roll,
+                    &mut zoomed,
+                    &mut mmb_clicked,
                     &mut first_click,
                     is_focused,
                 );
@@ -463,6 +474,12 @@ fn main() -> io::Result<()> {
                                     }
                                 },
                                 EventType::DeathEvent { player, killer } => {
+                                    let k_id = c_ecs.players.iter().position(|&x| x == killer).unwrap();
+                                    let p_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+
+                                    ui_elems.display_death_message(k_id, p_id);
+                                    
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
@@ -470,6 +487,10 @@ fn main() -> io::Result<()> {
                                         let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                         ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
                                     }
+                                }, 
+                                EventType::DisconnectEvent { player } => {
+                                    println!("a disconnect happened");
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                 }
                                 EventType::StartMoveEvent { player } => {
                                     if audio_enabled {
@@ -500,7 +521,6 @@ fn main() -> io::Result<()> {
                             // }
 
                             // change in velocity feels better
-                            let delta_v = (player_vel - vel_prev).magnitude();
                             let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
                             if delta_speed > 0.0 {
                                 camera.ScreenShake.add_trauma(delta_speed / 100.0);
@@ -522,6 +542,7 @@ fn main() -> io::Result<()> {
                     None => ()
                 }
 
+                camera.ProcessZoom(zoomed);
                 camera.ScreenShake.shake_camera();
 
                 // render
@@ -688,6 +709,15 @@ fn main() -> io::Result<()> {
 
                             // game has ended
                             if c_ecs.game_ended {
+                                for (i, player) in c_ecs.players.iter().enumerate() {
+                                    if  c_ecs.players.contains(player) &&
+                                        c_ecs.health_components[*player].alive &&
+                                        c_ecs.health_components[*player].health > 0
+                                    {
+                                        rankings.push(i);
+                                    }
+                                }
+                                rankings.reverse();
                                 game_state = GameState::GameOver;
                             }
                         }
@@ -703,7 +733,7 @@ fn main() -> io::Result<()> {
 
                     // draw skybox
                     let projection: Matrix4<f32> = perspective(
-                        Deg(camera.Zoom),
+                        Deg(camera.Fov),
                         width as f32 / height as f32,
                         0.1,
                         100.0
@@ -752,7 +782,7 @@ fn main() -> io::Result<()> {
                         game_state = GameState::EnteringLobby;
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game_over(&client_ecs);
+                    ui_elems.draw_game_over(curr_id, &client_ecs, &mut rankings);
                     gl::DepthMask(gl::TRUE);
                 }
             }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use slotmap::{SlotMap, SecondaryMap, DefaultKey};
-use std::str;
+use std::{str, fs};
 
 use crate::AMMO_COUNT;
 type Entity = DefaultKey;
@@ -177,7 +177,7 @@ impl PlayerHealthComponent {
     pub fn default() -> PlayerHealthComponent{
         PlayerHealthComponent {
             alive : true,
-            health : 3,
+            health : 2,
             hits: 0
         }
     }
@@ -209,6 +209,9 @@ pub enum EventType {
         player: Entity,
         killer: Entity
     },
+    DisconnectEvent {
+        player: Entity
+    },
     StartMoveEvent {
         player: Entity,
     },
@@ -238,4 +241,17 @@ impl VelocityComponent {
             vel_z: 0.0,
         }
     }
+}
+
+#[derive(Deserialize)]
+struct LoadAddress {
+    ip: String,
+    port: String,
+}
+
+pub fn read_address_json(path: &str) -> (String, String) {
+    let j = fs::read_to_string(path).expect("Error reading file {path}");
+    let address: LoadAddress = serde_json::from_str(&j).expect("Error deserializing file {path}");
+
+    return (address.ip, address.port);
 }

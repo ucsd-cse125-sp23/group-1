@@ -32,7 +32,7 @@ impl ForceField {
             let view = camera.GetViewMatrix();
             self.shader.set_mat4(c_str!("view"), &view);
             let projection: Matrix4<f32> = perspective(
-                Deg(camera.Zoom),
+                Deg(camera.Fov),
                 self.screen_size.x / self.screen_size.y,
                 0.1,
                 10000.0,

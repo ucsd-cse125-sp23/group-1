@@ -976,9 +976,16 @@ impl ECS {
      */
     fn handle_client_disconnect(&mut self, player: DefaultKey){
         self.network_components[player].connected = false;
-        self.player_health_components[player].alive = false;
-        self.player_health_components[player].health = 0;
-        self.active_players -= 1;
+        if self.player_health_components[player].alive {
+            self.player_health_components[player].alive = false;
+            self.player_health_components[player].health = 0;
+            self.active_players -= 1;
+
+            println!("player disconnected!");
+            let event_key = self.name_components.insert("disconnect_event".to_string());
+            self.event_components.insert(event_key, EventComponent{lifetime:EVENT_LIFETIME, event_type:EventType::DisconnectEvent { player: player }});
+            self.events.push(event_key);
+        }
     }
 
     /**

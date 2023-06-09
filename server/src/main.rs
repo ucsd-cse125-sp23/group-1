@@ -11,6 +11,7 @@ mod server_components;
 mod common;
 
 use shared::*;
+use shared::shared_components::read_address_json;
 use crate::common::*;
 
 fn main() {
@@ -28,7 +29,8 @@ fn main() {
     ecs.sky = get_rand_from_vec(&mut ecs.skies);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
-    let listener = TcpListener::bind("0.0.0.0:".to_string() + &PORT.to_string()).expect("Error binding address");
+    let (_ip, port) = read_address_json("../shared/address.json");
+    let listener = TcpListener::bind("0.0.0.0:".to_string() + &port).expect("Error binding address");
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener);
 
