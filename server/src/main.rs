@@ -11,6 +11,7 @@ mod server_components;
 mod common;
 
 use shared::*;
+use shared::shared_functions::read_address_json;
 use crate::common::*;
 
 fn main() {
@@ -28,7 +29,8 @@ fn main() {
     ecs.sky = get_rand_from_vec(&mut ecs.skies);
 
     // connection state -- 0.0.0.0 listens to all interfaces on given port
-    let listener = TcpListener::bind("0.0.0.0:".to_string() + &PORT.to_string()).expect("Error binding address");
+    let (_ip, port) = read_address_json("../shared/address.json");
+    let listener = TcpListener::bind("0.0.0.0:".to_string() + &port).expect("Error binding address");
     println!("[SERVER]: Waiting for at least one client...");
     ecs.connect_client(&listener);
 
@@ -53,7 +55,8 @@ fn main() {
             }
             // check each connection for ready updates
             ecs.check_ready_updates();
-            if ecs.ready_players.len() >= 2 && ecs.ready_players.len() == ecs.players.len() {
+            // if min. # of players reached and all players are ready
+            if ecs.ready_players.len() >= shared::MIN_PLAYERS && ecs.ready_players.len() == ecs.players.len() {
                 ecs.send_ready_message(true);
                 ecs.ready_players.clear();
                 break;

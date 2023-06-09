@@ -14,16 +14,20 @@ pub fn set_camera_pos(camera: &mut Camera, pos: Vector3<f32>, shader_program: &S
     camera.Position.y = pos.y;
     camera.Position.z = pos.z;
 
+    update_shader_camera(camera, shader_program, width, height);
+}
+
+pub fn update_shader_camera(camera: &Camera, shader: &Shader, width: u32, height: u32) {
     unsafe {
         let view = camera.GetViewMatrix();
-        shader_program.set_mat4(c_str!("view"), &view);
+        shader.set_mat4(c_str!("view"), &view);
         let projection: Matrix4<f32> = perspective(
-            Deg(camera.Zoom),
+            Deg(camera.Fov),
             width as f32 / height as f32,
             0.1,
             10000.0,
         );
-        shader_program.set_mat4(c_str!("projection"), &projection);
+        shader.set_mat4(c_str!("projection"), &projection);
     }
 }
 
@@ -83,12 +87,6 @@ pub fn process_events_game(
 
                 camera.ProcessMouseMovement(xoffset, yoffset, roll);
             }
-            glfw::WindowEvent::Scroll(_xoffset, yoffset) => {
-                if !is_focused {
-                    return;
-                }
-                camera.ProcessMouseScroll(yoffset as f32);
-            }
             // Exit with code 0 upon window close
             glfw::WindowEvent::Close => {
                 process::exit(0);
@@ -126,8 +124,8 @@ pub fn process_inputs_lobby(
     if !*first_enter && !*ready_sent && window.get_key(Key::Enter) == Action::Press {
         *ready_sent = true;
         // send ready JSON (hardcoded for now)
-        let ready_json = ReadyECS{ready:true};
-        write_data(stream, serde_json::to_string(&ready_json).unwrap());
+        let ready_bitcode = ReadyECS{ready:true};
+        write_data(stream, bitcode::serialize(&ready_bitcode).unwrap());
     }
     if window.get_key(Key::Enter) == Action::Release {
         *first_enter = false;
@@ -139,6 +137,8 @@ pub fn process_inputs_game(
     window: &mut glfw::Window,
     input_component: &mut PlayerInputComponent,
     roll: &mut bool,
+    zoomed: &mut bool,
+    mmb_clicked: &mut bool,
     first_click: &mut bool,
     is_focused: bool
 ) {
@@ -164,6 +164,12 @@ pub fn process_inputs_game(
     if window.get_key(Key::LeftControl) == Action::Press {
         input_component.ctrl_pressed = true;
     }
+    if window.get_key(Key::Enter) == Action::Press {
+        input_component.enter_pressed = true;
+    }
+    if window.get_key(Key::LeftAlt) == Action::Press && window.get_key(Key::P) == Action::Press {
+        input_component.reset_pressed = true;
+    }
     if window.get_key(Key::R) == Action::Press {
         input_component.r_pressed = true;
     }
@@ -178,6 +184,13 @@ pub fn process_inputs_game(
     }
     if window.get_mouse_button(glfw::MouseButtonLeft) == Action::Release {
         *first_click = false;
+    }
+    if !*mmb_clicked && window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Press {
+        *zoomed = !*zoomed;
+        *mmb_clicked = true;
+    }
+    if *mmb_clicked && window.get_mouse_button(glfw::MouseButtonMiddle) == Action::Release {
+        *mmb_clicked = false;
     }
 
     // TODO: add additional quit hotkey?

@@ -21,8 +21,12 @@ mod init_skies;
 mod init_models;
 mod velocity_indicator;
 mod lights;
+mod arm;
+mod tracer;
+mod particle_emitter;
 
 use std::collections::HashMap;
+use std::f32::consts::PI;
 use std::time::Duration;
 
 // graphics
@@ -30,16 +34,19 @@ extern crate gl;
 extern crate glfw;
 
 use self::glfw::{Action, Context, Key};
+use cgmath::InnerSpace;
 use cgmath::{
     perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector3, Vector4, Zero
+    Transform, Vector3, Vector4
 };
 
 use std::ffi::CStr;
 
 use crate::camera::*;
 use crate::model::Model;
+use crate::particle_emitter::ParticleEmitterSpecifier;
 use crate::shader::Shader;
+use crate::particle_emitter::ParticleEmitter;
 use crate::audio::AudioPlayer;
 use crate::common::*;
 use crate::force_field::ForceField;
@@ -48,6 +55,8 @@ use crate::tracker::Tracker;
 use crate::velocity_indicator::VelocityIndicator;
 use crate::lights::Light;
 use crate::lights::Lights;
+use crate::arm::Arm;
+use crate::tracer::TracerManager;
 
 // network
 use shared::shared_components::*;
@@ -56,7 +65,6 @@ use shared::*;
 use std::io::{self, Read};
 use std::net::{ToSocketAddrs, TcpStream};
 use std::process;
-use std::str;
 
 use slotmap::{SecondaryMap,DefaultKey};
 
@@ -89,6 +97,7 @@ fn main() -> io::Result<()> {
     let mut last_y: f32;
     let mut fullscreen = false;
     let mut f11_pressed = false;
+    let mut mmb_clicked = false;
 
     // glfw: initialize and configure
     // ------------------------------
@@ -156,6 +165,7 @@ fn main() -> io::Result<()> {
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
+    let mut rankings = Vec::new();;
 
     // render splash screen
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -172,15 +182,23 @@ fn main() -> io::Result<()> {
 
     // set up tracker
     let tracker_colors: [Vector4<f32>; 4] = [
-        vec4(222.0 / 255.0, 135.0 / 255.0, 135.0 / 255.0, 1.0),
-        vec4(135.0 / 255.0, 205.0 / 255.0, 222.0 / 255.0, 1.0),
-        vec4(255.0 / 255.0, 230.0 / 255.0, 128.0 / 255.0, 1.0),
-        vec4(170.0 / 255.0, 222.0 / 255.0, 135.0 / 255.0, 1.0),
+        vec4(224.0 / 255.0, 14.0 / 255.0, 115.0 / 255.0, 1.0),
+        vec4(98.0 / 255.0, 168.0 / 255.0, 205.0 / 255.0, 1.0),
+        vec4(252.0 / 255.0, 201.0 / 255.0, 0.0 / 255.0, 1.0),
+        vec4(88.0 / 255.0, 180.0 / 255.0, 36.0 / 255.0, 1.0),
     ];
     let mut tracker = unsafe {
         let tracker = Tracker::new(sprite_shader.id, 0.9, vec2(width as f32, height as f32));
         tracker
     };
+
+    // set up tracers
+    let mut tracers = TracerManager::new(vec![
+        Model::new("resources/models/tracer/tracer_p1.obj"),
+        Model::new("resources/models/tracer/tracer_p2.obj"),
+        Model::new("resources/models/tracer/tracer_p3.obj"),
+        Model::new("resources/models/tracer/tracer_p4.obj"),
+    ], screen_size);
 
     // create force field
     let force_field = ForceField::new(250.0, screen_size);
@@ -190,6 +208,33 @@ fn main() -> io::Result<()> {
 
     // create velocity indicator
     let mut vel_indicator = VelocityIndicator::new();
+
+    // create first person model
+    let mut arm = Arm::new();
+
+    // list of particle emitters
+    let mut particle_emitters = Vec::<ParticleEmitter>::new();
+    let mut emitter_specifiers:HashMap<String, ParticleEmitterSpecifier> = HashMap::new();
+    emitter_specifiers.insert("hit_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.08, stl_max: 0.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 2.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 0.25,
+        particles_per_100ms: 10
+    });
+    emitter_specifiers.insert("fire_spark".to_string(), ParticleEmitterSpecifier{
+        stl_min: 0.8, stl_max: 1.2,
+        scl_min: 0.05, scl_max: 0.1,
+        phi_max: PI / 6.,
+        col_start: vec4(1., 0., 0., 1.),
+        col_end: vec4(1., 1., 0., 1.),
+        particle_limit: 50,
+        secs_to_live: 0.25,
+        particles_per_100ms: 2
+    });
 
     // client ECS to be sent to server
     let mut client_ecs: Option<ClientECS> = None;
@@ -201,11 +246,17 @@ fn main() -> io::Result<()> {
     let mut game_state = GameState::InLobby;
     let mut is_focused = true;
     let mut ready_sent = false;
+    let mut spectator_mode = false;
+    let mut show_death_screen = false;
+    let mut show_game_over_screen = false;
 
     // Create network TcpStream
     // TODO: change to connect_timeout?
     let mut stream = loop {
-        let addrs = (SERVER_ADDR.to_string() + ":" + &PORT.to_string()).to_socket_addrs().expect("Error loading socket address");
+        let (ip, port) = read_address_json("../shared/address.json");
+        let server_addr = ip + ":" + &port;
+
+        let addrs = server_addr.to_socket_addrs().expect("Error loading socket address");
         match TcpStream::connect_timeout(&addrs.last().unwrap(), Duration::from_millis(TICK_SPEED)) {
             Ok(s) => break s,
             Err(e) if e.kind() == std::io::ErrorKind::TimedOut => {
@@ -241,10 +292,20 @@ fn main() -> io::Result<()> {
     let mut curr_id = client_id;
 
     let mut frame_count = 0;
+    let mut delta_time;
+    let mut last_frame = 0.0;
+
+    let mut vel_prev: Vector3<f32> = vec3(0.0,0.0,0.0);
+
+    let mut zoomed = false;
 
     // WINDOW LOOP
     // -----------
     loop {
+        let current_frame = glfw.get_time() as f32;
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+
         // set cursor mode based on is_focused
         if is_focused && game_state != GameState::InLobby {
             window.set_cursor_mode(glfw::CursorMode::Disabled);
@@ -254,7 +315,10 @@ fn main() -> io::Result<()> {
 
         match game_state {
             GameState::EnteringLobby => {
+                rankings.clear();
                 ready_sent = false; // prevents sending ready message twice
+                zoomed = false;
+                mmb_clicked = false;
                 game_state = GameState::InLobby;
             }
             GameState::InLobby => {
@@ -270,21 +334,19 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    curr_id = client_id;
-                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                    if lobby_ecs.ids.len() > 0 {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
+                        gl::DepthMask(gl::FALSE);
+                        ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                        gl::DepthMask(gl::TRUE);
                     }
-                    gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
-                    gl::DepthMask(gl::TRUE);
                 }
 
                 // poll server for ready message or ready-player updates
                 let received = read_data(&mut stream);
                 if received.len() > 0 {
                     // ignore malformed input (probably leftover game state)
-                    let res: Result<LobbyECS, serde_json::Error> =
-                        serde_json::from_str(received.as_str());
+                    let res: Result<LobbyECS, bitcode::Error> = bitcode::deserialize(&received);
                     match res {
                         Ok(l_ecs) => {
                             lobby_ecs = l_ecs.clone();
@@ -322,10 +384,14 @@ fn main() -> io::Result<()> {
 
                 let mut roll = false;
 
+                let mut player_vel = vec3(0.0, 0.0, 0.0);
+
                 process_inputs_game(
                     &mut window,
                     &mut input_component,
                     &mut roll,
+                    &mut zoomed,
+                    &mut mmb_clicked,
                     &mut first_click,
                     is_focused,
                 );
@@ -348,7 +414,7 @@ fn main() -> io::Result<()> {
 
                 // send client data if player is still alive
                 if client_health.alive {
-                    let j = serde_json::to_string(&input_component)
+                    let j = bitcode::serialize(&input_component)
                         .expect("Input component serialization error");
                     write_data(&mut stream, j);
                 } // TODO: support spectator movement
@@ -381,10 +447,10 @@ fn main() -> io::Result<()> {
                             stream
                                 .read_exact(&mut read_buf)
                                 .expect("read_exact did not read the same amount of bytes as peek");
-                            let message: &str = str::from_utf8(&read_buf[4..])
-                                .expect("Error converting buffer to string");
-                            // TODO: handle this throwing an error. Occasionally crashes ^
-                            let value: ClientECS = serde_json::from_str(message)
+                            // let message: &str = str::from_utf8(&read_buf[4..])
+                            //     .expect("Error converting buffer to string");
+                            // // TODO: handle this throwing an error. Occasionally crashes ^
+                            let value: ClientECS = bitcode::deserialize(&read_buf[4..])
                                 .expect("Error converting string to ClientECS");
                             client_ecs = Some(value);
                         }
@@ -398,33 +464,29 @@ fn main() -> io::Result<()> {
                     }
                 }
 
+                // Handle events for visual and audio effects.
                 match &client_ecs {
                     Some(c_ecs) => {
+                        let audio_enabled = audio.is_some() && (!AUDIO_DEBUG || client_id == 0);
+                        // Update emitter positions
+                        if audio.is_some() {
+                            audio.as_mut().unwrap().update_emitters(&c_ecs.position_components);
+                        }
+
                         let player_key = c_ecs.ids[client_id];
+                        let mut screenshake_event = false;
                         // make sure we haven't handled this event yet
                         for &event in &c_ecs.events {
                             if client_events.contains_key(event) {
                                 continue;
                             }
-                            client_events.insert(event, ());
-                            // check event type
-                            // skip audio events for all but client 0 if we're debugging on same machine
-                            if c_ecs.audio_components.contains_key(event) && (!AUDIO_DEBUG || client_id == 0) {
-                                let audio_event = &c_ecs.audio_components[event];
-                                match &mut audio {
-                                    Some(audioplayer) => {
-                                        match audioplayer.play_sound(&audio_event.name, audio_event.x, audio_event.y, audio_event.z){
-                                            Ok(_) => (),
-                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
-                                        };
-                                    },
-                                    None => ()
-                                }
-                            }
+                            client_events.insert(event, ());     
                             match c_ecs.event_components[event].event_type {
                                 EventType::FireEvent { player } => {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
+                                        arm.shoot();
+                                        screenshake_event = true;
                                     }
 
                                     lights.add_light(Light::new(
@@ -436,28 +498,114 @@ fn main() -> io::Result<()> {
                                             vec3(1., 0., 0.), 
                                         vec3(0., 0., 1.), true, 2.5 
                                     ));
+                                    let player_pos = &c_ecs.position_components[player];
+                                    // only play for client 0 if we're debugging on the same machine
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_sound(&"fire".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                    // TODO: muzzle flash position isn't exactly correct
+                                    // amd iherit veloctiy
+                                    // particle_emitters.push(ParticleEmitter::new(
+                                    //     vec3(
+                                    //         c_ecs.position_components[player_key].x,
+                                    //         c_ecs.position_components[player_key].y,
+                                    //         c_ecs.position_components[player_key].z,
+                                    //     ), 
+                                    //     camera.Front,
+                                    //     vec3(
+                                    //         c_ecs.velocity_components[player_key].vel_x,
+                                    //         c_ecs.velocity_components[player_key].vel_y,
+                                    //         c_ecs.velocity_components[player_key].vel_z
+                                    //     ),
+                                    //     &emitter_specifiers["fire_spark"]
+                                    // ));
                                 },
-                                EventType::HitEvent { player, target } => {
+                                EventType::HitEvent { player, target , hit_x, hit_y, hit_z} => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
                                         camera.ScreenShake.add_trauma(0.5);
-                                        ui_elems.damage.add_alpha(0.5);
+                                        screenshake_event = true;
+                                        ui_elems.damage.add_alpha(0.6);
                                     } else if player == player_key && c_ecs.players.contains(&target) && c_ecs.health_components[target].alive {
                                         ui_elems.hitmarker.add_alpha(1.0);
                                     }
+                                    let particle_component = &c_ecs.particle_components[event];
+                                    particle_emitters.push(ParticleEmitter::new(
+                                        vec3(particle_component.x,
+                                            particle_component.y,particle_component.z), 
+                                        vec3(particle_component.normal_x,
+                                            particle_component.normal_y, particle_component.normal_z),
+                                        vec3(particle_component.vel_x,
+                                            particle_component.vel_y, particle_component.vel_z),
+                                        &emitter_specifiers["hit_spark"]
+                                    ));
+                                    let player_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                    tracers.add_tracer(player_id, &c_ecs.position_components[player], vec3(hit_x, hit_y, hit_z), player == player_key);
+                                },
+                                EventType::ReloadEvent { player } => {
+                                    if player == player_key {
+                                        arm.reload();
+                                    }
                                 },
                                 EventType::DeathEvent { player, killer } => {
+                                    let k_id = c_ecs.players.iter().position(|&x| x == killer).unwrap();
+                                    let p_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+
+                                    ui_elems.display_death_message(k_id, p_id);
+                                    
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(1.0);
                                         ui_elems.damage.add_alpha(1.0);
+                                        show_death_screen = true;
                                     } else if killer == player_key {
-                                        ui_elems.hitmarker.add_alpha(1.0);
+                                        let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
+                                        ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
                                     }
+                                }, 
+                                EventType::DisconnectEvent { player } => {
+                                    rankings.push(c_ecs.players.iter().position(|&x| x == player).unwrap());
+                                }
+                                EventType::StartMoveEvent { player } => {
+                                    if audio_enabled {
+                                        let player_pos = &c_ecs.position_components[player];
+                                        match audio.as_mut().unwrap().play_sound(&"thruster".to_string(), player_pos.x, player_pos.y, player_pos.z, Some(player)) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
+                                }
+                                EventType::StopMoveEvent {player} => {
+                                    if audio_enabled {
+                                        audio.as_mut().unwrap().stop_thruster(player);
+                                    };
                                 }
                             }
                         }
 
+                        // player velocity
+                        let velocity = &c_ecs.velocity_components[player_key];
+                        player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
+                        if !screenshake_event {
+                            // kinetic energy should be more realistic, but feels wrong
+                            // let delta_ke = (0.5 * velocity.mass * (player_vel.magnitude().powi(2) - vel_prev.magnitude().powi(2))).abs();
+                            // if delta_ke > 0.0 {
+                            //     camera.ScreenShake.add_trauma(delta_ke / 1000.0);
+                            //     println!("KE change: {}", delta_ke);
+                            // }
+
+                            // change in velocity feels better
+                            let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
+                            if delta_speed > 0.0 {
+                                camera.ScreenShake.add_trauma(delta_speed / 100.0);
+                            }
+                        }
+                        vel_prev = player_vel;
+
                         // dead player camera
-                        if !c_ecs.health_components[player_key].alive {
+                        if !c_ecs.health_components[player_key].alive && !spectator_mode {
                             camera.RotQuat = Quaternion::new(
                                 c_ecs.position_components[player_key].qw,
                                 c_ecs.position_components[player_key].qx,
@@ -470,6 +618,7 @@ fn main() -> io::Result<()> {
                     None => ()
                 }
 
+                camera.ProcessZoom(zoomed);
                 camera.ScreenShake.shake_camera();
 
                 // render
@@ -488,8 +637,6 @@ fn main() -> io::Result<()> {
                     // shader_program.set_vector3(c_str!("lightDif"), &skies[sky].light_diffuse);
 
                     let mut trackers = vec![];
-                    let mut player_pos_ff = Vector3::zero();
-                    let mut player_vel = vec3(0.0, 0.0, 0.0);
 
                     // NEEDS TO BE REWORKED FOR MENU STATE
                     match &client_ecs {
@@ -528,17 +675,23 @@ fn main() -> io::Result<()> {
                                 },
                                 _ => ()
                             }
-                            // player position used for force field
-                            player_pos_ff = player_pos;
-                            set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
-                            shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
 
-                            let velocity = &c_ecs.velocity_components[player_key];
-                            player_vel = vec3(velocity.vel_x, velocity.vel_y, velocity.vel_z);
+                            if !client_health.alive && input_component.enter_pressed {
+                                spectator_mode = true;
+                                show_death_screen = false;
+                            }
+
+                            if !client_health.alive && spectator_mode {
+                                camera.ProcessKeyboard(&input_component, delta_time, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            } else {
+                                set_camera_pos(&mut camera, player_pos, &shader_program, width, height);
+                                shader_program.set_vector3(c_str!("viewPos"), &camera.Position.to_vec());
+                            }
 
                             for &renderable in &c_ecs.renderables {
                                 let model_name = &c_ecs.model_components[renderable].modelname;
-                                if renderable == player_key {
+                                if renderable == player_key && !spectator_mode {
                                     continue;
                                 }
                                 if !models.contains_key(model_name) {
@@ -631,9 +784,30 @@ fn main() -> io::Result<()> {
                                 }
                                 i += 1;
                             }
+                            // render particle effects                
+                            shader_program.set_bool(c_str!("use_color"), true);
+                            for i in (0..particle_emitters.len()).rev(){
+                                let die = particle_emitters[i].draw(&models["cube"], &shader_program);
+                                if die{
+                                    particle_emitters.remove(i);
+                                }
+                            }                
+                            shader_program.set_bool(c_str!("use_color"), false); 
+                            
+
+                            show_game_over_screen = c_ecs.active_players <= 1;
 
                             // game has ended
                             if c_ecs.game_ended {
+                                for (i, player) in c_ecs.players.iter().enumerate() {
+                                    if  c_ecs.players.contains(player) &&
+                                        c_ecs.health_components[*player].alive &&
+                                        c_ecs.health_components[*player].health > 0
+                                    {
+                                        rankings.push(i);
+                                    }
+                                }
+                                rankings.reverse();
                                 game_state = GameState::GameOver;
                             }
                         }
@@ -649,7 +823,7 @@ fn main() -> io::Result<()> {
 
                     // draw skybox
                     let projection: Matrix4<f32> = perspective(
-                        Deg(camera.Zoom),
+                        Deg(camera.Fov),
                         width as f32 / height as f32,
                         0.1,
                         100.0
@@ -657,16 +831,30 @@ fn main() -> io::Result<()> {
 
                     skies[sky].skybox.draw(camera.GetViewMatrix(), projection);
 
-                    force_field.draw(&camera, player_pos_ff);
-
-                    // HUD elements should always be rendered on top
-                    // TODO: call gl::Clear only after rendering forcefield
-                    gl::Clear(gl::DEPTH_BUFFER_BIT);
-                    vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
-
+                    // enable translucency for force field
                     gl::DepthMask(gl::FALSE);
+
+                    force_field.draw(&camera, camera.Position.to_vec());
+                    tracers.draw_tracers(&camera);
+
+                    // disable translucency for velocity indicator and first person model
+                    gl::DepthMask(gl::TRUE);
+                    // HUD elements should always be rendered on top
+                    if !spectator_mode {
+                        gl::Clear(gl::DEPTH_BUFFER_BIT);
+
+                        arm.draw(&camera, &shader_program);
+                        vel_indicator.draw(&camera, player_vel, width as f32 / height as f32, &shader_program);
+                    }
+
+                    // enable translucency for 2D HUD
+                    gl::DepthMask(gl::FALSE);
+
                     tracker.draw_all_trackers(trackers);
-                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs);
+
+                    ui_elems.draw_game(curr_id, client_health.alive, client_ammo, &client_ecs, spectator_mode, show_death_screen, show_game_over_screen);
+
+                    // disable translucency for next loop
                     gl::DepthMask(gl::TRUE);
 
                     frame_count += 1;
@@ -674,6 +862,10 @@ fn main() -> io::Result<()> {
                 }
             }
             GameState::GameOver => {
+                spectator_mode = false;
+                show_death_screen = false;
+                show_game_over_screen = false;
+
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
@@ -683,7 +875,7 @@ fn main() -> io::Result<()> {
                         game_state = GameState::EnteringLobby;
                     }
                     gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_game_over(&client_ecs);
+                    ui_elems.draw_game_over(curr_id, &client_ecs, &mut rankings);
                     gl::DepthMask(gl::TRUE);
                 }
             }

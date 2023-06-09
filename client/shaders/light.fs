@@ -19,6 +19,9 @@ uniform sampler2D texture_normal1;
 uniform vec3 lightAmb[12];
 uniform vec3 lightDif[12];
 uniform int lightType[12];
+uniform int use_color;
+uniform vec4 color_overwrite;
+
 
 void main()
 {
@@ -70,4 +73,8 @@ void main()
     }
 
     color = vec4(result, 1.0f);
+    
+    if (use_color == 1) {
+        color = color_overwrite;
+    }
 }
