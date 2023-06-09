@@ -7,10 +7,10 @@ layout (location = 4) in vec3 aBitangent;
 
 out vec2 TexCoords;
 out vec3 Normal;
-out vec3 LightPos[4];
+out vec3 LightPos[12];
 out vec3 ViewPos;
 out vec3 FragPos;
-out vec3 TangentLightPos[4];
+out vec3 TangentLightPos[12];
 out vec3 TangentViewPos;
 out vec3 TangentFragPos;
 out mat3 TBN;
@@ -21,8 +21,8 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 viewPos;
 
-uniform vec3 lightDir[4];
-uniform int lightType[4];
+uniform vec3 lightDir[12];
+uniform int lightType[12];
 
 void main()
 {
@@ -41,7 +41,7 @@ void main()
     TangentFragPos  = TBN * pos;
     
     // setup the light positions
-    for (int i=0; i<4; i++){
+    for (int i=0; i<12; i++){
 
         // assume its point light, change to directional light if nec
         LightPos[i] = lightDir[i];

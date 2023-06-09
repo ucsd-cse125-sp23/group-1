@@ -2,10 +2,10 @@
 
 in vec2 TexCoords;
 in vec3 Normal;
-in vec3 LightPos[4];
+in vec3 LightPos[12];
 in vec3 ViewPos;
 in vec3 FragPos;
-in vec3 TangentLightPos[4];
+in vec3 TangentLightPos[12];
 in vec3 TangentViewPos;
 in vec3 TangentFragPos;
 in mat3 TBN;
@@ -16,9 +16,9 @@ uniform sampler2D texture_diffuse1;
 uniform int load_normal;
 uniform sampler2D texture_normal1;
 
-uniform vec3 lightAmb[4];
-uniform vec3 lightDif[4];
-uniform int lightType[4];
+uniform vec3 lightAmb[12];
+uniform vec3 lightDif[12];
+uniform int lightType[12];
 
 void main()
 {
@@ -32,7 +32,7 @@ void main()
 
     // loop over all the lights to calculate final color
     vec3 result = vec3(0., 0., 0.);
-    for (int i=0; i<4; i++){
+    for (int i=0; i<12; i++){
 
         if (lightType[i] == 0){
             continue;
@@ -40,9 +40,13 @@ void main()
 
         // get lightDir, same math for point/dir light
         vec3 lightDir = normalize(LightPos[i] - FragPos);
+        vec3 lightDis = LightPos[i] - FragPos;
         if (load_normal == 1) {
             lightDir = normalize(TangentLightPos[i] - TangentFragPos);
+            lightDis = TangentLightPos[i] - TangentFragPos;
         }
+
+        
 
         // diffuse calculation
         float diff = max(dot(normal, lightDir), 0.0);
@@ -52,13 +56,17 @@ void main()
             diffuse = max(dot(-normal, lightDir) * 0.25, 0.0) * lightDif[i];
         }
 
-// // TODO: if point light, the intensity should drop squared when dis increases
-
         // add ambient to result
         vec3 textureColor = texture(texture_diffuse1, TexCoords).rgb;
-        result += (lightAmb[i] + diffuse) * textureColor;
-        // result += lightAmb[i];      // everything is grey
-        // yea im not setting the variables right changin it dones't change this color
+        vec3 lightVal = (lightAmb[i] + diffuse) * textureColor;
+        
+        // light intensity tapers off ther further the object is 
+        if (lightType[i] == 1){
+            float dis = lightDis.x*lightDis.x + lightDis.y*lightDis.y + lightDis.z*lightDis.z;
+            lightVal /= dis;
+        }
+
+        result += lightVal;
     }
 
     color = vec4(result, 1.0f);

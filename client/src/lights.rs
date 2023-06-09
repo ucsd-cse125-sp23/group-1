@@ -1,11 +1,11 @@
-use std::ffi::{CStr};
+use std::{ffi::{CStr}, cmp::min};
 use cgmath::{vec3, Vector3};
 use std::time::{Instant};
 
 use crate::shader::Shader;
 
 
-const MAX_LIGHTS: usize = 4;
+const MAX_LIGHTS: usize = 12;
 
 pub struct Light{ 
     light_dir: Vector3<f32>,
@@ -29,7 +29,9 @@ impl Light{
 pub struct Lights{lights: Vec<Light>}
 impl Lights{
     pub fn new() -> Lights{Lights{lights: Vec::new()}}
-    pub fn add_light(&mut self, light: Light){self.lights.push(light);}
+    pub fn add_light(&mut self, light: Light){
+        self.lights.push(light);
+    }
     pub fn clear(&mut self){self.lights.clear();}
 
     pub fn init_lights(&mut self, shader: &Shader){
@@ -48,7 +50,7 @@ impl Lights{
         }
         
         // initialize variables to go into the shader
-        let mut light_types: [i32; 4] = [0; MAX_LIGHTS];
+        let mut light_types = [0; MAX_LIGHTS];
         let mut light_dirs = [vec3(0.,0.,0.); MAX_LIGHTS];
         let mut light_ambs = [vec3(0.,0.,0.); MAX_LIGHTS];
         let mut light_difs = [vec3(0.,0.,0.); MAX_LIGHTS];

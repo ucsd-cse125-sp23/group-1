@@ -293,12 +293,7 @@ fn main() -> io::Result<()> {
                                 sky = lobby_ecs.sky;
                                 lights.clear();
 
-                                // do i need to add clone here?
-                                println!("adding in the new light source");
                                 lights.add_light(Light::new(
-                                    // vec3(0.,0.,1.),
-                                    // vec3(1.,0.,0.),
-                                    // vec3(1.,0.,0.),
                                     skies[sky].light_dir,
                                     skies[sky].light_ambience,
                                     skies[sky].light_diffuse,
@@ -431,6 +426,16 @@ fn main() -> io::Result<()> {
                                     if player == player_key {
                                         camera.ScreenShake.add_trauma(0.3);
                                     }
+
+                                    lights.add_light(Light::new(
+                                        // vec3(
+                                        //     c_ecs.position_components[player_key].x,
+                                        //     c_ecs.position_components[player_key].y,
+                                        //     c_ecs.position_components[player_key].z,), 
+                                           vec3(0., 0., 0.),
+                                            vec3(1., 0., 0.), 
+                                        vec3(0., 0., 1.), true, 2.5 
+                                    ));
                                 },
                                 EventType::HitEvent { player, target } => {
                                     if target == player_key && c_ecs.health_components[player_key].alive {
