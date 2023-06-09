@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Matrix4, Point3, SquareMatrix, EuclideanSpace, InnerSpace, perspective, Deg, Vector2, vec3, Quaternion, Transform};
+use cgmath::{Vector3, Matrix4, Point3, SquareMatrix, EuclideanSpace, InnerSpace, Vector2, vec3, Quaternion, Transform};
 use shared::shared_components::PositionComponent;
 use std::time::Instant;
 use std::ffi::CStr;

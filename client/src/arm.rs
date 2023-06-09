@@ -2,9 +2,7 @@ use crate::camera::Camera;
 use crate::model::Model;
 use crate::shader::Shader;
 use cgmath::num_traits::{abs, pow};
-use cgmath::{vec3, EuclideanSpace, Matrix4, Point3, Quaternion, SquareMatrix, Transform, Zero};
-use std::ops::Add;
-use std::time::Duration;
+use cgmath::{EuclideanSpace, Matrix4, Point3, Quaternion, SquareMatrix, Transform};
 use std::{ffi::CStr, time::Instant};
 
 const RECOIL_DURATION: f32 = 0.05;

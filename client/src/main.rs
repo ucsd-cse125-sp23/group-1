@@ -34,7 +34,7 @@ use self::glfw::{Action, Context, Key};
 use cgmath::InnerSpace;
 use cgmath::{
     perspective, vec2, vec3, vec4, Deg, EuclideanSpace, Matrix4, Point3, Quaternion,
-    Transform, Vector3, Vector4, Zero
+    Transform, Vector3, Vector4
 };
 
 use std::ffi::CStr;
@@ -485,8 +485,6 @@ fn main() -> io::Result<()> {
                             let delta_speed = (player_vel.magnitude() - vel_prev.magnitude()).abs();
                             if delta_speed > 0.0 {
                                 camera.ScreenShake.add_trauma(delta_speed / 100.0);
-                                println!("Delta-V: {}", delta_v);
-                                println!("Delta-Speed: {}", delta_speed);
                             }
                         }
                         vel_prev = player_vel;
