@@ -53,7 +53,8 @@ fn main() {
             }
             // check each connection for ready updates
             ecs.check_ready_updates();
-            if ecs.ready_players.len() >= 2 && ecs.ready_players.len() == ecs.players.len() {
+            // if min. # of players reached and all players are ready
+            if ecs.ready_players.len() >= shared::MIN_PLAYERS && ecs.ready_players.len() == ecs.players.len() {
                 ecs.send_ready_message(true);
                 ecs.ready_players.clear();
                 break;

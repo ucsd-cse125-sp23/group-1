@@ -8,10 +8,12 @@ pub mod shared_functions;
 // server tick speed, in ms
 // stored as 64 bit int to avoid casting for comparison
 pub const TICK_SPEED: u64 = 16;
-pub const MOVE_DELTA: f32 = 0.1;
-pub const PORT: u32 = 2345;
+// localhost: 127.0.0.1
+// demo server IP: 137.110.115.157
 pub const SERVER_ADDR: &str = "127.0.0.1";
-pub const MIN_PLAYERS: u8 = 2;
+pub const PORT: u32 = 2345;
+
+pub const MIN_PLAYERS: usize = 2;
 pub const AMMO_COUNT: u8 = 6;
 
 /** ===========================================================================
@@ -19,7 +21,7 @@ pub const AMMO_COUNT: u8 = 6;
 ============================================================================ */ 
 
 // graphics settings
-pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.0.1";
+pub const WINDOW_TITLE: &str = "Rootin' Tootin' Spaceman Shootin' 0.2";
 
 pub const PLAYER_CIRCLE_BORDER: f32 = 22.0;
 pub const BAR_BORDER: f32 = 9.0;
@@ -153,6 +155,8 @@ pub const P2_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker
 pub const P3_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p3.png";
 pub const P4_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker_p4.png";
 
-// audio settings
-pub const AUDIO_DEBUG: bool = false;
+/** ===========================================================================
+ * audio settings
+============================================================================ */ 
+pub const AUDIO_DEBUG: bool = true; // mutes all clients but one when set to true
 pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames
