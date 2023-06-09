@@ -3,7 +3,6 @@ use crate::sprite_renderer::{Anchor, Sprite};
 use cgmath::{vec2, Vector2, vec3};
 use shared::*;
 use shared::shared_components::*;
-use slotmap::DefaultKey;
 
 pub struct UI {
     // ========================== splash ui elements ==========================
@@ -271,7 +270,7 @@ impl UI {
         unsafe {
             self.crosshair.draw();
             self.hitmarker.draw();
-            self.ammo[client_id].draw();
+            self.ammo[client_ammo as usize].draw();
 
             match c_ecs {
                 Some(ecs) => {
@@ -352,25 +351,18 @@ impl UI {
 
             match c_ecs {
                 Some(ecs) => {
-                    // for (i, player) in ecs.players.iter().enumerate() {
-                    //     if  ecs.players.contains(player) &&
-                    //         ecs.health_components[*player].alive &&
-                    //         ecs.health_components[*player].health > 0
-                    //     {
-                    //         self.winner_card[i].draw();
-
-                    //         self.player_txt[i].set_position(self.bar_pos[0]);
-                    //         self.player_txt[i].draw();
-                            
-                    //         let hit_count = &mut self.hits[ecs.health_components[*player].hits as usize];
-                    //         hit_count.set_position(self.bar_pos[0]);
-                    //         hit_count.draw();
-                    //     }
-                    // }
-
                     for (i, player) in rankings.iter().enumerate() {
-                        self.player_txt[*player].set_position(self.bar_pos[i]);
-                        self.player_txt[*player].draw();
+                        if i == 0 {
+                            self.winner_card[*player].draw();
+                        }
+
+                        if curr_id == *player {
+                            self.player_you_txt[*player].set_position(self.bar_pos[i]);
+                            self.player_you_txt[*player].draw(); 
+                        } else {
+                            self.player_txt[*player].set_position(self.bar_pos[i]);
+                            self.player_txt[*player].draw(); 
+                        }
                         
                         let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
                         hit_count.set_position(self.bar_pos[i]);
