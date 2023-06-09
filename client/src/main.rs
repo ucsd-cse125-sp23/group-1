@@ -158,7 +158,7 @@ fn main() -> io::Result<()> {
 
     // set up ui
     let mut ui_elems = ui::UI::initialize(screen_size, sprite_shader.id, width as f32, height as f32);
-    let mut rankings = Vec::new();;
+    let mut rankings = Vec::new();
 
     // render splash screen
     unsafe { gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT) };
@@ -487,6 +487,12 @@ fn main() -> io::Result<()> {
                                         let target_id = c_ecs.players.iter().position(|&x| x == player).unwrap();
                                         ui_elems.killmarkers[target_id % ui_elems.killmarkers.len()].add_alpha(2.0);
                                     }
+                                    if audio_enabled {
+                                        match audio.as_mut().unwrap().play_static(&"death".to_string()) {
+                                            Ok(_) => (),
+                                            Err(e) => eprintln!("Audio error playing sound: {e}"),
+                                        };
+                                    }
                                 }, 
                                 EventType::DisconnectEvent { player } => {
                                     println!("a disconnect happened");
@@ -772,6 +778,10 @@ fn main() -> io::Result<()> {
             }
             GameState::GameOver => {
                 spectator_mode = false;
+                // otherwise the thruster sound will keep looping
+                if audio.is_some() {
+                    audio.as_mut().unwrap().stop_all_sounds();
+                }
 
                 unsafe{
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);

@@ -154,5 +154,9 @@ pub const P4_KILLMARKER_PATH: &str = "resources/ui_textures/crosshair/killmarker
 /** ===========================================================================
  * audio settings
 ============================================================================ */
-pub const AUDIO_DEBUG: bool = false; // mutes all clients but one when set to true
+pub const AUDIO_DEBUG: bool = true; // mutes all clients but one when set to true
 pub const AUDIO_FRAMES: u8 = 10; // move audio listener every N frames
+
+// distances at which audio is full volume and inaudible, respectively
+pub const ATT_MIN: f32 = 10.0;
+pub const ATT_MAX: f32 = 500.;
