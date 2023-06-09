@@ -7,130 +7,49 @@ use slotmap::DefaultKey;
 
 pub struct UI {
     // ========================== splash ui elements ==========================
-    pub splash: Sprite,
-  
+    splash: Sprite,
+
     // ========================== lobby ui elements ===========================
-    pub p1_lobby: Sprite,
-    pub p2_lobby: Sprite,
-    pub p3_lobby: Sprite,
-    pub p4_lobby: Sprite,
-    pub p1: Sprite,
-    pub p2: Sprite,
-    pub p3: Sprite,
-    pub p4: Sprite,
-    pub p1_joined: Sprite,
-    pub p2_joined: Sprite,
-    pub p3_joined: Sprite,
-    pub p4_joined: Sprite,
-    pub p1_ready: Sprite,
-    pub p2_ready: Sprite,
-    pub p3_ready: Sprite,
-    pub p4_ready: Sprite,
-    pub p1_me: Sprite,
-    pub p2_me: Sprite,
-    pub p3_me: Sprite,
-    pub p4_me: Sprite,
-    pub p1_ready_me: Sprite,
-    pub p2_ready_me: Sprite,
-    pub p3_ready_me: Sprite,
-    pub p4_ready_me: Sprite,
+    lobby_bg: [Sprite; 4],
+    player_card_gray: [Sprite; 4],
+    player_card_joined: [Sprite; 4],
+    player_card_ready: [Sprite; 4],
+    player_card_joined_me: [Sprite; 4],
+    player_card_ready_me: [Sprite; 4],
 
     // =========================== game ui elements ===========================
-    pub crosshair: Sprite,
+    crosshair: Sprite,
 
-    pub p1_healthbar: Sprite,
-    pub p2_healthbar: Sprite,
-    pub p3_healthbar: Sprite,
-    pub p4_healthbar: Sprite,
+    health_bar_full: [Sprite; 4],
+    health_bar_half: [Sprite; 4],
+    health_bar_empty: [Sprite; 4],
 
-    pub p1_halfbar: Sprite,
-    pub p2_halfbar: Sprite,
-    pub p3_halfbar: Sprite,
-    pub p4_halfbar: Sprite,
+    ammo: [Sprite; 7],
+    //ammo_reload: [Sprite; 12],
 
-    pub p1_emptybar: Sprite,
-    pub p2_emptybar: Sprite,
-    pub p3_emptybar: Sprite,
-    pub p4_emptybar: Sprite,
+    player_circle_alive: [Sprite; 4],
+    player_circle_dead: [Sprite; 4],
 
-    pub ammo_0: Sprite,
-    pub ammo_1: Sprite,
-    pub ammo_2: Sprite,
-    pub ammo_3: Sprite,
-    pub ammo_4: Sprite,
-    pub ammo_5: Sprite,
-    pub ammo_6: Sprite,
-
-    pub p1_alive: Sprite,
-    pub p2_alive: Sprite,
-    pub p3_alive: Sprite,
-    pub p4_alive: Sprite,
-    
-    pub p1_dead: Sprite,
-    pub p2_dead: Sprite,
-    pub p3_dead: Sprite,
-    pub p4_dead: Sprite,
-
-    pub death_messages: [[Option<Fadable>; 4]; 4],
-    // pub p1_kill_p2: Fadable,
-    // pub p1_kill_p3: Fadable,
-    // pub p1_kill_p4: Fadable,
-    // pub p2_kill_p1: Fadable,
-    // pub p2_kill_p3: Fadable,
-    // pub p2_kill_p4: Fadable,
-    // pub p3_kill_p1: Fadable,
-    // pub p3_kill_p2: Fadable,
-    // pub p3_kill_p4: Fadable,
-    // pub p4_kill_p1: Fadable,
-    // pub p4_kill_p2: Fadable,
-    // pub p4_kill_p3: Fadable,
+    death_messages: [[Option<Fadable>; 4]; 4],
 
     pub damage: Fadable,
     pub hitmarker: Fadable,
 
     // ======================== game over ui elements =========================
-    pub game_over_bg: Sprite,
-    pub winner_txt: Sprite,
-    pub continue_txt: Sprite,
-    pub p1_winner: Sprite,
-    pub p2_winner: Sprite,
-    pub p3_winner: Sprite,
-    pub p4_winner: Sprite,
+    game_over_bg: Sprite,
+    winner_txt: Sprite,
+    continue_txt: Sprite,
 
-    pub bar_header: Sprite,
-    pub bar_1: Sprite,
-    pub bar_2: Sprite,
-    pub bar_3: Sprite,
-    pub bar_4: Sprite,
-
-    pub hits: [Sprite; 7],
-
-    pub p1_text_b1: Sprite,
-    pub p2_text_b1: Sprite,
-    pub p3_text_b1: Sprite,
-    pub p4_text_b1: Sprite,
+    winner_card: [Sprite; 4],
     
-    pub p1_text_b2: Sprite,
-    pub p2_text_b2: Sprite,
-    pub p3_text_b2: Sprite,
-    pub p4_text_b2: Sprite,
+    bar_header: Sprite,
+    leaderboard_bar: [Sprite; 4],
+    
+    hits: [Sprite; 7],
+    player_txt: [Sprite; 4],
+    player_you_txt: [Sprite; 4],
 
-    pub p1_text_b3: Sprite,
-    pub p2_text_b3: Sprite,
-    pub p3_text_b3: Sprite,
-    pub p4_text_b3: Sprite,
-
-    pub p1_text_b4: Sprite,
-    pub p2_text_b4: Sprite,
-    pub p3_text_b4: Sprite,
-    pub p4_text_b4: Sprite,
-
-    you_text: [Sprite; 4],
-
-    bar_1_pos: Vector2<f32>,
-    bar_2_pos: Vector2<f32>,
-    bar_3_pos: Vector2<f32>,
-    bar_4_pos: Vector2<f32>,
+    bar_pos: [Vector2<f32>; 4]
 }
 
 impl UI {
@@ -168,77 +87,102 @@ impl UI {
         UI {
             // ============================ splash screen =============================
             splash: init_sprite(s_size, id, SPLASH_PATH, bg_pos, LOBBY_BG_SCALE),
+
             // =========================== lobby background ===========================
-            p1_lobby: init_sprite(s_size, id, LOBBY_BG_1_PATH, bg_pos, LOBBY_BG_SCALE),
-            p2_lobby: init_sprite(s_size, id, LOBBY_BG_2_PATH, bg_pos, LOBBY_BG_SCALE),
-            p3_lobby: init_sprite(s_size, id, LOBBY_BG_3_PATH, bg_pos, LOBBY_BG_SCALE),
-            p4_lobby: init_sprite(s_size, id, LOBBY_BG_4_PATH, bg_pos, LOBBY_BG_SCALE),
+            lobby_bg: [
+                init_sprite(s_size, id, LOBBY_BG_1_PATH, bg_pos, LOBBY_BG_SCALE),
+                init_sprite(s_size, id, LOBBY_BG_2_PATH, bg_pos, LOBBY_BG_SCALE),
+                init_sprite(s_size, id, LOBBY_BG_3_PATH, bg_pos, LOBBY_BG_SCALE),
+                init_sprite(s_size, id, LOBBY_BG_4_PATH, bg_pos, LOBBY_BG_SCALE),
+            ],
             
             // =========================== gray player cards ==========================
-            p1: init_sprite(s_size, id, P1_PATH, p1_pos, PLAYER_SCALE),
-            p2: init_sprite(s_size, id, P2_PATH, p2_pos, PLAYER_SCALE),
-            p3: init_sprite(s_size, id, P3_PATH, p3_pos, PLAYER_SCALE),
-            p4: init_sprite(s_size, id, P4_PATH, p4_pos, PLAYER_SCALE),
+            player_card_gray: [
+                init_sprite(s_size, id, P1_PATH, p1_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P2_PATH, p2_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P3_PATH, p3_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P4_PATH, p4_pos, PLAYER_SCALE),
+            ],
 
             // ====================== client joined player cards ======================
-            p1_joined: init_sprite(s_size, id, P1_JOINED_PATH, p1_pos, PLAYER_SCALE),
-            p2_joined: init_sprite(s_size, id, P2_JOINED_PATH, p2_pos, PLAYER_SCALE),
-            p3_joined: init_sprite(s_size, id, P3_JOINED_PATH, p3_pos, PLAYER_SCALE),
-            p4_joined: init_sprite(s_size, id, P4_JOINED_PATH, p4_pos, PLAYER_SCALE),
+            player_card_joined: [
+                init_sprite(s_size, id, P1_JOINED_PATH, p1_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P2_JOINED_PATH, p2_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P3_JOINED_PATH, p3_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P4_JOINED_PATH, p4_pos, PLAYER_SCALE),
+            ],
 
             // ========================== ready player cards ==========================
-            p1_ready: init_sprite(s_size, id, P1_READY_PATH, p1_pos, PLAYER_SCALE),
-            p2_ready: init_sprite(s_size, id, P2_READY_PATH, p2_pos, PLAYER_SCALE),
-            p3_ready: init_sprite(s_size, id, P3_READY_PATH, p3_pos, PLAYER_SCALE),
-            p4_ready: init_sprite(s_size, id, P4_READY_PATH, p4_pos, PLAYER_SCALE),
+            player_card_ready: [
+                init_sprite(s_size, id, P1_READY_PATH, p1_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P2_READY_PATH, p2_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P3_READY_PATH, p3_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P4_READY_PATH, p4_pos, PLAYER_SCALE),
+            ],
 
-            // ========================= colored player cards =========================
-            p1_me: init_sprite(s_size, id, P1_ME_PATH, p1_pos, PLAYER_SCALE),
-            p2_me: init_sprite(s_size, id, P2_ME_PATH, p2_pos, PLAYER_SCALE),
-            p3_me: init_sprite(s_size, id, P3_ME_PATH, p3_pos, PLAYER_SCALE),
-            p4_me: init_sprite(s_size, id, P4_ME_PATH, p4_pos, PLAYER_SCALE),
+            // ========================= colored player cards (me) =========================
+            player_card_joined_me: [
+                init_sprite(s_size, id, P1_ME_PATH, p1_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P2_ME_PATH, p2_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P3_ME_PATH, p3_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P4_ME_PATH, p4_pos, PLAYER_SCALE),
+            ],
 
-            // ====================== colored ready player cards ======================
-            p1_ready_me: init_sprite(s_size, id, P1_READY_ME_PATH, p1_pos, PLAYER_SCALE),
-            p2_ready_me: init_sprite(s_size, id, P2_READY_ME_PATH, p2_pos, PLAYER_SCALE),
-            p3_ready_me: init_sprite(s_size, id, P3_READY_ME_PATH, p3_pos, PLAYER_SCALE),
-            p4_ready_me: init_sprite(s_size, id, P4_READY_ME_PATH, p4_pos, PLAYER_SCALE),
+            // ====================== colored ready player cards (me) ======================
+            player_card_ready_me: [
+                init_sprite(s_size, id, P1_READY_ME_PATH, p1_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P2_READY_ME_PATH, p2_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P3_READY_ME_PATH, p3_pos, PLAYER_SCALE),
+                init_sprite(s_size, id, P4_READY_ME_PATH, p4_pos, PLAYER_SCALE),
+            ],
 
             // ================================ HUD ===================================
             crosshair: init_sprite(s_size, id, CROSSHAIR_PATH, bg_pos, CROSSHAIR_SCALE),
 
-            p1_healthbar: init_with_anchor(s_size, id, P1_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p2_healthbar: init_with_anchor(s_size, id, P2_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p3_healthbar: init_with_anchor(s_size, id, P3_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p4_healthbar: init_with_anchor(s_size, id, P4_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+            health_bar_full: [
+                init_with_anchor(s_size, id, P1_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P2_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P3_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P4_HEALTH_FULL, health_pos, Anchor::BotLeft, BAR_SCALE),
+            ],
 
-            p1_halfbar: init_with_anchor(s_size, id, P1_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p2_halfbar: init_with_anchor(s_size, id, P2_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p3_halfbar: init_with_anchor(s_size, id, P3_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p4_halfbar: init_with_anchor(s_size, id, P4_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+            health_bar_half: [
+                init_with_anchor(s_size, id, P1_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P2_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P3_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P4_HEALTH_HALF, health_pos, Anchor::BotLeft, BAR_SCALE),
+            ],
 
-            p1_emptybar: init_with_anchor(s_size, id, P1_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p2_emptybar: init_with_anchor(s_size, id, P2_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p3_emptybar: init_with_anchor(s_size, id, P3_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
-            p4_emptybar: init_with_anchor(s_size, id, P4_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
-        
-            ammo_0: init_with_anchor(s_size, id, AMMO_0_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_1: init_with_anchor(s_size, id, AMMO_1_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_2: init_with_anchor(s_size, id, AMMO_2_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_3: init_with_anchor(s_size, id, AMMO_3_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_4: init_with_anchor(s_size, id, AMMO_4_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_5: init_with_anchor(s_size, id, AMMO_5_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
-            ammo_6: init_with_anchor(s_size, id, AMMO_6_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE), 
+            health_bar_empty: [
+                init_with_anchor(s_size, id, P1_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P2_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P3_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+                init_with_anchor(s_size, id, P4_HEALTH_EMPTY, health_pos, Anchor::BotLeft, BAR_SCALE),
+            ],
 
-            p1_alive: init_sprite(s_size, id, P1_ALIVE_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
-            p2_alive: init_sprite(s_size, id, P2_ALIVE_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
-            p3_alive: init_sprite(s_size, id, P3_ALIVE_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
-            p4_alive: init_sprite(s_size, id, P4_ALIVE_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+            ammo: [
+                init_with_anchor(s_size, id, AMMO_0_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_1_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_2_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_3_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_4_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_5_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE),
+                init_with_anchor(s_size, id, AMMO_6_PATH, ammo_pos, Anchor::BotRight, BAR_SCALE), 
+            ],
 
-            p1_dead: init_sprite(s_size, id, P1_DEAD_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
-            p2_dead: init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
-            p3_dead: init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
-            p4_dead: init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+            player_circle_alive: [
+                init_sprite(s_size, id, P1_ALIVE_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P2_ALIVE_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P3_ALIVE_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P4_ALIVE_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+            ],
+
+            player_circle_dead: [
+                init_sprite(s_size, id, P1_DEAD_PATH, c1_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P2_DEAD_PATH, c2_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P3_DEAD_PATH, c3_pos, PLAYER_CIRCLE_SCALE),
+                init_sprite(s_size, id, P4_DEAD_PATH, c4_pos, PLAYER_CIRCLE_SCALE),
+            ],
 
             death_messages: [
                 [
@@ -274,16 +218,21 @@ impl UI {
             game_over_bg: init_sprite(s_size, id, GAME_OVER_BG_PATH, bg_pos, LOBBY_BG_SCALE),
             winner_txt: init_sprite(s_size, id, WINNER_TXT_PATH, winner_txt_pos, WINNER_SCALE),
             continue_txt: init_sprite(s_size, id, CONTINUE_TXT_PATH, continue_pos, CONTINUE_SCALE),
-            p1_winner: init_sprite(s_size, id, P1_JOINED_PATH, winner_pos, WINNER_SCALE),
-            p2_winner: init_sprite(s_size, id, P2_JOINED_PATH, winner_pos, WINNER_SCALE),
-            p3_winner: init_sprite(s_size, id, P3_JOINED_PATH, winner_pos, WINNER_SCALE),
-            p4_winner: init_sprite(s_size, id, P4_JOINED_PATH, winner_pos, WINNER_SCALE),
+
+            winner_card: [
+                init_sprite(s_size, id, P1_JOINED_PATH, winner_pos, WINNER_SCALE),
+                init_sprite(s_size, id, P2_JOINED_PATH, winner_pos, WINNER_SCALE),
+                init_sprite(s_size, id, P3_JOINED_PATH, winner_pos, WINNER_SCALE),
+                init_sprite(s_size, id, P4_JOINED_PATH, winner_pos, WINNER_SCALE),
+            ],
 
             bar_header: init_sprite(s_size, id, BAR_HEADER_PATH, bar_header_pos, LEADERBOARD_SCALE),
-            bar_1: init_sprite(s_size, id, BAR_1_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            bar_2: init_sprite(s_size, id, BAR_2_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            bar_3: init_sprite(s_size, id, BAR_3_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            bar_4: init_sprite(s_size, id, BAR_4_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            leaderboard_bar: [
+                init_sprite(s_size, id, BAR_1_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, BAR_2_PATH, bar_2_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, BAR_3_PATH, bar_3_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, BAR_4_PATH, bar_4_pos, LEADERBOARD_SCALE),
+            ],
 
             hits: [
                 init_sprite(s_size, id, HITS_0_PATH, bar_1_pos, LEADERBOARD_SCALE),
@@ -295,37 +244,26 @@ impl UI {
                 init_sprite(s_size, id, HITS_6_PATH, bar_1_pos, LEADERBOARD_SCALE),
             ],
 
-            p1_text_b1: init_sprite(s_size, id, P1_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            p2_text_b1: init_sprite(s_size, id, P2_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            p3_text_b1: init_sprite(s_size, id, P3_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-            p4_text_b1: init_sprite(s_size, id, P4_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-
-            p1_text_b2: init_sprite(s_size, id, P1_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            p2_text_b2: init_sprite(s_size, id, P2_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            p3_text_b2: init_sprite(s_size, id, P3_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-            p4_text_b2: init_sprite(s_size, id, P4_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-
-            p1_text_b3: init_sprite(s_size, id, P1_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            p2_text_b3: init_sprite(s_size, id, P2_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            p3_text_b3: init_sprite(s_size, id, P3_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-            p4_text_b3: init_sprite(s_size, id, P4_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-
-            p1_text_b4: init_sprite(s_size, id, P1_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            p2_text_b4: init_sprite(s_size, id, P2_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            p3_text_b4: init_sprite(s_size, id, P3_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
-            p4_text_b4: init_sprite(s_size, id, P4_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE),
-
-            you_text: [
-                init_sprite(s_size, id, P1_YOU_TEXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
-                init_sprite(s_size, id, P2_YOU_TEXT_PATH, bar_2_pos, LEADERBOARD_SCALE),
-                init_sprite(s_size, id, P3_YOU_TEXT_PATH, bar_3_pos, LEADERBOARD_SCALE),
-                init_sprite(s_size, id, P4_YOU_TEXT_PATH, bar_4_pos, LEADERBOARD_SCALE)
+            player_txt: [
+                init_sprite(s_size, id, P1_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P2_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P3_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P4_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
             ],
 
-            bar_1_pos,
-            bar_2_pos,
-            bar_3_pos,
-            bar_4_pos
+            player_you_txt: [
+                init_sprite(s_size, id, P1_YOU_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P2_YOU_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P3_YOU_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+                init_sprite(s_size, id, P4_YOU_TXT_PATH, bar_1_pos, LEADERBOARD_SCALE),
+            ],
+
+            bar_pos: [
+                bar_1_pos,
+                bar_2_pos,
+                bar_3_pos,
+                bar_4_pos,
+            ]
         }
     }
 
@@ -333,64 +271,24 @@ impl UI {
         unsafe {
             self.crosshair.draw();
             self.hitmarker.draw();
-
-            match client_ammo {
-                0 => self.ammo_0.draw(),
-                1 => self.ammo_1.draw(),
-                2 => self.ammo_2.draw(),
-                3 => self.ammo_3.draw(),
-                4 => self.ammo_4.draw(),
-                5 => self.ammo_5.draw(),
-                6 => self.ammo_6.draw(),
-                _ => ()
-            }
+            self.ammo[client_id].draw();
 
             match c_ecs {
                 Some(ecs) => {
                     for (i, player) in ecs.players.iter().enumerate() {
                         if ecs.health_components[*player].alive {
-                            match i {
-                                0 => self.p1_alive.draw(),
-                                1 => self.p2_alive.draw(),
-                                2 => self.p3_alive.draw(),
-                                3 => self.p4_alive.draw(),
-                                _ => ()
-                            }
+                            self.player_circle_alive[i].draw();
                         } else {
-                            match i {
-                                0 => self.p1_dead.draw(),
-                                1 => self.p2_dead.draw(),
-                                2 => self.p3_dead.draw(),
-                                3 => self.p4_dead.draw(),
-                                _ => ()
-                            }
+                            self.player_circle_dead[i].draw();
                         }
 
                         if i == client_id {
                             if client_alive && ecs.health_components[*player].health == 2 {
-                                    match client_id {
-                                    0 => self.p1_healthbar.draw(),
-                                    1 => self.p2_healthbar.draw(),
-                                    2 => self.p3_healthbar.draw(),
-                                    3 => self.p4_healthbar.draw(),
-                                    _ => ()
-                                }
+                                self.health_bar_full[client_id].draw();
                             } else if client_alive && ecs.health_components[*player].health == 1 {
-                                match client_id {
-                                    0 => self.p1_halfbar.draw(),
-                                    1 => self.p2_halfbar.draw(),
-                                    2 => self.p3_halfbar.draw(),
-                                    3 => self.p4_halfbar.draw(),
-                                    _ => ()
-                                }
+                                self.health_bar_half[client_id].draw();
                             } else {
-                                match client_id {
-                                    0 => self.p1_emptybar.draw(),
-                                    1 => self.p2_emptybar.draw(),
-                                    2 => self.p3_emptybar.draw(),
-                                    3 => self.p4_emptybar.draw(),
-                                    _ => ()
-                                }
+                                self.health_bar_empty[client_id].draw();
                             }
                         }
                     }
@@ -421,127 +319,22 @@ impl UI {
         }
     }
 
-    pub fn draw_lobby(&mut self, l: &mut LobbyECS, client_id: usize) {
+    pub fn draw_lobby(&mut self, l: &mut LobbyECS, curr_id: usize) {
         unsafe {
-            match client_id {
-                0 => self.p1_lobby.draw(),
-                1 => self.p2_lobby.draw(),
-                2 => self.p3_lobby.draw(),
-                3 => self.p4_lobby.draw(),
-                _ => ()
-            }
+            self.lobby_bg[curr_id].draw();
 
-            match l.players.len() {
-                0 => {
-                    self.p1.draw();
-                    self.p2.draw();
-                    self.p3.draw();
-                    self.p4.draw();
-                },
-                1 => {
-                    if l.ready_players.contains_key(l.players[0]) {
-                        if client_id == 0 { self.p1_ready_me.draw(); }
-                        else { self.p1_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 0 { self.p1_me.draw(); }
-                        else { self.p1_joined.draw(); }
-                    }
-
-                    self.p2.draw();
-                    self.p3.draw();
-                    self.p4.draw();
-                },
-                2 => {
-                    if l.ready_players.contains_key(l.players[0]) {
-                        if client_id == 0 { self.p1_ready_me.draw(); }
-                        else { self.p1_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 0 { self.p1_me.draw(); }
-                        else { self.p1_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[1]) {
-                        if client_id == 1 { self.p2_ready_me.draw(); }
-                        else { self.p2_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 1 { self.p2_me.draw(); }
-                        else { self.p2_joined.draw(); }
-                    }
-
-                    self.p3.draw();
-                    self.p4.draw();
-                },
-                3 => {
-                    if l.ready_players.contains_key(l.players[0]) {
-                        if client_id == 0 { self.p1_ready_me.draw(); }
-                        else { self.p1_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 0 { self.p1_me.draw(); }
-                        else { self.p1_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[1]) {
-                        if client_id == 1 { self.p2_ready_me.draw(); }
-                        else { self.p2_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 1 { self.p2_me.draw(); }
-                        else { self.p2_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[2]) {
-                        if client_id == 2 { self.p3_ready_me.draw(); }
-                        else { self.p3_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 2 { self.p3_me.draw(); }
-                        else { self.p3_joined.draw(); }
-                    }
-
-                    self.p4.draw();
-                },
-                4 => {
-                    if l.ready_players.contains_key(l.players[0]) {
-                        if client_id == 0 { self.p1_ready_me.draw(); }
-                        else { self.p1_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 0 { self.p1_me.draw(); }
-                        else { self.p1_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[1]) {
-                        if client_id == 1 { self.p2_ready_me.draw(); }
-                        else { self.p2_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 1 { self.p2_me.draw(); }
-                        else { self.p2_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[2]) {
-                        if client_id == 2 { self.p3_ready_me.draw(); }
-                        else { self.p3_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 2 { self.p3_me.draw(); }
-                        else { self.p3_joined.draw(); }
-                    }
-
-                    if l.ready_players.contains_key(l.players[3]) {
-                        if client_id == 3 { self.p4_ready_me.draw(); }
-                        else { self.p4_ready.draw(); }
-                    }
-                    else {
-                        if client_id == 3 { self.p4_me.draw(); }
-                        else { self.p4_joined.draw(); }
-                    }
-                },
-                _ => ()
+            for i in 0..4 {
+                if i >= l.players.len() {
+                    self.player_card_gray[i].draw();
+                }
+                else if l.ready_players.contains_key(l.players[i]) {
+                    if curr_id == i { self.player_card_ready_me[i].draw(); }
+                    else { self.player_card_ready[i].draw(); }
+                }
+                else {
+                    if curr_id == i { self.player_card_joined_me[i].draw(); }
+                    else { self.player_card_joined[i].draw(); }
+                }
             }
         }
     }
@@ -552,10 +345,10 @@ impl UI {
             self.winner_txt.draw();
             self.continue_txt.draw();
             self.bar_header.draw();
-            self.bar_1.draw();
-            self.bar_2.draw();
-            self.bar_3.draw();
-            self.bar_4.draw();
+
+            for i in 0..4 {
+                self.leaderboard_bar[i].draw();
+            }
 
             match c_ecs {
                 Some(ecs) => {
@@ -564,80 +357,28 @@ impl UI {
                             ecs.health_components[*player].alive &&
                             ecs.health_components[*player].health > 0
                         {
-                            match i {
-                                0 => {
-                                    self.p1_winner.draw();
-                                    self.p1_text_b1.draw();
-                                }
-                                1 => {
-                                    self.p2_winner.draw();
-                                    self.p2_text_b1.draw();
-                                }
-                                2 => {
-                                    self.p3_winner.draw();
-                                    self.p3_text_b1.draw();
-                                }
-                                3 => {
-                                    self.p4_winner.draw();
-                                    self.p4_text_b1.draw();
-                                }
-                                _ => ()
-                            }
+                            self.winner_card[i].draw();
+
+                            self.player_txt[i].set_position(self.bar_pos[0]);
+                            self.player_txt[i].draw();
+                            
                             let hit_count = &mut self.hits[ecs.health_components[*player].hits as usize];
-                            hit_count.set_position(self.bar_1_pos);
+                            hit_count.set_position(self.bar_pos[0]);
                             hit_count.draw();
                         }
                     }
 
                     for (i, player) in rankings.iter().enumerate() {
-                        if i == 0 {             // row 2
-                            match player {
-                                0 => self.p1_text_b2.draw(),
-                                1 => self.p2_text_b2.draw(),
-                                2 => self.p3_text_b2.draw(),
-                                3 => self.p4_text_b2.draw(),
-                                _ => ()
-                            }
-                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
-                            hit_count.set_position(self.bar_2_pos);
-                            hit_count.draw();
-                        } else if i == 1 {      // row 3
-                            match player {
-                                0 => self.p1_text_b3.draw(),
-                                1 => self.p2_text_b3.draw(),
-                                2 => self.p3_text_b3.draw(),
-                                3 => self.p4_text_b3.draw(),
-                                _ => ()
-                            }
-                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
-                            hit_count.set_position(self.bar_3_pos);
-                            hit_count.draw();
-                        } else if i == 2 {      // row 4
-                            match player {
-                                0 => self.p1_text_b4.draw(),
-                                1 => self.p2_text_b4.draw(),
-                                2 => self.p3_text_b4.draw(),
-                                3 => self.p4_text_b4.draw(),
-                                _ => ()
-                            }
-                            let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
-                            hit_count.set_position(self.bar_4_pos);
-                            hit_count.draw();
-                        }
+                        self.player_txt[*player].set_position(self.bar_pos[i+1]);
+                        self.player_txt[*player].draw();
+                        
+                        let hit_count = &mut self.hits[ecs.health_components[ecs.players[*player]].hits as usize];
+                        hit_count.set_position(self.bar_pos[i+1]);
+                        hit_count.draw();
                     }
                 }
                 None => ()
             }
-
-            // self.hits_3_b1.draw();
-            // self.hits_2_b2.draw();
-            // self.hits_1_b3.draw();
-            // self.hits_0_b4.draw();
-
-            // self.hits_9_b1.set_position(vec2(0.0, 0.0));
-            // self.hits_9_b1.draw();
-            // self.hits_9_b1.set_position(vec2(100.0, 100.0));
-            // self.hits_9_b1.draw();
         }
     }
 

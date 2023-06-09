@@ -280,13 +280,12 @@ fn main() -> io::Result<()> {
                 unsafe {
                     gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-                    curr_id = client_id;
-                    if lobby_ecs.ids.len() > curr_id && lobby_ecs.players.contains(& lobby_ecs.ids[curr_id]) {
+                    if lobby_ecs.ids.len() > 0 {
                         curr_id = lobby_ecs.players.iter().position(|&r| r == lobby_ecs.ids[client_id]).unwrap();
+                        gl::DepthMask(gl::FALSE);
+                        ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
+                        gl::DepthMask(gl::TRUE);
                     }
-                    gl::DepthMask(gl::FALSE);
-                    ui_elems.draw_lobby(&mut lobby_ecs, curr_id);
-                    gl::DepthMask(gl::TRUE);
                 }
 
                 // poll server for ready message or ready-player updates

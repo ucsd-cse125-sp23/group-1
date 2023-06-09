@@ -62,15 +62,15 @@ pub const HITS_4_PATH: &str = "resources/ui_textures/game_over/hits-4.png";
 pub const HITS_5_PATH: &str = "resources/ui_textures/game_over/hits-5.png";
 pub const HITS_6_PATH: &str = "resources/ui_textures/game_over/hits-6.png";
 
-pub const P1_TEXT_PATH: &str = "resources/ui_textures/game_over/p1.png";
-pub const P2_TEXT_PATH: &str = "resources/ui_textures/game_over/p2.png";
-pub const P3_TEXT_PATH: &str = "resources/ui_textures/game_over/p3.png";
-pub const P4_TEXT_PATH: &str = "resources/ui_textures/game_over/p4.png";
+pub const P1_TXT_PATH: &str = "resources/ui_textures/game_over/p1.png";
+pub const P2_TXT_PATH: &str = "resources/ui_textures/game_over/p2.png";
+pub const P3_TXT_PATH: &str = "resources/ui_textures/game_over/p3.png";
+pub const P4_TXT_PATH: &str = "resources/ui_textures/game_over/p4.png";
 
-pub const P1_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p1-you.png";
-pub const P2_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p2-you.png";
-pub const P3_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p3-you.png";
-pub const P4_YOU_TEXT_PATH: &str = "resources/ui_textures/game_over/p4-you.png";
+pub const P1_YOU_TXT_PATH: &str = "resources/ui_textures/game_over/p1-you.png";
+pub const P2_YOU_TXT_PATH: &str = "resources/ui_textures/game_over/p2-you.png";
+pub const P3_YOU_TXT_PATH: &str = "resources/ui_textures/game_over/p3-you.png";
+pub const P4_YOU_TXT_PATH: &str = "resources/ui_textures/game_over/p4-you.png";
 
 pub const P1_PATH: &str = "resources/ui_textures/player_cards/p1.png";
 pub const P2_PATH: &str = "resources/ui_textures/player_cards/p2.png";
