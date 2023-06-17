@@ -11,6 +11,9 @@
 </p>
 <br />
 
+[![Issues](https://img.shields.io/github/issues/ucsd-cse125-sp23/group-1)](https://github.com/ucsd-cse125-sp23/group-1/issues)
+[![Contributors](https://img.shields.io/github/contributors/ucsd-cse125-sp23/group-1)](https://github.com/ucsd-cse125-sp23/group-1/graphs/contributors)
+
 ## 💻 Installation
 
 1. Clone the repo
