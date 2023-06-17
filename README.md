@@ -13,6 +13,8 @@
 
 [![Issues](https://img.shields.io/github/issues/ucsd-cse125-sp23/group-1)](https://github.com/ucsd-cse125-sp23/group-1/issues)
 [![Contributors](https://img.shields.io/github/contributors/ucsd-cse125-sp23/group-1)](https://github.com/ucsd-cse125-sp23/group-1/graphs/contributors)
+[![Forks](https://img.shields.io/github/forks/ucsd-cse125-sp23/group-1)](https://github.com/ucsd-cse125-sp23/group-1/forks)
+
 
 ## 💻 Installation
 
